@@ -27,8 +27,9 @@ h1{font-size:1.5rem;font-weight:800;margin:0;letter-spacing:-.02em;line-height:1
 .cash{text-align:right}
 .cash b{display:block;font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
 .cash span{color:var(--muted);font-size:.8rem}
-.mapwrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:#16395A;-webkit-overflow-scrolling:touch}
-#map{display:block;cursor:pointer}
+.mapwrap{position:relative;height:min(62vh,540px);min-height:320px;border-radius:14px;border:1px solid var(--line);overflow:hidden;background:radial-gradient(ellipse at center,#10213A 0%,#04070D 70%)}
+#map{position:absolute;inset:0}
+#map .maplibregl-ctrl-attrib{font-size:.68rem}
 .maplegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.74rem;color:var(--muted);margin:6px 2px 0}
 .maplegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px}

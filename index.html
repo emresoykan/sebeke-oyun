@@ -16,10 +16,10 @@
     <div class="cash"><b id="cash">–</b><span>Nakit</span></div>
   </header>
 
-  <div class="mapwrap" id="mapwrap"><canvas id="map" aria-label="Dünya haritası, kare seçmek için dokun" role="img"></canvas></div>
+  <div class="mapwrap" id="mapwrap"><div id="map" role="application" aria-label="Dünya haritası: döndürmek için sürükle, yakınlaştırmak için kaydır veya iki parmakla aç, saha seçmek için dokun"></div></div>
   <div class="maplegend">
-    <span><i style="background:#9DB77A"></i>Ova</span><span><i style="background:#3F7A4A"></i>Orman</span><span><i style="background:#A39177"></i>Dağ (HES)</span>
-    <span><i style="background:#E2C98B"></i>Çöl</span><span><i style="background:#5E8FB8"></i>Sığ deniz (offshore)</span><span><i style="background:#2E6B3B;outline:2px solid #C2364A;outline-offset:-2px"></i>Korunan alan</span>
+    <span><i style="background:rgba(255,255,255,.25);outline:2px solid #fff;outline-offset:-2px;border-radius:50%"></i>Senin sahan</span><span><i style="background:#F2C94C;border-radius:50%"></i>İzin bekliyor</span><span><i style="background:#F06A7D;border-radius:50%"></i>İzin reddedildi</span>
+    <span><i style="background:var(--solar);border-radius:50%"></i>GES</span><span><i style="background:var(--wind);border-radius:50%"></i>RES</span><span><i style="background:var(--hydro);border-radius:50%"></i>HES</span><span><i style="background:var(--batt);border-radius:50%"></i>Batarya</span><span><i style="background:rgba(194,54,74,.35);outline:1px dashed #F06A7D;outline-offset:-1px"></i>Korunan alan</span>
   </div>
 
   <div class="panel" id="panel"></div>
@@ -42,7 +42,7 @@
   </div>
 
   <h2>Bildirimler</h2>
-  <div class="report"><ul class="log" id="log"><li style="color:var(--muted)">Haritada bir kareye dokun, araziyi satın al ve izin başvurusu yap.</li></ul></div>
+  <div class="report"><ul class="log" id="log"><li style="color:var(--muted)">Dünyayı döndür, yakınlaştır ve bir noktaya dokun; araziyi satın al ve izin başvurusu yap.</li></ul></div>
 
   <h2>Dünün raporu</h2>
   <div class="report" id="report"><p style="margin:0;color:var(--muted)">İlk gün bitince burada santral türlerine göre gelir ve capture oranını göreceksin.</p></div>
@@ -59,7 +59,7 @@
     <div class="goal"><div id="goalBar"></div></div>
   </div>
 
-  <footer>Prototip. Harita 9°×9° karelerden oluşan kaba bir çizimdir. Fiyatlar, maliyetler, kaynak potansiyelleri ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir.</footer>
+  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir.</footer>
 </main>
 
 <script type="module" src="/src/main.js"></script>

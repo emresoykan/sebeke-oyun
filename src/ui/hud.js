@@ -1,7 +1,6 @@
 // --- Grafik ve göstergeler ---
 import { GOAL, REG, MARKETS } from "../config.js";
-import { T } from "../world.js";
-import { S, D, save } from "../state.js";
+import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth } from "../sim.js";
 import { updateButtons } from "./panel.js";
@@ -9,12 +8,12 @@ import { updateButtons } from "./panel.js";
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
   const t=(h-a[0])/((b[0]-a[0])||1),m=i=>Math.round(parseInt(a[1].substr(i,2),16)*(1-t)+parseInt(b[1].substr(i,2),16)*t);return`rgb(${m(1)},${m(3)},${m(5)})`;}
-function selMarket(){return T[S.sel].mreg||"T";}
+function selMarket(){return selSite().mreg||"T";}
 export function drawChart(){
   const cv=document.getElementById("chart"),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext("2d");x.scale(dpr,dpr);
   const k=selMarket(),M=D[k],CAP=110*REG[k].mult,padT=34,padB=20,padL=8,padR=8,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
-  const mw=Math.max(5,S.plants.filter(p=>T[p.t].mreg===k).reduce((a,p)=>a+p.mw,0)),sc=(ph*0.55)/mw;
+  const mw=Math.max(5,S.plants.filter(p=>S.sites[p.t].mreg===k).reduce((a,p)=>a+p.mw,0)),sc=(ph*0.55)/mw;
   for(let h=0;h<S.hour;h++){const g=M.gen[h],bx=padL+h*cw+cw*.15,bw=cw*.7;let y=bot;
     [["s","--solar"],["w","--wind"],["h","--hydro"]].forEach(([q,c])=>{const v=g[q]*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
     if(g.b>0){const v=g.b*sc;x.fillStyle=cssv("--batt");x.fillRect(bx,y-v,bw,v);}
