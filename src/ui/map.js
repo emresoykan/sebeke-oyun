@@ -16,6 +16,13 @@ import { renderPanel } from "./panel.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
+// Glif dosyaları base64 JSON olarak saklanır (bazı statik sunucular .pbf servis etmez); eksik aralık boş döner
+maplibregl.addProtocol("glyphs",async({url})=>{
+  const [,stack,range]=url.match(/^glyphs:\/\/(.+)\/(\d+-\d+)$/);
+  const r=await fetch(`${base}fonts/${encodeURIComponent(decodeURIComponent(stack))}/${range}.json`);
+  if(!r.ok)return{data:new ArrayBuffer(0)};
+  return{data:Uint8Array.from(atob(await r.json()),c=>c.charCodeAt(0)).buffer};
+});
 // Bantlar ters sırada eklenir: üstteki katman çakışmada önce yerleşir, böylece büyük şehir/ülke adları öncelik alır
 const FONT=["Noto Sans Regular"], BANDS=[7,6,5,4,3,2,1,0];
 const band=mz=>Math.min(7,Math.max(0,Math.floor(mz)));
@@ -63,7 +70,7 @@ function layers(){
 export function initMap(){
   map=new maplibregl.Map({
     container:"map",center:[S.sel.lon,S.sel.lat],zoom:innerWidth<600?1.5:2.4,minZoom:0.5,maxZoom:9,attributionControl:{compact:true},
-    style:{version:8,projection:{type:"globe"},glyphs:base+"fonts/{fontstack}/{range}.pbf",
+    style:{version:8,projection:{type:"globe"},glyphs:"glyphs://{fontstack}/{range}",
       sky:{"atmosphere-blend":["interpolate",["linear"],["zoom"],0,1,5,1,7,0]},
       sources:{
         sat:{type:"raster",tiles:[base+"tiles/{z}/{x}/{y}.jpg"],tileSize:256,maxzoom:4,attribution:"Görüntü: NASA Blue Marble"},

@@ -30,7 +30,7 @@ npm run preview  # derlemeyi yerelde sun
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
 | `public/tiles/` | Uydu karoları (Web Mercator, z0–z4) |
-| `public/fonts/` | Harita etiketleri için Noto Sans glif dosyaları |
+| `public/fonts/` | Harita etiketleri için Noto Sans glif dosyaları (PBF, base64 JSON içinde) |
 | `scripts/` | Harita verisini ve karoları yeniden üreten Python script'leri |
 
 `S` ve `D` modüller arasında canlı bağlama (live binding) olarak okunur; yeniden atama yalnızca `setS`/`setD` ile yapılır.
