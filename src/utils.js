@@ -7,3 +7,6 @@ export const fmt$=x=>{const s=x<0?"−":"";x=Math.abs(x);return s+(x>=1e6?(x/1e6
 export const fmtP=x=>Math.round(x)+" $/MWh";
 export const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 export const dots=v=>{const n=Math.round(v*5);return "●".repeat(n)+"○".repeat(5-n);};
+// Gün ışığı (0 gece – 1 tam gündüz): güneş 06:00'da doğar, 19:00'da batar; 3D sahne ve harita ortak kullanır
+export const sunElevation=h=>{const t=(h+0.5-6)/13;return t<0||t>1?-0.2:Math.sin(Math.PI*t)*66*Math.PI/180;};
+export const daylight=h=>clamp((Math.sin(sunElevation(h))+0.05)/0.35,0,1);

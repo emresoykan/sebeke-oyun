@@ -13,7 +13,7 @@ import { cssv } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
-import { syncScenes, scaleScenes } from "./scenes.js";
+import { modelLayer, syncModels, pickModel } from "./models.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
@@ -31,9 +31,11 @@ const fc=features=>({type:"FeatureCollection",features});
 const pt=(lon,lat,properties)=>({type:"Feature",properties,geometry:{type:"Point",coordinates:[lon,lat]}});
 const STATUS={none:"rgba(255,255,255,.9)",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 
-let map=null, ready=false, markerClickAt=0;
+let map=null, ready=false;
 
-function selectSite(id){markerClickAt=performance.now();const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
+function selectSite(id){const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
+// Seçili sahaya eğik açıyla yaklaş (3D görünüm)
+export function flyToSite(id){const o=S.sites[id];if(map&&o)map.flyTo({center:[o.lon,o.lat],zoom:8.3,pitch:62,bearing:-28,duration:2200});}
 
 function circle(lat,lon,r){const c=[];for(let i=0;i<=48;i++){const a=i/48*2*Math.PI;c.push([lon+r/(111.32*Math.cos(lat*Math.PI/180))*Math.cos(a),lat+r/110.57*Math.sin(a)]);}return c;}
 const parksFC=fc(PROTECTED.map(([n,lat,lon,r])=>({type:"Feature",properties:{n},geometry:{type:"Polygon",coordinates:[circle(lat,lon,r)]}})));
@@ -43,8 +45,9 @@ const labelsFC=fc(countryLabels.features.map(f=>({...f,properties:{...f.properti
 function layers(){
   const L=[
     {id:"ocean",type:"background",paint:{"background-color":"#0B1D33"}},
-    {id:"sat",type:"raster",source:"sat",paint:{"raster-fade-duration":150}},
-    {id:"tr-fill",type:"fill",source:"countries",filter:["==",["get","a3"],"TUR"],paint:{"fill-color":"#C2364A","fill-opacity":0.12}},
+    {id:"sat",type:"raster",source:"sat",paint:{"raster-fade-duration":150,"raster-brightness-max-transition":{duration:900},"raster-saturation-transition":{duration:900}}},
+    {id:"night",type:"raster",source:"night",paint:{"raster-opacity":0,"raster-opacity-transition":{duration:900},"raster-fade-duration":150}},
+    {id:"tr-fill",type:"fill",source:"countries",filter:["==",["get","a3"],"TUR"],paint:{"fill-color":"#C2364A","fill-opacity":0.12,"fill-opacity-transition":{duration:900}}},
     {id:"borders",type:"line",source:"countries",paint:{"line-color":"rgba(255,255,255,.55)","line-width":["interpolate",["linear"],["zoom"],0,0.4,4,0.9,8,1.6]}},
     {id:"tr-border",type:"line",source:"countries",filter:["==",["get","a3"],"TUR"],paint:{"line-color":"#F06A7D","line-width":["interpolate",["linear"],["zoom"],0,0.8,6,2]}},
     {id:"parks",type:"fill",source:"parks",paint:{"fill-color":"#C2364A","fill-opacity":0.22}},
@@ -72,11 +75,12 @@ function layers(){
 
 export function initMap(){
   map=new maplibregl.Map({
-    container:"map",center:[S.sel.lon,S.sel.lat],zoom:innerWidth<600?1.5:2.4,minZoom:0.5,maxZoom:9,attributionControl:{compact:true},
+    container:"map",center:[S.sel.lon,S.sel.lat],zoom:innerWidth<600?1.5:2.4,minZoom:0.5,maxZoom:9,maxPitch:72,attributionControl:{compact:true},canvasContextAttributes:{antialias:true},
     style:{version:8,projection:{type:"globe"},glyphs:"glyphs://{fontstack}/{range}",
       sky:{"atmosphere-blend":["interpolate",["linear"],["zoom"],0,1,5,1,7,0]},
       sources:{
         sat:{type:"raster",tiles:[base+"tiles/{z}/{x}/{y}.jpg"],tileSize:256,maxzoom:4,attribution:"Görüntü: NASA Blue Marble"},
+        night:{type:"raster",tiles:[base+"tiles-night/{z}/{x}/{y}.jpg"],tileSize:256,maxzoom:3,attribution:"Gece ışıkları: NASA Black Marble"},
         countries:{type:"geojson",data:countries,attribution:"Sınırlar ve şehirler: Natural Earth"},
         labels:{type:"geojson",data:labelsFC},cities:{type:"geojson",data:citiesFC},parks:{type:"geojson",data:parksFC},
         sites:{type:"geojson",data:fc([])},sel:{type:"geojson",data:fc([])}
@@ -85,10 +89,9 @@ export function initMap(){
   });
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
   map.addControl(new maplibregl.GlobeControl(),"top-right");
-  map.on("zoom",()=>scaleScenes(map));
-  map.on("load",()=>{ready=true;scaleScenes(map);drawMap();document.querySelector("#map .maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");});
+  map.on("load",()=>{ready=true;map.addLayer(modelLayer,"sel-outer");drawMap();document.querySelector("#map .maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");});
   map.on("click",e=>{
-    if(performance.now()-markerClickAt<400)return; // santral görseline tıklandı
+    const hit=pickModel(e.point);if(hit)return selectSite(hit); // 3D modele tıklandı
     const p=e.point,f=map.queryRenderedFeatures([[p.x-10,p.y-10],[p.x+10,p.y+10]],{layers:["sites"]});
     const lat=e.lngLat.lat,lon=((e.lngLat.lng+540)%360)-180;
     let id=f.length?f[0].properties.id:null;
@@ -97,6 +100,15 @@ export function initMap(){
     renderPanel();drawMap();render();
   });
   if(import.meta.env.DEV)window.__map=map;
+}
+
+// Oyun saatine göre gece/gündüz: dünyayı karart, gece şehir ışıklarını göster
+let lastDay=-1;
+export function setDaylight(day){
+  if(!ready||Math.abs(day-lastDay)<0.01)return;lastDay=day;
+  map.setPaintProperty("sat","raster-brightness-max",0.3+0.7*day);map.setPaintProperty("sat","raster-saturation",-0.35*(1-day));
+  map.setPaintProperty("night","raster-opacity",0.92*Math.max(0,Math.min(1,(0.35-day)/0.35)));
+  map.setPaintProperty("tr-fill","fill-opacity",0.03+0.09*day);
 }
 
 // Sahaları ve seçimi haritaya yansıt (eski kare çiziminin yerine)
@@ -108,5 +120,5 @@ export function drawMap(){
   });
   map.getSource("sites").setData(fc(feats));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
-  syncScenes(map,selectSite);
+  syncModels();
 }
