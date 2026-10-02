@@ -1,18 +1,24 @@
-// --- 3D santral modelleri: MapLibre özel (custom) katmanında three.js ile çizilir ---
-// Her saha kendi sahnesinde, gerçek boyutlu (metre) yerel koordinatlarla kurulur: x=doğu, y=yukarı, z=güney.
-// Sahne, küre (veya Mercator) üzerindeki noktaya kendi model matrisiyle yerleştirilir ve uzaktan görünsün
-// diye zoom'a göre büyütülür. Güneş oyun saatine göre hareket eder; gölgeler zemine düşer.
+// --- 3D santral modelleri: three.js ile kurulur, glTF olarak Cesium'a verilir ---
+// Her saha gerçek boyutlu (metre) yerel koordinatlarla kurulur: x=doğu, y=yukarı, z=güney. glTF'ye
+// dönüştürülüp sahanın doğu-kuzey-yukarı çerçevesine yerleştirilir; Cesium güneşe göre aydınlatır,
+// gölgelerini düşürür ve uzaktan görünsün diye en az belirli bir piksel boyutunda çizer.
+// Hareketli parçalar (rotorlar, ikaz ışıkları, dolusavak, durum LED'leri) düğüm adlarıyla canlandırılır.
 import * as THREE from "three";
-import * as maplibregl from "maplibre-gl";
+import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import * as Cesium from "cesium";
 import { S } from "../state.js";
 import { plantStatus } from "../plantstatus.js";
-import { sunElevation } from "../utils.js";
 
-const R_EARTH=6371008.8, TURBINE_H=163, RAD=Math.PI/180;
+const RAD=Math.PI/180;
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
-let map=null, renderer=null, camera=null, M=null, lastT=0, env=null;
-const sites=new Map(); // saha id -> {sig, scene, parts, box, sun, hemi, sunDir}
-const picks=[];        // son karede ekrandaki modellerin sınır kutuları (tıklama için)
+let scene=null, M=null, lastT=0;
+const sites=new Map(); // saha id -> {sig, model, parts}
+
+// Durum LED'i: her durum için üst üste bir ağ; Cesium'da yalnızca biri görünür
+function ledSet(g,geo,[x,y,z],mats,name){
+  const names={};for(const [st,mat] of Object.entries(mats)){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.name=`${name}_${st}`;g.add(m);names[st]=m.name;}
+  return names;
+}
 
 // ---- dokular (canvas ile üretilir, dış dosya yok) ----
 function tex(w,h,draw,rep){const c=document.createElement("canvas");c.width=w;c.height=h;draw(c.getContext("2d"),w,h);
@@ -33,7 +39,9 @@ function materials(){
     container:std({map:ribs,roughness:.5,metalness:.15}), dam:std({color:0xCDC7BA,roughness:.9}), earth:std({color:0x7A7450,roughness:1}),
     water:std({color:0x1C5A82,roughness:.05,metalness:.3,transparent:true,opacity:.94}),
     river:std({map:ripple,roughness:.12,metalness:.2}), foam:std({map:foam,roughness:.45,transparent:true,opacity:.95}),
-    shadow:new THREE.ShadowMaterial({opacity:.4}), beacon:new THREE.MeshBasicMaterial({color:0xFF2236})
+    beacon:new THREE.MeshBasicMaterial({color:0xFF2236}),
+    ledG:new THREE.MeshBasicMaterial({color:0x3CC495}), ledA:new THREE.MeshBasicMaterial({color:0xF2A93B}),
+    ledR:new THREE.MeshBasicMaterial({color:0xF06A7D}), ledO:new THREE.MeshBasicMaterial({color:0x39424A})
   };
 }
 
@@ -60,9 +68,9 @@ function turbine(sea,parts){
   const rotor=new THREE.Group();rotor.position.set(-3.8,top+2,0);
   const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
   for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
-  rotor.rotation.x=Math.random()*Math.PI;g.add(rotor);
-  const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(4,top+4.6,0);g.add(bc);
-  parts.rotors.push({rotor,w:0,f:.92+Math.random()*.16});parts.beacons.push(bc);
+  const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);
+  const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(4,top+4.6,0);bc.name=`beacon${k}`;g.add(bc);
+  parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});parts.beacons.push(bc.name);
   return g;
 }
 function windFarm(mw,sea,parts,yaw){
@@ -95,17 +103,16 @@ function solarFarm(mw,lat,parts){
   g.add(pad(L+14,D+12,M.gravel),pad(7,D+12,M.road,.08),panels,legs);
   const nInv=Math.max(1,Math.round(mw/10));
   for(let b=0;b<nInv;b++){const z=(b-(nInv-1)/2)*(D/nInv);g.add(box(3,2.6,6,M.grey,0,1.3,z));
-    const led=new THREE.Mesh(new THREE.BoxGeometry(.1,.5,.5),new THREE.MeshBasicMaterial({color:0x3CC495}));led.position.set(1.56,2,z);g.add(led);parts.inv.push(led);}
+    parts.inv.push(ledSet(g,new THREE.BoxGeometry(.1,.5,.5),[1.56,2,z],{run:M.ledG,curt:M.ledR,off:M.ledO},`inv${b}`));}
   return g;
 }
 
 // ---- BESS: 40 ft konteyner sıraları, soğutma üniteleri, LED şeritleri, PCS ----
 function bess(mw,parts){
   const g=new THREE.Group(),n=Math.min(24,Math.max(3,Math.ceil(mw/5)*3)),cols=Math.min(6,n),rows=Math.ceil(n/cols);
-  const ledMat=new THREE.MeshBasicMaterial({color:0x6F7A82,transparent:true});parts.leds.push(ledMat);
   for(let i=0;i<n;i++){const c=i%cols,r=Math.floor(i/cols),x=(c-(cols-1)/2)*15,z=(r-(rows-1)/2)*6;
     g.add(box(12.2,2.9,2.45,M.container,x,1.75,z),box(1.1,2.3,2.2,M.dark,x+6.7,1.45,z));
-    const led=new THREE.Mesh(new THREE.BoxGeometry(10,.22,.05),ledMat);led.position.set(x,2.6,z+1.25);g.add(led);}
+    parts.leds.push(ledSet(g,new THREE.BoxGeometry(10,.22,.05),[x,2.6,z+1.25],{chg:M.ledG,dis:M.ledA,off:M.ledO},`led${i}`));}
   g.add(pad(cols*15+6,rows*6+10,M.concrete,.07),box(4,3,3,M.grey,-(cols*15)/2-4,1.5,0));
   return g;
 }
@@ -122,11 +129,11 @@ function hydro(parts){
   const lake=new THREE.Mesh(new THREE.PlaneGeometry(C+30,190),M.water);lake.rotation.x=-Math.PI/2;lake.position.set(0,H-3,-98);g.add(lake);
   const len=Math.hypot(27,H),chute=new THREE.Mesh(new THREE.PlaneGeometry(16,len),M.foam.clone());
   chute.material.map=M.foam.map.clone();chute.material.map.needsUpdate=true;
-  chute.rotation.x=-(Math.PI/2-Math.atan2(H,27));chute.position.set(0,H/2+.3,16.5);g.add(chute);
+  chute.rotation.x=-(Math.PI/2-Math.atan2(H,27));chute.position.set(0,H/2+.3,16.5);chute.name="chute";g.add(chute);
   const river=new THREE.Mesh(new THREE.PlaneGeometry(26,170),M.river.clone());river.material.map=M.river.map.clone();river.material.map.needsUpdate=true;
   river.rotation.x=-Math.PI/2;river.position.set(0,.25,30+85);river.receiveShadow=true;g.add(river);
   g.add(box(26,13,15,M.concrete,34,6.5,38),box(26,1,15,M.dark,34,13.5,38));
-  parts.flows.push({chute,river});
+  parts.flows.push("chute");
   return g;
 }
 
@@ -141,7 +148,7 @@ function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return
 
 function buildSite(id,o,ps){
   const by={};ps.forEach(p=>by[p.k]=(by[p.k]||0)+p.mw);
-  const scene=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[]},groups=[];
+  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[]},groups=[];
   if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id)));
   if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id)));
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts));
@@ -150,112 +157,56 @@ function buildSite(id,o,ps){
   if(!o.sea&&(by.res||by.ges||by.batt))groups.push(substation());
   // grupları soldan sağa diz, sahayı merkeze al
   const bb=groups.map(gr=>new THREE.Box3().setFromObject(gr)),gap=35,total=bb.reduce((a,b)=>a+b.max.x-b.min.x,0)+gap*(groups.length-1);
-  let x=-total/2;groups.forEach((gr,i)=>{const w=bb[i].max.x-bb[i].min.x;gr.position.x=x-bb[i].min.x;x+=w+gap;scene.add(gr);});
-  const all=new THREE.Box3().setFromObject(scene),size=all.getSize(new THREE.Vector3()),ext=Math.max(size.x,size.z)*0.75+60;
-  const catcher=new THREE.Mesh(new THREE.PlaneGeometry(ext*2,ext*2),M.shadow);catcher.rotation.x=-Math.PI/2;catcher.position.y=.02;catcher.receiveShadow=true;scene.add(catcher);
-  const hemi=new THREE.HemisphereLight(0xCFE3FF,0x6B5A45,.6),sun=new THREE.DirectionalLight(0xFFF1DC,2.6);
-  sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);const sc=sun.shadow.camera;sc.left=sc.bottom=-ext;sc.right=sc.top=ext;sc.near=1;sc.far=4000;
-  sun.shadow.bias=-.0004;sun.shadow.normalBias=.6;scene.add(hemi,sun,sun.target);
-  return {scene,parts,box:all,sun,hemi,sunDir:new THREE.Vector3(0,1,0),ext,south:o.lat>=0};
+  let x=-total/2;groups.forEach((gr,i)=>{const w=bb[i].max.x-bb[i].min.x;gr.position.x=x-bb[i].min.x;x+=w+gap;root.add(gr);});
+  return {root,parts};
 }
 
-// Santral listesindeki değişikliğe göre saha sahnelerini kur/yenile/kaldır
+async function loadSite(id,o,ps,sig){
+  const {root,parts}=buildSite(id,o,ps);
+  const glb=await new GLTFExporter().parseAsync(root,{binary:true});
+  const url=URL.createObjectURL(new Blob([glb],{type:"model/gltf-binary"}));
+  const model=await Cesium.Model.fromGltfAsync({url,id,upAxis:Cesium.Axis.Y,forwardAxis:Cesium.Axis.X,
+    modelMatrix:Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(o.lon,o.lat,0)),
+    heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,scene,minimumPixelSize:120,maximumScale:900,
+    distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2.2e6),shadows:Cesium.ShadowMode.ENABLED});
+  const cur=sites.get(id);
+  if(!cur||cur.sig!==sig){model.destroy();URL.revokeObjectURL(url);return;} // bu arada santral değişti
+  model.readyEvent.addEventListener(()=>URL.revokeObjectURL(url));
+  scene.primitives.add(model);cur.model=model;cur.parts=parts;
+}
+
+// Santral listesindeki değişikliğe göre saha modellerini kur/yenile/kaldır
 export function syncModels(){
-  if(!M)return;
+  if(!scene)return;
   const live=new Set();
   Object.entries(S.sites).forEach(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id);if(!ps.length)return;live.add(id);
     const sig=ps.map(p=>p.k+p.mw).sort().join(","),cur=sites.get(id);
-    if(!cur||cur.sig!==sig){if(cur)dispose(cur.scene);const s=buildSite(id,o,ps);s.sig=sig;sites.set(id,s);}
+    if(cur&&cur.sig===sig)return;
+    if(cur&&cur.model)scene.primitives.remove(cur.model);
+    sites.set(id,{sig,model:null,parts:null});
+    loadSite(id,o,ps,sig).catch(e=>console.error("3D model yüklenemedi:",e));
   });
-  for(const [id,s] of sites)if(!live.has(id)){dispose(s.scene);sites.delete(id);}
-  map&&map.triggerRepaint();
-}
-function dispose(scene){scene.traverse(o=>{if(o.geometry&&o.geometry!==bladeGeo)o.geometry.dispose();});}
-
-// Güneş: doğudan doğar, öğlen ekvator tarafında en yükseğe çıkar, batıda batar
-function sunTarget(h,south){
-  const t=(h+0.5-6)/13,el=sunElevation(h);
-  const az=(south?90+t*180:90-t*180)*RAD;
-  return {dir:new THREE.Vector3(Math.sin(az)*Math.cos(el),Math.sin(el),-Math.cos(az)*Math.cos(el)).normalize(),el};
+  for(const [id,s] of sites)if(!live.has(id)){if(s.model)scene.primitives.remove(s.model);sites.delete(id);}
 }
 
+const rotX=new Cesium.Matrix3(),rotM=new Cesium.Matrix4();
+function show(model,name,v){const n=model.getNode(name);if(n)n.show=v;}
 function animate(s,st,dt){
-  const {dir,el}=sunTarget(st.hour,s.south),k=Math.min(1,dt*1.5);
-  s.sunDir.lerp(dir,k).normalize();
-  const day=Math.max(0,Math.min(1,(s.sunDir.y+0.05)/0.35));
-  s.sun.position.copy(s.sunDir).multiplyScalar(1500);s.sun.intensity=2.8*day;
-  s.sun.color.setHSL(0.09,0.6*(1-Math.min(1,el/(25*RAD))),0.55+0.4*Math.min(1,el/(25*RAD)));
-  s.scene.environment=env;s.scene.environmentIntensity=0.3+0.7*day;
-  s.hemi.intensity=0.45+0.15*day;s.hemi.color.setHSL(0.6,0.45-0.15*day,0.45+0.35*day);
-  const spin=!reduced.matches,wind=st.res||st.off;
-  for(const r of s.parts.rotors){const target=wind&&wind.f>=0.03?(0.55+1.15*wind.f)*r.f:0;r.w+=(target-r.w)*Math.min(1,dt*0.6);if(spin)r.rotor.rotation.x+=r.w*dt;}
-  const blink=st.night&&(performance.now()%1600<800);s.parts.beacons.forEach(b=>b.visible=blink);
-  for(const f of s.parts.flows){const run=!!(st.hes&&st.hes.run);f.chute.visible=run;if(spin&&run){f.chute.material.map.offset.y-=dt*1.6;}if(spin)f.river.material.map.offset.y-=dt*(run?0.9:0.15);}
-  for(const m of s.parts.leds){const b=st.batt;if(!b)continue;const pulse=0.55+0.45*Math.sin(performance.now()/260);
-    m.color.set(b.chg?0x3CC495:b.dis?0xF2A93B:0x6F7A82);m.opacity=(b.chg||b.dis)?pulse:0.9;}
-  for(const l of s.parts.inv){const g=st.ges;l.material.color.set(!g||g.f<0.03?0x39424A:g.curt?0xF06A7D:0x3CC495);}
+  const m=s.model,spin=!reduced.matches,wind=st.res||st.off;
+  for(const r of s.parts.rotors){const target=wind&&wind.f>=0.03?(0.55+1.15*wind.f)*r.f:0;r.w+=(target-r.w)*Math.min(1,dt*0.6);if(spin)r.a+=r.w*dt;
+    const n=m.getNode(r.name);if(n){Cesium.Matrix3.fromRotationX(r.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
+  const blink=st.night&&(performance.now()%1600<800);s.parts.beacons.forEach(b=>show(m,b,blink));
+  s.parts.flows.forEach(f=>show(m,f,!!(st.hes&&st.hes.run)));
+  const b=st.batt,bs=!b?"off":b.chg?"chg":b.dis?"dis":"off",pulse=(b&&(b.chg||b.dis))?Math.sin(performance.now()/260)>-0.4:true;
+  s.parts.leds.forEach(l=>{for(const k in l)show(m,l[k],k===bs&&pulse);});
+  const g=st.ges,gs=!g||g.f<0.03?"off":g.curt?"curt":"run";s.parts.inv.forEach(l=>{for(const k in l)show(m,l[k],k===gs);});
 }
 
-// Dış mekân ortam haritası: gökyüzü–ufuk–zemin gradyanından PMREM (metal/cam yüzeyler gökyüzünü yansıtır)
-function outdoorEnv(){
-  const sc=new THREE.Scene(),mat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
-    vertexShader:"varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
-    fragmentShader:"varying vec3 vP;void main(){float h=vP.y;vec3 sky=mix(vec3(.78,.86,.95),vec3(.32,.52,.86),smoothstep(0.,.6,h));vec3 gr=mix(vec3(.52,.47,.38),vec3(.33,.3,.25),smoothstep(0.,.5,-h));gl_FragColor=vec4(h>0.?sky:gr,1.);}"});
-  sc.add(new THREE.Mesh(new THREE.SphereGeometry(10,48,24),mat));
-  const pm=new THREE.PMREMGenerator(renderer),t=pm.fromScene(sc,0.02).texture;pm.dispose();return t;
-}
-
-// Uzaktan görünsün diye büyütme: türbin yüksekliği zoom'a göre ~30 px'den ~115 px'e çıkar
-function exaggeration(lat,z){const mpp=2*Math.PI*R_EARTH*Math.cos(lat*RAD)/(512*2**z),px=z<=4?30:z>=9?115:30+(z-4)*17;return Math.max(1,px*mpp/TURBINE_H);}
-function modelMatrix(o,s,globe){
-  if(globe)return new THREE.Matrix4().makeRotationY(o.lon*RAD).multiply(new THREE.Matrix4().makeRotationX(-o.lat*RAD))
-    .multiply(new THREE.Matrix4().makeTranslation(0,0,1)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2)).multiply(new THREE.Matrix4().makeScale(s/R_EARTH,s/R_EARTH,s/R_EARTH));
-  const mc=maplibregl.MercatorCoordinate.fromLngLat([o.lon,o.lat],0),k=mc.meterInMercatorCoordinateUnits()*s;
-  return new THREE.Matrix4().makeTranslation(mc.x,mc.y,mc.z).multiply(new THREE.Matrix4().makeRotationZ(Math.PI)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2)).multiply(new THREE.Matrix4().makeScale(-k,k,k));
-}
-function screenRect(b,PM,W,H){
-  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;const v=new THREE.Vector4();
-  for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){
-    v.set(x,y,z,1).applyMatrix4(PM);if(v.w<=0)return null;const px=(v.x/v.w+1)/2*W,py=(1-v.y/v.w)/2*H;
-    x0=Math.min(x0,px);x1=Math.max(x1,px);y0=Math.min(y0,py);y1=Math.max(y1,py);}
-  return {x0,y0,x1,y1};
-}
-
-export const modelLayer={
-  id:"plants-3d",type:"custom",renderingMode:"3d",
-  onAdd(m,gl){
-    map=m;M=materials();camera=new THREE.Camera();camera.matrixAutoUpdate=false;camera.matrixWorldAutoUpdate=false;
-    renderer=new THREE.WebGLRenderer({canvas:m.getCanvas(),context:gl,antialias:true});
-    renderer.autoClear=false;renderer.setPixelRatio(1);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
-    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
-    syncModels();
-  },
-  render(gl,args){
-    picks.length=0;const z=map.getZoom();if(z<2.6||!sites.size)return;
-    const pd=args.defaultProjectionData,globe=pd.projectionTransition>0.5,main=new THREE.Matrix4().fromArray(globe?pd.mainMatrix:(pd.fallbackMatrix||pd.mainMatrix));
+export function initModels(sc){
+  scene=sc;M=materials();syncModels();
+  scene.preUpdate.addEventListener(()=>{
     const now=performance.now(),dt=Math.min(0.1,(now-(lastT||now))/1000);lastT=now;
-    const cv=map.getCanvas(),W=cv.clientWidth,H=cv.clientHeight;
-    renderer.resetState();if(!env){env=outdoorEnv();renderer.resetState();}
-    renderer.setViewport(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight);renderer.clearDepth();
-    // kürede kameranın konumu (birim küre koordinatı): arka yüzdeki sahaları atlamak için
-    const cam=globe?new THREE.Vector3(0,0,-1).applyMatrix4(main.clone().invert()):null;
-    let drawn=0;
-    for(const [id,s] of sites){
-      const o=S.sites[id];if(!o)continue;
-      if(cam){const n=new THREE.Vector3(Math.sin(o.lon*RAD)*Math.cos(o.lat*RAD),Math.sin(o.lat*RAD),Math.cos(o.lon*RAD)*Math.cos(o.lat*RAD));if(n.dot(cam.clone().sub(n))<0)continue;}
-      animate(s,plantStatus(id),dt);
-      const PM=main.clone().multiply(modelMatrix(o,exaggeration(o.lat,z),globe));
-      const c=new THREE.Vector3(0,0,-1).applyMatrix4(PM.clone().invert()); // kameranın yerel konumu (yansımalar için)
-      camera.matrixWorld.makeTranslation(c.x,c.y,c.z);camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
-      camera.projectionMatrix.copy(PM).multiply(camera.matrixWorld);camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
-      renderer.render(s.scene,camera);
-      const r=screenRect(s.box,PM,W,H);if(r&&r.x1-r.x0<W*1.5&&r.y1-r.y0<H*1.5)picks.push({id,...r});drawn++;
-    }
-    if(drawn)map.triggerRepaint(); // pervaneler, su ve ışıklar için sürekli çizim
-  }
-};
-
-// Ekrandaki bir noktaya denk gelen saha modeli (varsa)
-export function pickModel(p){const hit=picks.filter(r=>p.x>=r.x0&&p.x<=r.x1&&p.y>=r.y0&&p.y<=r.y1);
-  if(!hit.length)return null;hit.sort((a,b)=>(a.x1-a.x0)*(a.y1-a.y0)-(b.x1-b.x0)*(b.y1-b.y0));return hit[0].id;}
+    for(const [id,s] of sites)if(s.model&&s.model.ready&&S.sites[id])animate(s,plantStatus(id),dt);
+  });
+}

@@ -1,10 +1,10 @@
 // --- Grafik ve göstergeler ---
 import { GOAL, REG, MARKETS } from "../config.js";
 import { S, D, save, selSite } from "../state.js";
-import { clamp, shape, fmt$, fmtP, cssv, daylight } from "../utils.js";
+import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth } from "../sim.js";
 import { updateButtons } from "./panel.js";
-import { setDaylight } from "./map.js";
+import { setGameClock } from "./map.js";
 
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
@@ -40,7 +40,7 @@ export function render(){
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";
   if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>alert("Tebrikler: 5 M$ portföy değerine ulaştın. Oynamaya devam edebilirsin."),50);}
-  updateButtons();drawChart();setDaylight(daylight(h));
+  updateButtons();drawChart();setGameClock(S.hour);
 }
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
 export function renderReport(){

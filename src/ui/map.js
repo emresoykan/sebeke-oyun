@@ -1,7 +1,10 @@
-// --- Harita: MapLibre 3D küre, NASA Blue Marble uydu mozaiği, Natural Earth sınırları ve şehirleri ---
-import * as maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
-import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+// --- Harita: CesiumJS 3D dünya ---
+// Google Maps API anahtarı varsa (VITE_GOOGLE_MAPS_API_KEY) Google Photorealistic 3D Tiles kullanılır:
+// gerçek 3D arazi, binalar ve yüksek çözünürlüklü görüntü. Anahtar yoksa ya da yüklenemezse gömülü
+// NASA Blue Marble (gündüz) ve Black Marble (gece) görüntüleriyle küre çizilir.
+// Sınırlar, şehirler ve coğrafi bölgeler: Natural Earth.
+import * as Cesium from "cesium";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import countries from "../data/countries.json";
 import countryLabels from "../data/country-labels.json";
 import cities from "../data/cities.json";
@@ -9,116 +12,152 @@ import { PROTECTED } from "../data/protected.js";
 import { TECH, SITE_MIN_KM } from "../config.js";
 import { km } from "../world.js";
 import { S } from "../state.js";
-import { cssv } from "../utils.js";
+import { cssv, daylight } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
-import { modelLayer, syncModels, pickModel } from "./models.js";
+import { initModels, syncModels } from "./models.js";
 
-maplibregl.setWorkerUrl(workerUrl);
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
-// Glif dosyaları base64 JSON olarak saklanır (bazı statik sunucular .pbf servis etmez); eksik aralık boş döner
-maplibregl.addProtocol("glyphs",async({url})=>{
-  const [,stack,range]=url.match(/^glyphs:\/\/(.+)\/(\d+-\d+)$/);
-  const r=await fetch(`${base}fonts/${encodeURIComponent(decodeURIComponent(stack))}/${range}.json`);
-  if(!r.ok)return{data:new ArrayBuffer(0)};
-  return{data:Uint8Array.from(atob(await r.json()),c=>c.charCodeAt(0)).buffer};
-});
-// Bantlar ters sırada eklenir: üstteki katman çakışmada önce yerleşir, böylece büyük şehir/ülke adları öncelik alır
-const FONT=["Noto Sans Regular"], BANDS=[7,6,5,4,3,2,1,0];
-const band=mz=>Math.min(7,Math.max(0,Math.floor(mz)));
-const fc=features=>({type:"FeatureCollection",features});
-const pt=(lon,lat,properties)=>({type:"Feature",properties,geometry:{type:"Point",coordinates:[lon,lat]}});
-const STATUS={none:"rgba(255,255,255,.9)",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
+window.CESIUM_BASE_URL=base+"cesium/";
+const GOOGLE_KEY=import.meta.env.VITE_GOOGLE_MAPS_API_KEY||"";
+const FONT="'Bricolage Grotesque',system-ui,sans-serif";
+// Eski harita zoom seviyesine karşılık gelen kamera yüksekliği (m); etiket bantları buna göre açılır
+const H=z=>2.6e7/2**z*(innerWidth<600?0.55:1); // dar ekranda etiketler daha geç belirir
+const STATUS={none:"#FFFFFF",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 
-let map=null, ready=false;
+let viewer=null, scene=null, google=null, nightShader=null, ready=false, lastFrame=0;
+const borders=[];
+const siteEnts=new Map();
+let selOuter=null, selInner=null;
 
 function selectSite(id){const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
-// Seçili sahaya eğik açıyla yaklaş (3D görünüm)
-export function flyToSite(id){const o=S.sites[id];if(map&&o)map.flyTo({center:[o.lon,o.lat],zoom:8.3,pitch:62,bearing:-28,duration:2200});}
-
-function circle(lat,lon,r){const c=[];for(let i=0;i<=48;i++){const a=i/48*2*Math.PI;c.push([lon+r/(111.32*Math.cos(lat*Math.PI/180))*Math.cos(a),lat+r/110.57*Math.sin(a)]);}return c;}
-const parksFC=fc(PROTECTED.map(([n,lat,lon,r])=>({type:"Feature",properties:{n},geometry:{type:"Polygon",coordinates:[circle(lat,lon,r)]}})));
-const citiesFC=fc(cities.map(([n,a3,lat,lon,pop,mz,cap])=>pt(lon,lat,{n,cap,b:cap?Math.min(band(mz),2):band(mz),r:-pop})));
-const labelsFC=fc(countryLabels.features.map(f=>({...f,properties:{...f.properties,b:band(f.properties.mz)}})));
-
-function layers(){
-  const L=[
-    {id:"ocean",type:"background",paint:{"background-color":"#0B1D33"}},
-    {id:"sat",type:"raster",source:"sat",paint:{"raster-fade-duration":150,"raster-brightness-max-transition":{duration:900},"raster-saturation-transition":{duration:900}}},
-    {id:"night",type:"raster",source:"night",paint:{"raster-opacity":0,"raster-opacity-transition":{duration:900},"raster-fade-duration":150}},
-    {id:"tr-fill",type:"fill",source:"countries",filter:["==",["get","a3"],"TUR"],paint:{"fill-color":"#C2364A","fill-opacity":0.12,"fill-opacity-transition":{duration:900}}},
-    {id:"borders",type:"line",source:"countries",paint:{"line-color":"rgba(255,255,255,.55)","line-width":["interpolate",["linear"],["zoom"],0,0.4,4,0.9,8,1.6]}},
-    {id:"tr-border",type:"line",source:"countries",filter:["==",["get","a3"],"TUR"],paint:{"line-color":"#F06A7D","line-width":["interpolate",["linear"],["zoom"],0,0.8,6,2]}},
-    {id:"parks",type:"fill",source:"parks",paint:{"fill-color":"#C2364A","fill-opacity":0.22}},
-    {id:"parks-line",type:"line",source:"parks",paint:{"line-color":"#F06A7D","line-width":1.2,"line-dasharray":[2,1]}},
-    {id:"parks-label",type:"symbol",source:"parks",minzoom:5,layout:{"text-field":["get","n"],"text-font":FONT,"text-size":11},paint:{"text-color":"#FFD3D9","text-halo-color":"rgba(0,0,0,.7)","text-halo-width":1.2}}
-  ];
-  BANDS.forEach(b=>{
-    L.push({id:"city-dot-"+b,type:"circle",source:"cities",minzoom:b+1,filter:["==",["get","b"],b],
-      paint:{"circle-radius":["case",["==",["get","cap"],1],3.4,2.4],"circle-color":"#FFFFFF","circle-stroke-color":"rgba(0,0,0,.7)","circle-stroke-width":1}});
-    L.push({id:"city-"+b,type:"symbol",source:"cities",minzoom:b+1,filter:["==",["get","b"],b],
-      layout:{"text-field":["get","n"],"text-font":FONT,"text-size":["case",["==",["get","cap"],1],12.5,11],"text-variable-anchor":["left","right","top","bottom"],"text-radial-offset":0.55,"text-justify":"auto","text-max-width":9,"symbol-sort-key":["get","r"]},
-      paint:{"text-color":"#FFFFFF","text-halo-color":"rgba(0,0,0,.75)","text-halo-width":1.3}});
-  });
-  BANDS.forEach(b=>L.push({id:"country-"+b,type:"symbol",source:"labels",minzoom:b,filter:["==",["get","b"],b],
-    layout:{"text-field":["get","n"],"text-font":FONT,"text-size":["interpolate",["linear"],["zoom"],1,10,6,15],"text-letter-spacing":0.06,"text-transform":"uppercase","text-max-width":7,"symbol-sort-key":["get","r"]},
-    paint:{"text-color":"rgba(255,255,255,.88)","text-halo-color":"rgba(0,0,0,.65)","text-halo-width":1.4}}));
-  L.push(
-    {id:"sites",type:"circle",source:"sites",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,5,6,9],"circle-color":["get","fill"],"circle-stroke-color":["get","ring"],"circle-stroke-width":2.5}},
-    {id:"sites-label",type:"symbol",source:"sites",minzoom:3,filter:[">",["get","mw"],0],layout:{"text-field":["concat",["to-string",["get","mw"]]," MW"],"text-font":FONT,"text-size":11,"text-anchor":"top","text-offset":[0,1.1],"text-allow-overlap":true},paint:{"text-color":"#FFFFFF","text-halo-color":"rgba(0,0,0,.8)","text-halo-width":1.3}},
-    {id:"sel-outer",type:"circle",source:"sel",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,9,6,13],"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#000","circle-stroke-width":3.5}},
-    {id:"sel-inner",type:"circle",source:"sel",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,9,6,13],"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#FFF","circle-stroke-width":1.6}}
-  );
-  return L;
+// Seçili sahaya eğik açıyla yaklaş: kamera sahanın güneyinde, kuzeye bakar
+export function flyToSite(id){
+  const o=S.sites[id];if(!viewer||!o)return;
+  viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(o.lon+0.006,o.lat-0.028,1400),
+    orientation:{heading:Cesium.Math.toRadians(-10),pitch:Cesium.Math.toRadians(-22),roll:0},duration:2.4});
 }
 
-export function initMap(){
-  map=new maplibregl.Map({
-    container:"map",center:[S.sel.lon,S.sel.lat],zoom:innerWidth<600?1.5:2.4,minZoom:0.5,maxZoom:9,maxPitch:72,attributionControl:{compact:true},canvasContextAttributes:{antialias:true},
-    style:{version:8,projection:{type:"globe"},glyphs:"glyphs://{fontstack}/{range}",
-      sky:{"atmosphere-blend":["interpolate",["linear"],["zoom"],0,1,5,1,7,0]},
-      sources:{
-        sat:{type:"raster",tiles:[base+"tiles/{z}/{x}/{y}.jpg"],tileSize:256,maxzoom:4,attribution:"Görüntü: NASA Blue Marble"},
-        night:{type:"raster",tiles:[base+"tiles-night/{z}/{x}/{y}.jpg"],tileSize:256,maxzoom:3,attribution:"Gece ışıkları: NASA Black Marble"},
-        countries:{type:"geojson",data:countries,attribution:"Sınırlar ve şehirler: Natural Earth"},
-        labels:{type:"geojson",data:labelsFC},cities:{type:"geojson",data:citiesFC},parks:{type:"geojson",data:parksFC},
-        sites:{type:"geojson",data:fc([])},sel:{type:"geojson",data:fc([])}
-      },
-      layers:layers()}
-  });
-  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
-  map.addControl(new maplibregl.GlobeControl(),"top-right");
-  map.on("load",()=>{ready=true;map.addLayer(modelLayer,"sel-outer");drawMap();document.querySelector("#map .maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");});
-  map.on("click",e=>{
-    const hit=pickModel(e.point);if(hit)return selectSite(hit); // 3D modele tıklandı
-    const p=e.point,f=map.queryRenderedFeatures([[p.x-10,p.y-10],[p.x+10,p.y+10]],{layers:["sites"]});
-    const lat=e.lngLat.lat,lon=((e.lngLat.lng+540)%360)-180;
-    let id=f.length?f[0].properties.id:null;
-    if(!id){let bd=SITE_MIN_KM;Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});}
-    S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};
-    renderPanel();drawMap();render();
-  });
-  if(import.meta.env.DEV)window.__map=map;
+function addBorders(){
+  const inst=(color,width,turkey)=>{const list=[];
+    countries.features.forEach(f=>{if((f.properties.a3==="TUR")!==turkey)return;
+      f.geometry.coordinates.forEach(poly=>{const r=poly[0];if(r.length<2)return;
+        list.push(new Cesium.GeometryInstance({geometry:new Cesium.PolylineGeometry({positions:Cesium.Cartesian3.fromDegreesArray(r.flat()),width,arcType:Cesium.ArcType.GEODESIC})}));});});
+    const mat=()=>new Cesium.PolylineMaterialAppearance({material:Cesium.Material.fromType("Color",{color})});
+    borders.push(scene.primitives.add(new Cesium.Primitive({geometryInstances:list,appearance:mat(),depthFailAppearance:mat(),asynchronous:true})));};
+  inst(Cesium.Color.WHITE.withAlpha(0.5),1.2,false);
+  inst(Cesium.Color.fromCssColorString("#F06A7D"),2.2,true);
 }
 
-// Oyun saatine göre gece/gündüz: dünyayı karart, gece şehir ışıklarını göster
-let lastDay=-1;
-export function setDaylight(day){
-  if(!ready||Math.abs(day-lastDay)<0.01)return;lastDay=day;
-  map.setPaintProperty("sat","raster-brightness-max",0.3+0.7*day);map.setPaintProperty("sat","raster-saturation",-0.35*(1-day));
-  map.setPaintProperty("night","raster-opacity",0.92*Math.max(0,Math.min(1,(0.35-day)/0.35)));
-  map.setPaintProperty("tr-fill","fill-opacity",0.03+0.09*day);
+function addLabels(){
+  const labels=scene.primitives.add(new Cesium.LabelCollection({scene})),dots=scene.primitives.add(new Cesium.PointPrimitiveCollection());
+  const ground={heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5};
+  countryLabels.features.forEach(f=>{const [lon,lat]=f.geometry.coordinates,b=Math.min(7,Math.floor(f.properties.mz));
+    labels.add({...ground,position:Cesium.Cartesian3.fromDegrees(lon,lat),text:f.properties.n.toLocaleUpperCase("tr-TR"),font:`600 12px ${FONT}`,
+      fillColor:Cesium.Color.WHITE.withAlpha(0.9),outlineColor:Cesium.Color.BLACK.withAlpha(0.75),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+      horizontalOrigin:Cesium.HorizontalOrigin.CENTER,verticalOrigin:Cesium.VerticalOrigin.CENTER,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(4e5,H(b))});});
+  cities.forEach(([n,a3,lat,lon,pop,mz,cap])=>{const b=cap?Math.min(Math.floor(mz),2):Math.min(7,Math.floor(mz)),far=H(b+1),pos=Cesium.Cartesian3.fromDegrees(lon,lat);
+    dots.add({position:pos,pixelSize:cap?6:4.5,color:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.7),outlineWidth:1,disableDepthTestDistance:1.5e5,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,far)});
+    labels.add({...ground,position:pos,text:n,font:`${cap?600:400} ${cap?13:12}px ${FONT}`,fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.8),outlineWidth:3,
+      style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(7,0),horizontalOrigin:Cesium.HorizontalOrigin.LEFT,verticalOrigin:Cesium.VerticalOrigin.CENTER,
+      distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,far)});});
 }
 
-// Sahaları ve seçimi haritaya yansıt (eski kare çiziminin yerine)
+function addParks(){
+  PROTECTED.forEach(([n,lat,lon,r])=>viewer.entities.add({position:Cesium.Cartesian3.fromDegrees(lon,lat),
+    ellipse:{semiMajorAxis:r*1000,semiMinorAxis:r*1000,material:Cesium.Color.fromCssColorString("#C2364A").withAlpha(0.25),classificationType:Cesium.ClassificationType.BOTH},
+    label:{text:n,font:`500 12px ${FONT}`,fillColor:Cesium.Color.fromCssColorString("#FFD3D9"),outlineColor:Cesium.Color.BLACK.withAlpha(0.7),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+      heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,H(5))}}));
+}
+
+// Google 3D Tiles kendi ışığını taşır (pişmiş aydınlatma); gece için oyun saatine göre karartılır
+function makeNightShader(){
+  return new Cesium.CustomShader({uniforms:{u_day:{type:Cesium.UniformType.FLOAT,value:1}},lightingModel:Cesium.LightingModel.UNLIT,
+    fragmentShaderText:"void fragmentMain(FragmentInput fsInput,inout czm_modelMaterial material){material.diffuse*=mix(vec3(0.07,0.09,0.17),vec3(1.0),u_day);}"});
+}
+async function addGoogle(){
+  if(!GOOGLE_KEY)return;
+  try{
+    google=await Cesium.createGooglePhotorealistic3DTileset({key:GOOGLE_KEY,onlyUsingWithGoogleGeocoder:true},{showCreditsOnScreen:true,shadows:Cesium.ShadowMode.RECEIVE});
+    nightShader=makeNightShader();google.customShader=nightShader;scene.primitives.add(google);scene.globe.show=false;
+  }catch(e){console.warn("Google 3D Tiles yüklenemedi, gömülü görüntüyle devam ediliyor:",e);google=null;}
+}
+
+function pickGround(pos){
+  if(google){const c=scene.pickPosition(pos);if(c)return c;}
+  const ray=viewer.camera.getPickRay(pos);return (ray&&scene.globe.show&&scene.globe.pick(ray,scene))||viewer.camera.pickEllipsoid(pos)||null;
+}
+function onClick(e){
+  const picked=scene.pick(e.position);
+  let id=picked?(typeof picked.id==="string"?picked.id:picked.id&&picked.id.siteId):null;
+  if(id&&!S.sites[id])id=null;
+  if(id)return selectSite(id);
+  const c=pickGround(e.position);if(!c)return;
+  const g=Cesium.Cartographic.fromCartesian(c),lat=Cesium.Math.toDegrees(g.latitude),lon=Cesium.Math.toDegrees(g.longitude);
+  let bd=SITE_MIN_KM;Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
+  S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};
+  renderPanel();drawMap();render();
+}
+
+export async function initMap(){
+  Cesium.Ion.defaultAccessToken=undefined;
+  const day=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-day.jpg",{credit:"Görüntü: NASA Blue Marble"}));
+  viewer=new Cesium.Viewer("map",{baseLayer:day,animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,
+    navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:4,requestRenderMode:false});
+  scene=viewer.scene;
+  const night=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-night.jpg",{credit:"Gece ışıkları: NASA Black Marble"}),{dayAlpha:0,nightAlpha:1});
+  viewer.imageryLayers.add(night);
+  Object.assign(scene.globe,{enableLighting:true,dynamicAtmosphereLighting:true,dynamicAtmosphereLightingFromSun:true,baseColor:Cesium.Color.fromCssColorString("#0B1D33")});
+  scene.screenSpaceCameraController.minimumZoomDistance=600;
+  viewer.shadowMap.softShadows=true;viewer.shadowMap.size=2048;viewer.shadowMap.maximumDistance=25000;
+  viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(S.sel.lon,S.sel.lat,innerWidth<600?1.45e7:1.6e7)});
+  viewer.screenSpaceEventHandler.setInputAction(onClick,Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+  addBorders();addLabels();addParks();
+  selOuter=viewer.entities.add({point:{pixelSize:24,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.BLACK,outlineWidth:3.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5}});
+  selInner=viewer.entities.add({point:{pixelSize:22,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.WHITE,outlineWidth:1.6,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5}});
+  scene.preRender.addEventListener(stepClock);
+  initModels(scene);ready=true;drawMap();
+  await addGoogle();
+  if(import.meta.env.DEV){window.__viewer=viewer;window.__Cesium=Cesium;}
+}
+
+// Oyun saati → Cesium saati: güneş konumu, gece/gündüz sınırı ve gölgeler gerçek coğrafyaya göre hesaplanır.
+// Tarih sonbahar ekinoksuna sabitlenir (gün ve gece eşit), saat Türkiye saatidir (UTC+3).
+const BASE_DATE=Cesium.JulianDate.fromIso8601("2026-09-22T00:00:00Z");
+let targetTime=null;
+export function setGameClock(hour){
+  if(!viewer)return;
+  targetTime=Cesium.JulianDate.addHours(BASE_DATE,hour-3,new Cesium.JulianDate());
+  if(nightShader)nightShader.setUniform("u_day",0.15+0.85*daylight(Math.min(hour,23)));
+}
+function stepClock(){
+  const now=performance.now(),dt=Math.min(0.25,(now-(lastFrame||now))/1000);lastFrame=now;
+  // alçaktan bakarken sınır ve kıyı çizgileri kalabalık yapar; 150 km'nin altında gizle
+  const high=viewer.camera.positionCartographic.height>1.5e5;borders.forEach(b=>b.show=high);
+  if(!targetTime)return;const clk=viewer.clock,diff=Cesium.JulianDate.secondsDifference(targetTime,clk.currentTime);
+  if(Math.abs(diff)>6*3600||Math.abs(diff)<1)clk.currentTime=Cesium.JulianDate.clone(targetTime,clk.currentTime); // gece yarısı geçişi: atla
+  else clk.currentTime=Cesium.JulianDate.addSeconds(clk.currentTime,diff*(1-Math.exp(-dt*8)),clk.currentTime); // ~0,3 sn'de yetiş
+}
+
+// Sahaları, seçimi ve 3D modelleri haritaya yansıt
 export function drawMap(){
   if(!ready)return;
-  const feats=Object.entries(S.sites).map(([id,o])=>{
-    const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0];
-    return pt(o.lon,o.lat,{id,mw:siteMW(id),fill:top?cssv(TECH[top.k].c):"rgba(255,255,255,.25)",ring:STATUS[o.permit]});
+  const live=new Set();
+  Object.entries(S.sites).forEach(([id,o])=>{
+    live.add(id);const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
+    let e=siteEnts.get(id);
+    if(!e){e=viewer.entities.add({position:Cesium.Cartesian3.fromDegrees(o.lon,o.lat),
+      point:{pixelSize:12,outlineWidth:2.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5},
+      label:{font:`600 12px ${FONT}`,fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.8),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset:new Cesium.Cartesian2(0,18),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,H(3))}});
+      e.siteId=id;siteEnts.set(id,e);}
+    e.point.color=top?Cesium.Color.fromCssColorString(cssv(TECH[top.k].c)):Cesium.Color.WHITE.withAlpha(0.3);
+    e.point.outlineColor=Cesium.Color.fromCssColorString(STATUS[o.permit]);
+    e.label.text=mw?`${mw} MW`:"";
   });
-  map.getSource("sites").setData(fc(feats));
-  map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
+  for(const [id,e] of siteEnts)if(!live.has(id)){viewer.entities.remove(e);siteEnts.delete(id);}
+  const p=Cesium.Cartesian3.fromDegrees(S.sel.lon,S.sel.lat);selOuter.position=p;selInner.position=p;
   syncModels();
 }
