@@ -1,0 +1,23 @@
+{
+ "source": "Contains modified Copernicus Sentinel data",
+ "years": [
+  2024,
+  2025
+ ],
+ "parts": [
+  {
+   "file": "tr-0.jpg",
+   "west": 25.6,
+   "east": 35.302,
+   "south": 35.7,
+   "north": 42.3
+  },
+  {
+   "file": "tr-1.jpg",
+   "west": 35.302,
+   "east": 45.0005,
+   "south": 35.7,
+   "north": 42.3
+  }
+ ]
+}

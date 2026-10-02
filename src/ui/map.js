@@ -9,6 +9,7 @@ import countries from "../data/countries.json";
 import landBorders from "../data/borders.json";
 import countryLabels from "../data/country-labels.json";
 import cities from "../data/cities.json";
+import trMosaic from "../data/tr-mosaic.json";
 import { PROTECTED } from "../data/protected.js";
 import { TECH, SITE_MIN_KM } from "../config.js";
 import { km } from "../world.js";
@@ -125,6 +126,10 @@ export async function initMap(){
     navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:4,requestRenderMode:false});
   scene=viewer.scene;
   viewer.useBrowserRecommendedResolution=false;viewer.resolutionScale=Math.min(2,devicePixelRatio||1)/(devicePixelRatio||1);
+  // Türkiye ve çevresi: ~300 m/piksel Sentinel-2 yaz mozaiği (yakınlaşınca dünya dokusunun bulanıklığını giderir)
+  const s2credit=`Contains modified Copernicus Sentinel data ${trMosaic.years.join("–")}`;
+  trMosaic.parts.forEach(p=>viewer.imageryLayers.add(Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/"+p.file,
+    {rectangle:Cesium.Rectangle.fromDegrees(p.west,p.south,p.east,p.north),credit:s2credit}),{nightAlpha:0})));
   const night=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-night.jpg",{credit:"Gece ışıkları: NASA Black Marble"}),{dayAlpha:0,nightAlpha:1});
   viewer.imageryLayers.add(night);
   Object.assign(scene.globe,{enableLighting:true,dynamicAtmosphereLighting:true,dynamicAtmosphereLightingFromSun:true,baseColor:Cesium.Color.fromCssColorString("#0B1D33")});
@@ -153,8 +158,9 @@ export function setGameClock(hour){
 }
 function stepClock(){
   const now=performance.now(),dt=Math.min(0.25,(now-(lastFrame||now))/1000);lastFrame=now;
-  // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün)
-  const high=viewer.camera.positionCartographic.height>4e4;borders.forEach(b=>b.show=high);
+  // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün); Türkiye çerçevesinin kaba kıyı çizgisi
+  // net uydu görüntüsünde kıyıyla örtüşmediği için daha erken gizlenir
+  const h=viewer.camera.positionCartographic.height;borders[0].show=h>4e4;borders[1].show=h>5e5;
   if(now-lastDecl>150){lastDecl=now;declutter();}
   if(!targetTime)return;const clk=viewer.clock,diff=Cesium.JulianDate.secondsDifference(targetTime,clk.currentTime);
   if(Math.abs(diff)>6*3600||Math.abs(diff)<1)clk.currentTime=Cesium.JulianDate.clone(targetTime,clk.currentTime); // gece yarısı geçişi: atla
