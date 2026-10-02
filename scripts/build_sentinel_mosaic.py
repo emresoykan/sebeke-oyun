@@ -49,6 +49,7 @@ def main():
     ap.add_argument("--parts", type=int, default=2)
     ap.add_argument("--meta", default="src/data/tr-mosaic.json")
     ap.add_argument("--cache", default=None, help="seçilen sahne listesini bu dosyada sakla/yeniden kullan")
+    ap.add_argument("--stash", default=None, help="yansıtılmış ara sonucu (.npz) sakla/yeniden kullan; birleştirme ayarı denerken indirmeyi atlar")
     a = ap.parse_args()
     W_, S_, E_, N_ = map(float, a.bbox.split(","))
     months = [tuple(map(int, m.split("-"))) for m in a.months.split(",")]
@@ -127,24 +128,29 @@ def main():
 
     # 4) sahneleri en iyiden kötüye tuvale yansıt; kara pikselleri Sentinel'den, su pikselleri tek tip denizden
     land = np.zeros((Hpx, Wpx, 3), np.float32); filled = np.zeros((Hpx, Wpx), bool); water = np.zeros((Hpx, Wpx), bool)
-    with ThreadPoolExecutor(8) as ex:
-        for i, (tci, cls, tr, crs) in enumerate(ex.map(read, picked)):
-            img = np.zeros((3, Hpx, Wpx), np.uint8); m = np.zeros((Hpx, Wpx), np.uint8)
-            reproject(tci, img, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.bilinear)
-            reproject(cls, m, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.nearest)
-            put = (m == 1) & ~filled & ~water; wput = (m == 2) & ~filled & ~water
-            if put.sum() > 200:
-                im = np.moveaxis(img, 0, 2).astype(np.float32)
-                g0 = np.clip(base[put].mean(0) / np.maximum(1, im[put].mean(0)), 0.8, 2.6) ** 0.85
-                # sahne kenarındaki koyu kamalar ve kalan gölgeler: tabana göre çok koyu pikselleri at
-                put &= ~((lum(im * g0) < 0.35 * lum(base)) & (lum(base) > 25))
-                put &= ~(~bmland & (lum(im) < 25))  # Blue Marble'da su olan yerde "kara" sayılan koyu kenar pikselleri
-                land[put] = np.clip(im[put] * lowmatch(im, put), 0, 255)
-            filled |= put; water |= wput
-            if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*filled.mean():.1f} su %{100*water.mean():.1f}")
+    if a.stash and os.path.exists(a.stash):
+        z = np.load(a.stash); land, filled, water = z['land'], z['filled'], z['water']
+    else:
+        with ThreadPoolExecutor(8) as ex:
+            for i, (tci, cls, tr, crs) in enumerate(ex.map(read, picked)):
+                img = np.zeros((3, Hpx, Wpx), np.uint8); m = np.zeros((Hpx, Wpx), np.uint8)
+                reproject(tci, img, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.bilinear)
+                reproject(cls, m, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.nearest)
+                put = (m == 1) & ~filled & ~water; wput = (m == 2) & ~filled & ~water
+                if put.sum() > 200:
+                    im = np.moveaxis(img, 0, 2).astype(np.float32)
+                    g0 = np.clip(base[put].mean(0) / np.maximum(1, im[put].mean(0)), 0.8, 2.6) ** 0.85
+                    # sahne kenarındaki koyu kamalar ve kalan gölgeler: tabana göre çok koyu pikselleri at
+                    put &= ~((lum(im * g0) < 0.35 * lum(base)) & (lum(base) > 25))
+                    put &= ~(~bmland & (lum(im) < 25))  # Blue Marble'da su olan yerde "kara" sayılan koyu kenar pikselleri
+                    land[put] = np.clip(im[put] * lowmatch(im, put), 0, 255)
+                filled |= put; water |= wput
+                if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*filled.mean():.1f} su %{100*water.mean():.1f}")
+        if a.stash: np.savez(a.stash, land=land, filled=filled, water=water)
 
     # 5) birleştir: kara Sentinel, su derin deniz rengi (Blue Marble'ın derinlik tonuyla), kalan boşluk Blue Marble
-    water |= ~filled & ~bmland  # sahne aralarında kalan su boşlukları (ör. göl ortasındaki şeritler)
+    # sahne aralarında kalan su boşlukları; Blue Marble'da göller (ör. Van) neredeyse siyah olduğu için koyuluk da su sayılır
+    water |= ~filled & (~bmland | (lum(base) < 20))
     sea = np.median(base[water], axis=0) if water.any() else np.array([12, 34, 70], np.float32)
     seaimg = 0.6 * sea + 0.4 * base
     land = np.clip(255 * (land / 255) ** 0.92, 0, 255)
