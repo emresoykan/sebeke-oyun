@@ -143,6 +143,7 @@ def main():
             if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*filled.mean():.1f} su %{100*water.mean():.1f}")
 
     # 5) birleştir: kara Sentinel, su derin deniz rengi (Blue Marble'ın derinlik tonuyla), kalan boşluk Blue Marble
+    water |= ~filled & ~bmland  # sahne aralarında kalan su boşlukları (ör. göl ortasındaki şeritler)
     sea = np.median(base[water], axis=0) if water.any() else np.array([12, 34, 70], np.float32)
     seaimg = 0.6 * sea + 0.4 * base
     land = np.clip(255 * (land / 255) ** 0.92, 0, 255)
