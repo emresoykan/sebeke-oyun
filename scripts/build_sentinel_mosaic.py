@@ -11,6 +11,7 @@ Yöntem:
   3. Sahneler en iyiden kötüye coğrafi (lon/lat) tuvale yansıtılır; her piksel ilk geçerli değeri alır.
      Her sahnenin geniş ölçekli (~8 km) rengi Blue Marble'a eşlenir; karo sınırlarındaki ton farkı kaybolur,
      ince ayrıntı Sentinel'den gelir. Tabana göre çok koyu pikseller (sahne kenarı kamaları) atılır.
+     Tuz Gölü gibi açık renkli su/tuz düzlükleri gerçek renkleriyle kalır; diğer sular tek tip deniz rengi alır.
   4. Kalan boşluklar NASA Blue Marble ile doldurulur, geçişler ve tuval kenarı yumuşatılır; tuval iki parçaya bölünür
      (mobil GPU doku sınırı için her parça 4096 pikselden dar).
 
@@ -49,7 +50,7 @@ def main():
     ap.add_argument("--parts", type=int, default=2)
     ap.add_argument("--meta", default="src/data/tr-mosaic.json")
     ap.add_argument("--cache", default=None, help="seçilen sahne listesini bu dosyada sakla/yeniden kullan")
-    ap.add_argument("--stash", default=None, help="yansıtılmış ara sonucu (.npz) sakla/yeniden kullan; birleştirme ayarı denerken indirmeyi atlar")
+    ap.add_argument("--stash", default=None, help="yansıtılmış ham sahne verisini (.npz) sakla/yeniden kullan; renk eşleme ve birleştirme ayarı denerken indirmeyi atlar")
     a = ap.parse_args()
     W_, S_, E_, N_ = map(float, a.bbox.split(","))
     months = [tuple(map(int, m.split("-"))) for m in a.months.split(",")]
@@ -108,47 +109,62 @@ def main():
     lum = lambda x: x[..., 0] * 0.3 + x[..., 1] * 0.59 + x[..., 2] * 0.11
     # Blue Marble'da su gibi görünen pikseller (kıyıda kara/deniz karışımı) renk eşlemesinde kullanılmaz
     bmland = ~(base[..., 2] > base[..., 0] + 8)
-    K = 24  # ~8 km blok: sahnenin geniş ölçekli rengi Blue Marble'a eşlenir, ince ayrıntı Sentinel'de kalır
-    Hb, Wb = -(-Hpx // K), -(-Wpx // K)
-    def blocks(x):  # (H,W[,C]) -> blok toplamları
-        pad = [(0, Hb * K - Hpx), (0, Wb * K - Wpx)] + [(0, 0)] * (x.ndim - 2)
-        x = np.pad(x, pad); return x.reshape(Hb, K, Wb, K, *x.shape[2:]).sum((1, 3))
-    def up(x):  # blok ızgarasını tuval boyutuna yumuşak büyüt
-        return np.asarray(Image.fromarray(x.astype(np.float32), "F").resize((Wb * K, Hb * K), Image.BILINEAR))[:Hpx, :Wpx]
-    def lowmatch(im, put):
-        m = (put & bmland).astype(np.float32); n = blocks(m)
-        if n.sum() < 50: m = put.astype(np.float32); n = blocks(m)
-        gb = np.clip(base[put].mean(0) / np.maximum(1, im[put].mean(0)), 0.8, 2.6)
-        r = np.empty((Hb, Wb, 3), np.float32)
-        for c in range(3):
-            num, den = blocks(base[..., c] * m), blocks(im[..., c] * m)
-            r[..., c] = np.where(n > K * K / 6, np.clip(num / np.maximum(1, den), 0.6, 2.6), gb[c])
-        r **= 0.8
-        return np.stack([up(r[..., c]) for c in range(3)], -1)[put]
-
-    # 4) sahneleri en iyiden kötüye tuvale yansıt; kara pikselleri Sentinel'den, su pikselleri tek tip denizden
-    land = np.zeros((Hpx, Wpx, 3), np.float32); filled = np.zeros((Hpx, Wpx), bool); water = np.zeros((Hpx, Wpx), bool)
+    # 4) sahneleri en iyiden kötüye tuvale yansıt; her piksel ilk geçerli sahnenin ham rengini ve sahne numarasını alır
+    raw = np.zeros((Hpx, Wpx, 3), np.uint8); sid = np.full((Hpx, Wpx), -1, np.int16); cls = np.zeros((Hpx, Wpx), np.uint8)
     if a.stash and os.path.exists(a.stash):
-        z = np.load(a.stash); land, filled, water = z['land'], z['filled'], z['water']
+        z = np.load(a.stash); raw, sid, cls = z["raw"], z["sid"], z["cls"]
     else:
         with ThreadPoolExecutor(8) as ex:
-            for i, (tci, cls, tr, crs) in enumerate(ex.map(read, picked)):
+            for i, (tci, c, tr, crs) in enumerate(ex.map(read, picked)):
                 img = np.zeros((3, Hpx, Wpx), np.uint8); m = np.zeros((Hpx, Wpx), np.uint8)
                 reproject(tci, img, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.bilinear)
-                reproject(cls, m, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.nearest)
-                put = (m == 1) & ~filled & ~water; wput = (m == 2) & ~filled & ~water
+                reproject(c, m, src_transform=tr, src_crs=crs, dst_transform=dst_tr, dst_crs="EPSG:4326", resampling=Resampling.nearest)
+                free = sid < 0; put = (m == 1) & free; wput = (m == 2) & free
+                im = np.moveaxis(img, 0, 2)
                 if put.sum() > 200:
-                    im = np.moveaxis(img, 0, 2).astype(np.float32)
-                    g0 = np.clip(base[put].mean(0) / np.maximum(1, im[put].mean(0)), 0.8, 2.6) ** 0.85
+                    imf = im.astype(np.float32)
+                    g0 = np.clip(base[put].mean(0) / np.maximum(1, imf[put].mean(0)), 0.8, 2.6) ** 0.85
                     # sahne kenarındaki koyu kamalar ve kalan gölgeler: tabana göre çok koyu pikselleri at
-                    put &= ~((lum(im * g0) < 0.35 * lum(base)) & (lum(base) > 25))
-                    put &= ~(~bmland & (lum(im) < 25))  # Blue Marble'da su olan yerde "kara" sayılan koyu kenar pikselleri
-                    land[put] = np.clip(im[put] * lowmatch(im, put), 0, 255)
-                filled |= put; water |= wput
-                if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*filled.mean():.1f} su %{100*water.mean():.1f}")
-        if a.stash: np.savez(a.stash, land=land, filled=filled, water=water)
+                    put &= ~((lum(imf * g0) < 0.35 * lum(base)) & (lum(base) > 25))
+                    put &= ~(~bmland & (lum(imf) < 25))  # Blue Marble'da su olan yerde "kara" sayılan koyu kenar pikselleri
+                else: put[:] = False
+                for msk, k in ((put, 1), (wput, 2)):
+                    raw[msk] = im[msk]; sid[msk] = i; cls[msk] = k
+                if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*(cls == 1).mean():.1f} su %{100*(cls == 2).mean():.1f}")
+        if a.stash: np.savez(a.stash, raw=raw, sid=sid, cls=cls)
 
-    # 5) birleştir: kara Sentinel, su derin deniz rengi (Blue Marble'ın derinlik tonuyla), kalan boşluk Blue Marble
+    # Tuz Gölü gibi tuz düzlükleri ve sığ, açık renkli göller: SCL su dese de gerçek renkleriyle kara gibi işlenir
+    cls[(cls == 2) & bmland & (lum(raw.astype(np.float32)) > 80)] = 1
+
+    # 5) renk eşleme: her sahnenin geniş ölçekli (~8 km) rengi Blue Marble'a tam eşlenir, ince ayrıntı Sentinel'de kalır.
+    #    Eşleme sahne sahne yapıldığından karo sınırlarında ton farkı kalmaz.
+    K = 24
+    def bsum(x, h, w):  # (h,w[,C]) -> blok toplamları, komşu bloklarla 3x3 yumuşatılmış
+        hb, wb = -(-h // K), -(-w // K)
+        x = np.pad(x, [(0, hb * K - h), (0, wb * K - w)] + [(0, 0)] * (x.ndim - 2)).reshape(hb, K, wb, K, *x.shape[2:]).sum((1, 3))
+        p = np.pad(x, [(1, 1), (1, 1)] + [(0, 0)] * (x.ndim - 2), mode="edge")
+        return sum(p[dy:dy + hb, dx:dx + wb] for dy in range(3) for dx in range(3))
+    def up(x, h, w):
+        hb, wb = x.shape
+        return np.asarray(Image.fromarray(x.astype(np.float32), "F").resize((wb * K, hb * K), Image.BILINEAR))[:h, :w]
+    land = np.zeros((Hpx, Wpx, 3), np.float32); rawf = raw.astype(np.float32)
+    landpx = cls == 1
+    for k in np.unique(sid[landpx]):
+        sel = landpx & (sid == k); ys, xs = np.nonzero(sel)
+        y0, x0 = ys.min() // K * K, xs.min() // K * K; y1, x1 = ys.max() + 1, xs.max() + 1
+        s, rb, bb = sel[y0:y1, x0:x1], rawf[y0:y1, x0:x1], base[y0:y1, x0:x1]
+        m = (s & bmland[y0:y1, x0:x1]).astype(np.float32)
+        if m.sum() < 50: m = s.astype(np.float32)
+        h, w = s.shape; n = bsum(m, h, w)
+        gb = np.clip(bb[s].mean(0) / np.maximum(1, rb[s].mean(0)), 0.5, 3)
+        r = np.empty(n.shape + (3,), np.float32)
+        for c in range(3):
+            r[..., c] = np.where(n > K * K / 4, np.clip(bsum(bb[..., c] * m, h, w) / np.maximum(1, bsum(rb[..., c] * m, h, w)), 0.35, 3), gb[c])
+        g = np.stack([up(r[..., c], h, w) for c in range(3)], -1)
+        land[y0:y1, x0:x1][s] = np.clip(rb[s] * g[s], 0, 255)
+    filled, water = cls == 1, cls == 2
+
+    # 6) birleştir: kara Sentinel, su derin deniz rengi (Blue Marble'ın derinlik tonuyla), kalan boşluk Blue Marble
     # sahne aralarında kalan su boşlukları; Blue Marble'da göller (ör. Van) neredeyse siyah olduğu için koyuluk da su sayılır
     water |= ~filled & (~bmland | (lum(base) < 20))
     sea = np.median(base[water], axis=0) if water.any() else np.array([12, 34, 70], np.float32)
