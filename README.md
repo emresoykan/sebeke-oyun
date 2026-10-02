@@ -25,6 +25,7 @@ npm run preview  # derlemeyi yerelde sun
 | `src/sim.js` | Günlük fiyatlar, saatlik tick, gün sonu, net değer |
 | `src/actions.js` | Saha açma (arazi alma), izin başvurusu, santral kurma |
 | `src/ui/map.js` | MapLibre 3D küre: uydu katmanı, sınırlar, şehirler, korunan alanlar, sahalar |
+| `src/ui/scenes.js` | Sahalardaki santral görselleri (RES, offshore, GES, HES, batarya); simülasyona bağlı canlandırma |
 | `src/ui/panel.js` | Seçili nokta/saha paneli ve buton durumları |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
@@ -42,6 +43,7 @@ Oyuncu kürenin herhangi bir noktasına dokunup orada saha açar. Noktanın ülk
 - **Ülke ve piyasa:** Natural Earth ülke sınırları; ülkeler oyunun 8 piyasasına eşlenir (`scripts/build_geo.py`, `market()`).
 - **Arazi tipi:** Natural Earth dağ silsilesi, çöl ve havza poligonları. Toros ve Doğu Anadolu dağları ile tayga ve Güneydoğu Asya ormanları elle/kuralla yaklaşık eklenmiştir. Korunan alanlar `src/data/protected.js` içindeki temsili dairelerdir.
 - **Deniz:** Bir ülke kıyısına en fazla 200 km uzaklıktaki deniz noktaları offshore için uygundur.
+- **Santral görselleri:** Kurulu sahalarda santral tipine göre canlandırmalı görseller çıkar. Rüzgâr gülleri o saatin rüzgârıyla döner (ataletle hızlanır/yavaşlar), paneller gündüz parlar, sıfır fiyatta kısılınca grileşir; HES yalnızca planlı üretim saatlerinde su bırakır; batarya doluluğunu ve şarj/deşarj durumunu gösterir. Sistemde "hareketi azalt" ayarı açıksa görseller durağan kalır.
 - **Saha kuralları:** Bir sahada en fazla 40 MW kurulur; iki saha arasında en az 20 km olmalıdır (yakına dokunmak mevcut sahayı seçer).
 
 Kayıt anahtarı `sebeke-world-v3`. Kare tabanlı eski sürümün kayıtları (`sebeke-world-v2`) bu sürümle uyumlu değildir ve yüklenmez (silinmez).

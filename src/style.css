@@ -72,5 +72,47 @@ tr:last-child td{border-bottom:0}
 .goal div{height:100%;background:var(--batt);width:0;transition:width .4s}
 footer{color:var(--muted);font-size:.75rem;margin:24px 0 8px}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
+/* --- Saha görselleri (harita işaretçileri) --- */
+.site3d-root{cursor:pointer}
+.maplibregl-marker-covered{pointer-events:none}
+#map.scenes-off .site3d-root{visibility:hidden}
+.site3d{position:relative;display:flex;align-items:flex-end;gap:2px;transform:scale(var(--site-scale,1));transform-origin:50% 100%;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.75))}
+.site3d::after{content:"";position:absolute;left:8%;right:8%;bottom:-2px;height:6px;border-radius:50%;background:rgba(0,0,0,.28);filter:blur(3px);z-index:-1}
+.night .site3d{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.75)) brightness(.78)}
+.site3d .v{display:block;height:52px;width:47px;overflow:hidden}
+.v-wind .tower{fill:#F4F6F8;stroke:#4A5A66;stroke-width:.3}
+.v-wind .nacelle{fill:#E8ECEF;stroke:#4A5A66;stroke-width:.3}
+.v-wind .rotor{fill:#FFFFFF;stroke:#4A5A66;stroke-width:.3;transform-box:view-box}
+.v-wind .beacon{fill:#FF3B4E;opacity:0}
+.night .v-wind .beacon{animation:blink 1.6s steps(1) infinite}
+.v-wind .waves path{fill:none;stroke:#BFE3FF;stroke-width:.8;animation:wave 2.4s linear infinite}
+.v-solar .panel{fill:#1E4F8F;stroke:#D6E2EE;stroke-width:.5;transition:fill .6s}
+.v-solar .pgrid{fill:none;stroke:rgba(214,226,238,.55);stroke-width:.3}
+.v-solar .leg{stroke:#9AA8B4;stroke-width:.7}
+.v-solar .glint{fill:#FFFFFF;opacity:calc(var(--sun,0) * .85);animation:glint 2.8s ease-in-out infinite}
+.vig.idle .v-solar .glint{animation:none;opacity:0}
+.vig.idle .v-solar .panel{fill:#132E52}
+.vig.curt .v-solar{filter:grayscale(1) brightness(.85)}
+.v-hydro .lake{fill:#2C6FB3}
+.v-hydro .dam{fill:#D9D4C7;stroke:#6B665C;stroke-width:.4}
+.v-hydro .damline{fill:none;stroke:#9C968A;stroke-width:.35}
+.v-hydro .river{fill:#2C6FB3;opacity:.9}
+.v-hydro .flow path{fill:none;stroke:#E6F4FF;stroke-width:1.1;stroke-linecap:round;stroke-dasharray:2 2.2;animation:flow .5s linear infinite}
+.vig.idle .v-hydro .flow{opacity:.15}
+.vig.idle .v-hydro .flow path{animation-play-state:paused}
+.v-batt .cont{fill:#EEF2F4;stroke:#55656F;stroke-width:.5}
+.v-batt .rib{stroke:#9FB0BB;stroke-width:.5}
+.v-batt .gauge{fill:rgba(0,0,0,.35);stroke:#EEF2F4;stroke-width:.7}
+.v-batt .cap{fill:#EEF2F4}
+.v-batt .lvl{fill:#3CC495;transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--soc,.05));transition:transform .4s,fill .3s}
+.v-batt .bolt{fill:#9FB0BB;stroke:#1D2B36;stroke-width:.4}
+.vig.chg .bolt{fill:#3CC495;animation:pulse 1s ease-in-out infinite}
+.vig.dis .bolt{fill:#F2A93B;animation:pulse .8s ease-in-out infinite}
+.vig.dis .lvl{fill:#F2A93B}
+@keyframes blink{0%{opacity:1}50%{opacity:0}}
+@keyframes wave{to{transform:translateX(5px)}}
+@keyframes glint{0%{transform:translateX(0) skewX(-25deg)}100%{transform:translateX(52px) skewX(-25deg)}}
+@keyframes flow{to{stroke-dashoffset:-4.2}}
+@keyframes pulse{50%{opacity:.35}}
 @media (max-width:560px){ .readouts{grid-template-columns:repeat(2,1fr)} #chart{height:180px} .legend{display:none} }
-@media (prefers-reduced-motion:reduce){.sky,.goal div{transition:none}}
+@media (prefers-reduced-motion:reduce){.sky,.goal div{transition:none}.site3d *{animation:none!important;transition:none!important}}

@@ -13,6 +13,7 @@ import { cssv } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
+import { syncScenes, scaleScenes } from "./scenes.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
@@ -30,7 +31,9 @@ const fc=features=>({type:"FeatureCollection",features});
 const pt=(lon,lat,properties)=>({type:"Feature",properties,geometry:{type:"Point",coordinates:[lon,lat]}});
 const STATUS={none:"rgba(255,255,255,.9)",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 
-let map=null, ready=false;
+let map=null, ready=false, markerClickAt=0;
+
+function selectSite(id){markerClickAt=performance.now();const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
 
 function circle(lat,lon,r){const c=[];for(let i=0;i<=48;i++){const a=i/48*2*Math.PI;c.push([lon+r/(111.32*Math.cos(lat*Math.PI/180))*Math.cos(a),lat+r/110.57*Math.sin(a)]);}return c;}
 const parksFC=fc(PROTECTED.map(([n,lat,lon,r])=>({type:"Feature",properties:{n},geometry:{type:"Polygon",coordinates:[circle(lat,lon,r)]}})));
@@ -82,8 +85,10 @@ export function initMap(){
   });
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
   map.addControl(new maplibregl.GlobeControl(),"top-right");
-  map.on("load",()=>{ready=true;drawMap();document.querySelector("#map .maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");});
+  map.on("zoom",()=>scaleScenes(map));
+  map.on("load",()=>{ready=true;scaleScenes(map);drawMap();document.querySelector("#map .maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");});
   map.on("click",e=>{
+    if(performance.now()-markerClickAt<400)return; // santral görseline tıklandı
     const p=e.point,f=map.queryRenderedFeatures([[p.x-10,p.y-10],[p.x+10,p.y+10]],{layers:["sites"]});
     const lat=e.lngLat.lat,lon=((e.lngLat.lng+540)%360)-180;
     let id=f.length?f[0].properties.id:null;
@@ -103,4 +108,5 @@ export function drawMap(){
   });
   map.getSource("sites").setData(fc(feats));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
+  syncScenes(map,selectSite);
 }
