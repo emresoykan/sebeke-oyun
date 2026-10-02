@@ -59,7 +59,7 @@ Oyuncu kürenin herhangi bir noktasına dokunup orada saha açar. Noktanın ülk
 - **Arazi tipi:** Natural Earth dağ silsilesi, çöl ve havza poligonları. Toros ve Doğu Anadolu dağları ile tayga ve Güneydoğu Asya ormanları elle/kuralla yaklaşık eklenmiştir. Korunan alanlar `src/data/protected.js` içindeki temsili dairelerdir.
 - **Deniz:** Bir ülke kıyısına en fazla 200 km uzaklıktaki deniz noktaları offshore için uygundur.
 - **3D santraller:** Kurulu sahalarda gerçek oranlı, prosedürel 3D modeller çizilir (dış model dosyası yok). Uzaktan görünsün diye en az 120 piksel çizilir; yaklaştıkça gerçek ölçeğe döner. Rüzgâr gülleri o saatin rüzgârıyla döner (ataletle hızlanır/yavaşlar), gece kanat ucu ikaz ışıkları yanıp söner; paneller güneş ve gökyüzünü yansıtır, invertör ışığı üretim/kısıntı durumunu gösterir; HES planlı üretim saatlerinde dolusavaktan su bırakır; batarya LED'leri şarjda yeşil, deşarjda turuncu yanar. Cesium saati oyun saatine bağlıdır (Türkiye saati, ekinoks tarihi): güneşin konumu, gece/gündüz sınırı ve gölgeler gerçek coğrafyaya göre hesaplanır. Panelde "3D yakından bak" kamerayı eğik açıyla sahaya götürür. Sistemde "hareketi azalt" açıksa hareket durur, modeller kalır.
-- **Yakın görüntü:** Gömülü dünya dokusu yaklaşık 10 km/piksel olduğu için yakında bulanıklaşır. Türkiye ve çevresinde (25,6–45°D, 35,7–42,3°K) bunun yerine 2024–2025 yaz aylarının az bulutlu Sentinel-2 sahnelerinden üretilmiş ~300 m/piksel mozaik kullanılır. Bulutlar SCL sınıflandırmasıyla ayıklanır, denizler tek tip renge çekilir, her sahnenin parlaklığı Blue Marble'a göre dengelenir. Bina ölçeğinde netlik yalnızca Google 3D Tiles ile gelir.
+- **Yakın görüntü:** Gömülü dünya dokusu yaklaşık 10 km/piksel olduğu için yakında bulanıklaşır. Türkiye ve çevresinde (25,6–45°D, 35,7–42,3°K) bunun yerine 2024–2025 yaz aylarının az bulutlu Sentinel-2 sahnelerinden üretilmiş ~300 m/piksel mozaik kullanılır. Bulutlar SCL sınıflandırmasıyla ayıklanır, denizler tek tip renge çekilir, her sahnenin geniş ölçekli rengi Blue Marble'a eşlenir (karo sınırı görünmez), Tuz Gölü gerçek Sentinel rengiyle kalır. Bina ölçeğinde netlik yalnızca Google 3D Tiles ile gelir.
 - **Gece/gündüz:** Dünyanın gece tarafında NASA şehir ışıkları görünür; Google 3D Tiles kullanılırken sahne geceleri karartılır.
 - **Saha kuralları:** Bir sahada en fazla 40 MW kurulur; iki saha arasında en az 20 km olmalıdır (yakına dokunmak mevcut sahayı seçer).
 
@@ -76,7 +76,8 @@ cp package/example/img/earth-blue-marble.jpg public/textures/earth-day.jpg
 cp package/example/img/earth-night.jpg public/textures/earth-night.jpg
 # Türkiye Sentinel-2 mozaiği (AWS Open Data sentinel-cogs; ~7 dk, ağ gerekir)
 pip install rasterio mgrs
-python3 scripts/build_sentinel_mosaic.py --bluemarble public/textures/earth-day.jpg
+python3 scripts/build_sentinel_mosaic.py --bluemarble public/textures/earth-day.jpg --stash /tmp/s2.npz
+# --stash: ham sahne verisini saklar; sonraki çalıştırmalar indirmeden saniyeler içinde yeniden birleştirir
 ```
 
 ## Kaynaklar ve lisanslar

@@ -162,7 +162,38 @@ def main():
             r[..., c] = np.where(n > K * K / 4, np.clip(bsum(bb[..., c] * m, h, w) / np.maximum(1, bsum(rb[..., c] * m, h, w)), 0.35, 3), gb[c])
         g = np.stack([up(r[..., c], h, w) for c in range(3)], -1)
         land[y0:y1, x0:x1][s] = np.clip(rb[s] * g[s], 0, 255)
-    filled, water = cls == 1, cls == 2
+    # tuz kabuğu (Tuz Gölü): Sentinel'de doygun beyazdır; renk eşleme sahneden sahneye farklı ton verip sınır çizer.
+    # Bu bölgede ham Sentinel rengi kullanılır; SCL'nin bulut sanıp boş bıraktığı delikler komşu piksellerden doldurulur
+    F = ImageFilter
+    # tuz: parlak ve nötr beyaz (çöl kumu sarımsıdır, eşiği geçmez)
+    sat = landpx & (raw.min(-1) >= 215) & (raw.max(-1).astype(np.int16) - raw.min(-1) < 30)
+    sat &= (base.max(-1) - base.min(-1) < 45) & (lum(base) > 150)  # Blue Marble'da da açık ve nötr (Suriye çölündeki doygun kum değil)
+    sat = sat.astype(np.uint8) * 255
+    zone = Image.fromarray(sat).filter(F.MinFilter(7)).filter(F.MaxFilter(7))  # yalnızca geniş doygun alanlar
+    # kıyıdaki açık renkli tuz/çamur düzlüklerine kontrollü büyü (sahne sınırı orada da renk farkı yaratıyor)
+    grow = landpx & (raw.min(-1) >= 170) & (raw.max(-1).astype(np.int16) - raw.min(-1) < 35)
+    zb = np.asarray(zone) > 0
+    for _ in range(40):  # en fazla ~14 km
+        nz = np.asarray(Image.fromarray(zb.astype(np.uint8) * 255).filter(F.MaxFilter(3))) > 0
+        nz &= grow | zb
+        if (nz == zb).all(): break
+        zb = nz
+    zone = Image.fromarray(zb.astype(np.uint8) * 255)
+    zone = zone.filter(F.MaxFilter(15)).filter(F.MinFilter(15))  # içindeki delikleri kapat
+    zb = np.asarray(zone) > 0
+    if zb.any():
+        ys, xs = np.nonzero(zb); y0, y1, x0, x1 = ys.min() - 2, ys.max() + 3, xs.min() - 2, xs.max() + 3
+        v = rawf[y0:y1, x0:x1] * 0.86; known = (sid[y0:y1, x0:x1] >= 0) & (raw[y0:y1, x0:x1].max(-1) > 0)
+        for _ in range(30):  # delik doldurma: bilinen komşuların ortalaması içe doğru yayılır
+            if known.all(): break
+            kv = np.pad(v * known[..., None], ((1, 1), (1, 1), (0, 0))); kn = np.pad(known.astype(np.float32), 1)
+            sv = sum(kv[dy:dy + v.shape[0], dx:dx + v.shape[1]] for dy in range(3) for dx in range(3))
+            sn = sum(kn[dy:dy + v.shape[0], dx:dx + v.shape[1]] for dy in range(3) for dx in range(3))
+            new = ~known & (sn > 0); v[new] = sv[new] / sn[new][:, None]; known |= new
+        wz = (np.asarray(zone.filter(F.GaussianBlur(1.5)), np.float32)[y0:y1, x0:x1] / 255)[..., None]
+        land[y0:y1, x0:x1] = land[y0:y1, x0:x1] * (1 - wz) + v * wz
+        landpx = landpx.copy(); landpx[y0:y1, x0:x1] |= wz[..., 0] > 0.5
+    filled, water = landpx, (cls == 2) & ~landpx
 
     # 6) birleştir: kara Sentinel, su derin deniz rengi (Blue Marble'ın derinlik tonuyla), kalan boşluk Blue Marble
     # sahne aralarında kalan su boşlukları; Blue Marble'da göller (ör. Van) neredeyse siyah olduğu için koyuluk da su sayılır
