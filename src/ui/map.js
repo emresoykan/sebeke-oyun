@@ -6,6 +6,7 @@
 import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import countries from "../data/countries.json";
+import landBorders from "../data/borders.json";
 import countryLabels from "../data/country-labels.json";
 import cities from "../data/cities.json";
 import { PROTECTED } from "../data/protected.js";
@@ -39,29 +40,46 @@ export function flyToSite(id){
     orientation:{heading:Cesium.Math.toRadians(-10),pitch:Cesium.Math.toRadians(-22),roll:0},duration:2.4});
 }
 
+// Kara sınırları ve Türkiye çerçevesi zemine oturan çizgilerle çizilir (yüzeyle derinlik çakışması olmaz)
 function addBorders(){
-  const inst=(color,width,turkey)=>{const list=[];
-    countries.features.forEach(f=>{if((f.properties.a3==="TUR")!==turkey)return;
-      f.geometry.coordinates.forEach(poly=>{const r=poly[0];if(r.length<2)return;
-        list.push(new Cesium.GeometryInstance({geometry:new Cesium.PolylineGeometry({positions:Cesium.Cartesian3.fromDegreesArray(r.flat()),width,arcType:Cesium.ArcType.GEODESIC})}));});});
-    const mat=()=>new Cesium.PolylineMaterialAppearance({material:Cesium.Material.fromType("Color",{color})});
-    borders.push(scene.primitives.add(new Cesium.Primitive({geometryInstances:list,appearance:mat(),depthFailAppearance:mat(),asynchronous:true})));};
-  inst(Cesium.Color.WHITE.withAlpha(0.5),1.2,false);
-  inst(Cesium.Color.fromCssColorString("#F06A7D"),2.2,true);
+  const ground=(lines,color,width)=>{
+    const geometryInstances=lines.map(l=>new Cesium.GeometryInstance({geometry:new Cesium.GroundPolylineGeometry({positions:Cesium.Cartesian3.fromDegreesArray(l.flat()),width})}));
+    borders.push(scene.groundPrimitives.add(new Cesium.GroundPolylinePrimitive({geometryInstances,classificationType:Cesium.ClassificationType.BOTH,
+      appearance:new Cesium.PolylineMaterialAppearance({material:Cesium.Material.fromType("Color",{color})})})));};
+  ground(landBorders,Cesium.Color.WHITE.withAlpha(0.55),1.5);
+  const tur=countries.features.find(f=>f.properties.a3==="TUR").geometry.coordinates.map(poly=>poly[0]);
+  ground(tur,Cesium.Color.fromCssColorString("#F06A7D"),2.5);
 }
 
 function addLabels(){
   const labels=scene.primitives.add(new Cesium.LabelCollection({scene})),dots=scene.primitives.add(new Cesium.PointPrimitiveCollection());
   const ground={heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5};
-  countryLabels.features.forEach(f=>{const [lon,lat]=f.geometry.coordinates,b=Math.min(7,Math.floor(f.properties.mz));
-    labels.add({...ground,position:Cesium.Cartesian3.fromDegrees(lon,lat),text:f.properties.n.toLocaleUpperCase("tr-TR"),font:`600 12px ${FONT}`,
+  countryLabels.features.forEach(f=>{const [lon,lat]=f.geometry.coordinates,b=Math.min(7,Math.floor(f.properties.mz)),text=f.properties.n.toLocaleUpperCase("tr-TR");
+    decl.push({prio:f.properties.r,far:H(b),center:true,w:text.length*8.2+6,label:labels.add({...ground,position:Cesium.Cartesian3.fromDegrees(lon,lat),text,font:`600 12px ${FONT}`,
       fillColor:Cesium.Color.WHITE.withAlpha(0.9),outlineColor:Cesium.Color.BLACK.withAlpha(0.75),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
-      horizontalOrigin:Cesium.HorizontalOrigin.CENTER,verticalOrigin:Cesium.VerticalOrigin.CENTER,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(4e5,H(b))});});
+      horizontalOrigin:Cesium.HorizontalOrigin.CENTER,verticalOrigin:Cesium.VerticalOrigin.CENTER,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(4e5,H(b)),
+      scaleByDistance:new Cesium.NearFarScalar(1.5e6,1.0,1.4e7,0.7),translucencyByDistance:new Cesium.NearFarScalar(0.6*H(b),1.0,H(b),0.0)})});});
   cities.forEach(([n,a3,lat,lon,pop,mz,cap])=>{const b=cap?Math.min(Math.floor(mz),2):Math.min(7,Math.floor(mz)),far=H(b+1),pos=Cesium.Cartesian3.fromDegrees(lon,lat);
     dots.add({position:pos,pixelSize:cap?6:4.5,color:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.7),outlineWidth:1,disableDepthTestDistance:1.5e5,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,far)});
-    labels.add({...ground,position:pos,text:n,font:`${cap?600:400} ${cap?13:12}px ${FONT}`,fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.8),outlineWidth:3,
+    decl.push({prio:(cap?20:40)-Math.log10(pop+10),far,center:false,w:n.length*(cap?7.6:7)+12,label:labels.add({...ground,position:pos,text:n,font:`${cap?600:400} ${cap?13:12}px ${FONT}`,fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.8),outlineWidth:3,
       style:Cesium.LabelStyle.FILL_AND_OUTLINE,pixelOffset:new Cesium.Cartesian2(7,0),horizontalOrigin:Cesium.HorizontalOrigin.LEFT,verticalOrigin:Cesium.VerticalOrigin.CENTER,
-      distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,far)});});
+      distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,far),translucencyByDistance:new Cesium.NearFarScalar(0.6*far,1.0,far,0.0)})});});
+  decl.sort((a,b)=>a.prio-b.prio);
+}
+
+// Etiket çakışmalarını ayıkla: öncelik sırasına göre yerleştir, çakışanı gizle (Cesium bunu kendisi yapmaz)
+const decl=[];let lastDecl=0;
+const win=new Cesium.Cartesian2(),toCam=new Cesium.Cartesian3(),up=new Cesium.Cartesian3();
+function declutter(){
+  const cp=viewer.camera.positionWC,placed=[],W=viewer.canvas.clientWidth,Hh=viewer.canvas.clientHeight;
+  for(const e of decl){
+    const p=e.label.position;let ok=Cesium.Cartesian3.distance(cp,p)<=e.far;
+    if(ok){Cesium.Cartesian3.normalize(p,up);Cesium.Cartesian3.subtract(cp,p,toCam);ok=Cesium.Cartesian3.dot(up,toCam)>0;} // ufkun arkası
+    if(ok){const w=Cesium.SceneTransforms.worldToWindowCoordinates(scene,p,win);ok=!!w&&w.x>-50&&w.x<W+50&&w.y>-20&&w.y<Hh+20;
+      if(ok){const x0=e.center?w.x-e.w/2:w.x,x1=x0+e.w,y0=w.y-9,y1=w.y+9;
+        ok=!placed.some(b=>x0<b[2]&&x1>b[0]&&y0<b[3]&&y1>b[1]);if(ok)placed.push([x0,y0,x1,y1]);}}
+    e.label.show=ok;
+  }
 }
 
 function addParks(){
@@ -106,6 +124,7 @@ export async function initMap(){
   viewer=new Cesium.Viewer("map",{baseLayer:day,animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,
     navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:4,requestRenderMode:false});
   scene=viewer.scene;
+  viewer.useBrowserRecommendedResolution=false;viewer.resolutionScale=Math.min(2,devicePixelRatio||1)/(devicePixelRatio||1);
   const night=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-night.jpg",{credit:"Gece ışıkları: NASA Black Marble"}),{dayAlpha:0,nightAlpha:1});
   viewer.imageryLayers.add(night);
   Object.assign(scene.globe,{enableLighting:true,dynamicAtmosphereLighting:true,dynamicAtmosphereLightingFromSun:true,baseColor:Cesium.Color.fromCssColorString("#0B1D33")});
@@ -134,8 +153,9 @@ export function setGameClock(hour){
 }
 function stepClock(){
   const now=performance.now(),dt=Math.min(0.25,(now-(lastFrame||now))/1000);lastFrame=now;
-  // alçaktan bakarken sınır ve kıyı çizgileri kalabalık yapar; 150 km'nin altında gizle
-  const high=viewer.camera.positionCartographic.height>1.5e5;borders.forEach(b=>b.show=high);
+  // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün)
+  const high=viewer.camera.positionCartographic.height>4e4;borders.forEach(b=>b.show=high);
+  if(now-lastDecl>150){lastDecl=now;declutter();}
   if(!targetTime)return;const clk=viewer.clock,diff=Cesium.JulianDate.secondsDifference(targetTime,clk.currentTime);
   if(Math.abs(diff)>6*3600||Math.abs(diff)<1)clk.currentTime=Cesium.JulianDate.clone(targetTime,clk.currentTime); // gece yarısı geçişi: atla
   else clk.currentTime=Cesium.JulianDate.addSeconds(clk.currentTime,diff*(1-Math.exp(-dt*8)),clk.currentTime); // ~0,3 sn'de yetiş

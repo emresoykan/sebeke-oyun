@@ -7,7 +7,7 @@ Kullanım:  python3 scripts/build_geo.py            # indirir ve üretir
 import argparse, json, math, os, urllib.request
 
 NE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
-FILES = ["ne_50m_admin_0_countries", "ne_50m_populated_places", "ne_10m_populated_places", "ne_50m_geography_regions_polys", "ne_50m_coastline"]
+FILES = ["ne_50m_admin_0_countries", "ne_50m_admin_0_boundary_lines_land", "ne_50m_populated_places", "ne_10m_populated_places", "ne_50m_geography_regions_polys", "ne_50m_coastline"]
 DETAIL_COUNTRIES = {"TUR"}  # bu ülkelerde il merkezleri için 10m şehir katmanı eklenir
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data")
 
@@ -116,13 +116,22 @@ def main():
             l = rdp(l, 0.05); l = [[round(x, 2), round(y, 2)] for x, y in l]
             if len(l) >= 2: coast.append(l)
 
+    # haritada çizilecek kara sınırları (kıyı çizgileri hariç; kıyılar uydu görüntüsünde zaten görünür)
+    borders = []
+    for f in load("ne_50m_admin_0_boundary_lines_land")["features"]:
+        g = f["geometry"]; ls = g["coordinates"] if g["type"] == "MultiLineString" else [g["coordinates"]]
+        for l in ls:
+            l = rdp(l, 0.02); l = [[round(x, 2), round(y, 2)] for x, y in l]
+            if len(l) >= 2: borders.append(l)
+
     w = lambda name, obj: json.dump(obj, open(os.path.join(OUT, name), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     w("countries.json", {"type": "FeatureCollection", "features": countries})
     w("country-labels.json", {"type": "FeatureCollection", "features": labels})
     w("cities.json", cities)
     w("terrain.json", terrain)
     w("coast.json", coast)
-    for n in ("countries", "country-labels", "cities", "terrain", "coast"):
+    w("borders.json", borders)
+    for n in ("countries", "country-labels", "cities", "terrain", "coast", "borders"):
         print(n, os.path.getsize(os.path.join(OUT, n + ".json")) // 1024, "KB")
 
 if __name__ == "__main__": main()
