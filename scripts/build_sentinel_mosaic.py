@@ -138,6 +138,7 @@ def main():
                 g0 = np.clip(base[put].mean(0) / np.maximum(1, im[put].mean(0)), 0.8, 2.6) ** 0.85
                 # sahne kenarındaki koyu kamalar ve kalan gölgeler: tabana göre çok koyu pikselleri at
                 put &= ~((lum(im * g0) < 0.35 * lum(base)) & (lum(base) > 25))
+                put &= ~(~bmland & (lum(im) < 25))  # Blue Marble'da su olan yerde "kara" sayılan koyu kenar pikselleri
                 land[put] = np.clip(im[put] * lowmatch(im, put), 0, 255)
             filled |= put; water |= wput
             if i % 50 == 0: print(f"  {i+1}/{len(picked)} kara %{100*filled.mean():.1f} su %{100*water.mean():.1f}")
