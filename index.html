@@ -17,12 +17,14 @@
     <div class="cash"><b id="cash">–</b><span>Nakit</span></div>
   </header>
 
+  <div class="mission" id="mission" aria-live="polite"></div>
   <div class="mapwrap" id="mapwrap"><div id="map" role="application" aria-label="3D dünya: döndürmek için sürükle, yakınlaştırmak için kaydır veya iki parmakla aç, eğmek için sağ tık veya Ctrl ile sürükle ya da iki parmakla yukarı kaydır, saha seçmek için dokun"></div></div>
   <div class="maplegend">
     <span><i style="background:rgba(255,255,255,.25);outline:2px solid #fff;outline-offset:-2px;border-radius:50%"></i>Senin sahan</span><span><i style="background:#F2C94C;border-radius:50%"></i>İzin bekliyor</span><span><i style="background:#F06A7D;border-radius:50%"></i>İzin reddedildi</span>
     <span><i style="background:var(--solar);border-radius:50%"></i>GES</span><span><i style="background:var(--wind);border-radius:50%"></i>RES</span><span><i style="background:var(--hydro);border-radius:50%"></i>HES</span><span><i style="background:var(--batt);border-radius:50%"></i>Batarya</span><span><i style="background:rgba(194,54,74,.35);outline:1px dashed #F06A7D;outline-offset:-1px"></i>Korunan alan</span>
   </div>
 
+  <div class="mods" id="mods" hidden></div>
   <div class="panel" id="panel"></div>
 
   <div class="sky" id="sky">
@@ -39,6 +41,7 @@
   <div class="controls">
     <button id="pauseBtn">Duraklat</button>
     <button id="speedBtn">Hız: 1x</button>
+    <button id="soundBtn" aria-pressed="false">Ses: kapalı</button>
     <button id="resetBtn">Yeniden başla</button>
   </div>
 
@@ -64,6 +67,7 @@
 </main>
 
 <dialog id="profileDlg" aria-label="Oyuncu profili"></dialog>
+<dialog id="eventDlg" aria-label="Olay kartı"></dialog>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

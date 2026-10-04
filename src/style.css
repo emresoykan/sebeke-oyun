@@ -140,3 +140,45 @@ dialog#profileDlg::backdrop{background:rgba(5,10,15,.55)}
 .eqcard button{margin-top:auto;padding:8px 6px;font-size:.84rem}
 .eqnote{font-size:.74rem;color:var(--muted);margin-top:6px}
 @media (max-width:560px){ .eqcards{grid-template-columns:1fr} .pspecs,.pach{grid-template-columns:1fr} }
+
+/* görev çubuğu */
+.mission{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--batt);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.mtop{display:flex;justify-content:space-between;gap:8px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.mreward{color:var(--batt)}
+.mtitle{display:block;font-size:1rem;font-weight:800;margin-top:2px}
+.mdesc{font-size:.84rem;color:var(--muted);line-height:1.35;margin-top:2px}
+.mbar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.mbar div{height:100%;background:var(--batt);transition:width .5s}
+/* etkin olay etkileri */
+.mods{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mods span{font-size:.76rem;padding:3px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--warn);font-weight:600}
+.mods small{color:var(--muted);font-weight:400}
+/* olay kartı */
+dialog#eventDlg{width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);color:var(--ink)}
+dialog#eventDlg::backdrop{background:rgba(5,10,15,.6)}
+.evtag{display:inline-block;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:999px;background:var(--warn);color:#1D2B36}
+.evcard h3{margin:8px 0 4px;font-size:1.25rem;font-weight:800}
+.evcard p{margin:0;font-size:.92rem;line-height:1.45}
+.evlearn{margin-top:10px;padding:9px 11px;border-left:4px solid var(--hydro);background:var(--bg);border-radius:0 8px 8px 0;font-size:.84rem;line-height:1.4}
+.evlearn b{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hydro)}
+.evopts{display:grid;gap:8px;margin-top:12px}
+.evopts button{text-align:left;font-weight:400;padding:10px 12px}
+.evopts button b{display:block;font-weight:700}
+.evopts button small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+.evresult{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--bg);border-left:4px solid var(--batt);font-weight:600}
+/* bildirim balonları */
+#toasts{inset:auto;margin:0;border:0;padding:0;background:transparent;overflow:visible;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:50;display:flex;flex-direction:column;gap:8px;width:min(420px,calc(100vw - 24px));pointer-events:none}
+.toast{position:relative;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--wind);border-radius:12px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.18);animation:tin .3s ease-out}
+.toast b{display:block;font-size:.92rem}
+.toast span{display:block;font-size:.82rem;color:var(--muted)}
+.toast.pos{border-left-color:var(--pos)} .toast.neg{border-left-color:var(--neg)}
+.toast.win{border-left-color:var(--warn);background:linear-gradient(90deg,color-mix(in srgb,var(--warn) 16%,var(--surface)),var(--surface))}
+.toast.win span{color:var(--batt);font-weight:700}
+.toast.out{opacity:0;transform:translateY(-8px);transition:all .35s}
+.confetti{position:absolute;left:24px;top:50%;width:7px;height:7px;border-radius:2px;animation:pop .8s ease-out forwards}
+@keyframes tin{from{opacity:0;transform:translateY(-10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes pop{from{transform:translate(0,0) rotate(0);opacity:1}to{transform:translate(var(--x),var(--y)) rotate(200deg);opacity:0}}
+.cash b.flash-pos{animation:fpos 1s ease-out} .cash b.flash-neg{animation:fneg 1s ease-out}
+@keyframes fpos{30%{color:var(--pos);transform:scale(1.08)}}
+@keyframes fneg{30%{color:var(--neg);transform:scale(.96)}}
+@media (prefers-reduced-motion:reduce){.toast,.cash b{animation:none!important}.mbar div{transition:none}}

@@ -5,11 +5,13 @@ import { S, save, addLog } from "./state.js";
 import { landCost, permitFee, permitDays } from "./rules.js";
 import { siteMW, newDayHydro, awardAch } from "./sim.js";
 import { capexOf, eqName, TIERS } from "./equipment.js";
+import { checkMissions } from "./missions.js";
+import { sfx } from "./ui/fx.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
 
-function refresh(){awardAch();save();renderPanel();drawMap();render();}
+function refresh(){awardAch();checkMissions();save();renderPanel();drawMap();render();}
 
 // Seçili noktada yeni saha aç (arazi satın al / deniz alanı kirala)
 export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c)return;S.money-=c;
@@ -21,5 +23,6 @@ export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
   if(k==="hes")newDayHydro(p);
+  sfx("build");
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")}).`);
   refresh();}

@@ -6,6 +6,7 @@
 // pahalıdır ama 40 MW'lık saha sınırında MW başına en çok üretimi verir.
 import { TECH } from "./config.js";
 import { spec } from "./profile.js";
+import { factor } from "./mods.js";
 
 export const TIERS={eco:"Ekonomi",std:"Standart",pre:"Premium"};
 export const TIER_ORDER=["eco","std","pre"];
@@ -43,5 +44,5 @@ export const tierOf=p=>EQUIP[p.k][p.q]?p.q:"std";
 export const eqOf=p=>EQUIP[p.k][tierOf(p)];
 export const eqName=(k,q)=>`${EQUIP[k][q].brand} ${EQUIP[k][q].model}`;
 
-// 5 MW'lık bir bloğun kurulum maliyeti (finansçı uzmanlığı %6 indirim alır)
-export const capexOf=(k,q)=>Math.round(TECH[k].capex*EQUIP[k][q].capex*(spec()==="fin"?0.94:1)/100)*100;
+// 5 MW'lık bir bloğun kurulum maliyeti (finansçı uzmanlığı %6 indirim alır; olay kartları fiyatı geçici değiştirebilir)
+export const capexOf=(k,q)=>Math.round(TECH[k].capex*EQUIP[k][q].capex*(spec()==="fin"?0.94:1)*factor("capex",null,k)/100)*100;
