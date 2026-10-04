@@ -4,6 +4,7 @@ import { newDay, tick } from "./sim.js";
 import { initMap, drawMap } from "./ui/map.js";
 import { renderPanel } from "./ui/panel.js";
 import { render, renderLog, renderReport, drawChart } from "./ui/hud.js";
+import { initProfile } from "./ui/profile.js";
 
 let timer=null, speed=1, paused=false;
 
@@ -13,4 +14,5 @@ document.getElementById("speedBtn").onclick=e=>{speed=speed===1?3:speed===3?8:1;
 document.getElementById("resetBtn").onclick=()=>{if(confirm("Tüm ilerleme silinsin mi?")){setS(fresh());save();newDay();location.reload();}};
 window.addEventListener("resize",drawChart);
 
-setS(load());S.hour=0;newDay();initMap();drawMap();renderPanel();renderLog();renderReport();render();loop();
+// ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
+setS(load());S.hour=0;newDay();initMap();drawMap();renderPanel();renderLog();renderReport();render();initProfile(loop);

@@ -7,9 +7,24 @@ import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build } from "../actions.js";
 import { plantStatus, statusText } from "../plantstatus.js";
 import { flyToSite } from "./map.js";
+import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2)+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
+let tab=null; // ekipman kartlarında seçili teknoloji
+const pctTxt=v=>"%"+(Math.round(v*1000)/10).toLocaleString("tr-TR");
+
+// Ekipman seçimi: teknoloji sekmeleri ve her kademe için bir kart (marka, özellik, üretim, arıza riski, maliyet)
+function buildHtml(t){
+  const ks=allowed(t);if(!ks.includes(tab))tab=ks[0];
+  let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="--c:var(${TECH[k].c})" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
+  h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
+    const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
+    return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
+      <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
+      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW • ${fmt$(c)}</button></div>`;}).join("")+`</div>`;
+  return h+`<div class="eqnote">Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
+}
 
 export function renderPanel(){
   const t=selSite(),id=S.sel.id,o=id?S.sites[id]:null,el=document.getElementById("panel");
@@ -33,15 +48,15 @@ export function renderPanel(){
   }else if(o.permit==="pending"){
     html+=`<div class="status wait">İzin inceleniyor: yaklaşık ${o.days} gün kaldı.</div>`;
   }else{
-    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW`).join(", ");
+    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
     html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${SITE_LIMIT} MW kurulu${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
-    html+=`<div class="actions">`+(mw?`<button data-a="fly">3D yakından bak</button>`:"");
-    allowed(t).forEach(k=>{html+=`<button class="tech" style="--c:var(${TECH[k].c})" data-a="build" data-k="${k}" data-c="${TECH[k].capex}">${TECH[k].long}: +5 MW, ${fmt$(TECH[k].capex)}</button>`;});
-    html+=`</div>`;
+    if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button></div>`;
+    html+=buildHtml(t);
   }
   el.innerHTML=html;
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="land")buyLand();else if(a==="permit")applyPermit(S.sel.id);else build(S.sel.id,b.dataset.k);};});
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="land")buyLand();else if(a==="permit")applyPermit(S.sel.id);
+    else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }
 export function updateButtons(){const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&siteMW(S.sel.id)+BLOCK>SITE_LIMIT)d=true;b.disabled=d;});}

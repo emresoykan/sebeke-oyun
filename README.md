@@ -37,11 +37,14 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/utils.js` | Rastgelelik, üretim profilleri, biçimlendirme |
 | `src/state.js` | Oyun durumu (`S`, `D`), kayıt/yükleme (localStorage), seçili nokta, bildirim günlüğü |
 | `src/sim.js` | Günlük fiyatlar, saatlik tick, gün sonu, net değer |
-| `src/actions.js` | Saha açma (arazi alma), izin başvurusu, santral kurma |
+| `src/actions.js` | Saha açma (arazi alma), izin başvurusu, santral kurma (ekipman kademesiyle) |
+| `src/equipment.js` | Ekipman katalogu: her teknoloji için ekonomi/standart/premium kademe, kurgusal markalar, maliyet ve performans çarpanları |
+| `src/profile.js` | Oyuncu profili: kimlik, uzmanlıklar, ünvanlar, rozetler |
+| `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
 | `src/ui/map.js` | CesiumJS 3D dünya: Google 3D Tiles veya gömülü NASA görüntüleri, gece/gündüz, sınırlar, şehirler, korunan alanlar, sahalar, tıklama |
 | `src/ui/models.js` | 3D santral modelleri: three.js ile kurulur, glTF olarak Cesium'a verilir; rotor, ikaz ışığı, dolusavak ve LED canlandırması |
 | `src/plantstatus.js` | Sahadaki santrallerin o saatteki çalışma durumu (3D modeller ve panel ortak kullanır) |
-| `src/ui/panel.js` | Seçili nokta/saha paneli ve buton durumları |
+| `src/ui/panel.js` | Seçili nokta/saha paneli, ekipman kartları ve buton durumları |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
@@ -50,6 +53,29 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `.github/workflows/pages.yml` | GitHub Pages yayını |
 
 `S` ve `D` modüller arasında canlı bağlama (live binding) olarak okunur; yeniden atama yalnızca `setS`/`setD` ile yapılır.
+
+## Oyuncu profili ve ekipman
+
+İlk açılışta oyuncu şirketini kurar: ad, şirket adı, renk ve uzmanlık. Uzmanlık oyunun bir mekaniğini hafifletir:
+
+| Uzmanlık | Etkisi |
+|---|---|
+| Mühendis | Santral arızaları yarı yarıya azalır |
+| Finansçı | Kurulum maliyeti %6 düşer |
+| Mevzuat uzmanı | İzin ihtimali 10 puan artar (korunan alanlar hariç), inceleme 1 gün kısalır |
+| Piyasa analisti | Rüzgâr dengesizlik maliyeti %35 azalır |
+
+Profil ayrı anahtarda (`sebeke-profile-v1`) saklanır; "Yeniden başla" oyunu sıfırlar, profili korur. Ünvan portföy değeriyle yükselir (Girişimci → Enerji devi); istatistikler ve 10 rozet oyuna aittir.
+
+Her teknolojide (GES, karada RES, offshore RES, HES, batarya) üç ekipman kademesi vardır. Markalar ve modeller kurgusaldır, değerler oyun dengesi için temsilidir:
+
+| Kademe | Kurulum | Üretim / verim | Arızasız gün | İşletme gideri |
+|---|---|---|---|---|
+| Ekonomi | %80–85 | %86–92 (batarya verimi %82) | %94–97 | %110–120 |
+| Standart | %100 | %100 (batarya %88) | %97–98,5 | %100 |
+| Premium | %115–122 | %104–112 (batarya %92) | %98,5–99,5 | %88–95 |
+
+Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında MW başına en çok üretimi verir. Arızalanan santral 1–2 gün üretmez ama işletme gideri sürer. Premium türbinler 3D'de daha büyük rotor ve kuleyle, paneller kademeye göre farklı tonda görünür. Eski kayıtlardaki santraller standart kademe sayılır.
 
 ## Harita
 

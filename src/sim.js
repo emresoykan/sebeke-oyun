@@ -7,6 +7,9 @@ import { rnd, clamp, gauss, shape, prof } from "./utils.js";
 import { render, renderReport } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
+import { eqOf, eqName } from "./equipment.js";
+import { spec, checkAch } from "./profile.js";
+import { renderProfileChip } from "./ui/profile.js";
 
 const site=id=>S.sites[id];
 
@@ -23,23 +26,25 @@ export function newDay(){
     D[k]={sun,windDay,price,plan,avg:price.reduce((a,b)=>a+b,0)/24,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0}))};
   });
   S.plants.forEach(p=>{if(p.k!=="hes")return;const t=site(p.t),pr=D[t.mreg].price;
-    let budget=p.mw*24*t.hydro*(0.25+rnd()*0.3);p.plan=Array(24).fill(0);
+    let budget=p.down?0:p.mw*24*t.hydro*(0.25+rnd()*0.3)*eqOf(p).perf;p.plan=Array(24).fill(0);
     [...Array(24).keys()].sort((a,b)=>pr[b]-pr[a]).forEach(h=>{const e=Math.min(p.mw,budget);p.plan[h]=e;budget-=e;});});
 }
 
 export function tick(){
   const h=S.hour, st=D.st; let cash=0;
+  const imbK=spec()==="trd"?IMB*0.65:IMB;
   S.plants.forEach(p=>{
-    const t=site(p.t), M=D[t.mreg], pr=M.price[h], g=M.gen[h];
-    if(p.k==="ges"){let e=p.mw*t.solar*shape(h)*M.sun*(0.9+rnd()*0.1);if(pr<=0){st.curt+=e;e=0;}
+    const t=site(p.t), M=D[t.mreg], pr=M.price[h], g=M.gen[h], q=eqOf(p);
+    const ox=TECH[p.k].opex*q.opex*p.mw/BLOCK/24;st.opex+=ox;cash-=ox;
+    if(p.down)return; // arızalı santral üretmez, işletme gideri sürer
+    if(p.k==="ges"){let e=p.mw*t.solar*shape(h)*M.sun*(0.9+rnd()*0.1)*q.perf;if(pr<=0){st.curt+=e;e=0;}
       st.E.ges+=e;st.R.ges+=e*pr;st.sBase+=e*M.avg;g.s+=e;cash+=e*pr;}
-    else if(p.k==="res"||p.k==="off"){const f=clamp(t.wind*M.windDay*prof(h),0,1),a=clamp(f*(1+gauss()*0.25),0,1),e=p.mw*a,imb=Math.abs(e-p.mw*f)*pr*IMB;
+    else if(p.k==="res"||p.k==="off"){const f=clamp(t.wind*M.windDay*prof(h)*q.perf,0,1),a=clamp(f*(1+gauss()*0.25),0,1),e=p.mw*a,imb=Math.abs(e-p.mw*f)*pr*imbK;
       st.E[p.k]+=e;st.R[p.k]+=e*pr;st.imb+=imb;g.w+=e;cash+=e*pr-imb;}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;st.E.hes+=e;st.R.hes+=e*pr;g.h+=e;cash+=e*pr;}
     else if(p.k==="batt"){p.soc=p.soc||0;const cap=p.mw*2;
       if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
-      else if(M.plan[h]===-1){const e=Math.min(p.mw,p.soc);p.soc-=e;st.bNet+=e*EFF*pr;cash+=e*EFF*pr;g.b+=e*EFF;}}
-    const ox=TECH[p.k].opex*p.mw/BLOCK/24;st.opex+=ox;cash-=ox;
+      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);p.soc-=e;st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
   });
   S.money+=cash; S.hour++;
   if(S.hour>=24)endDay();
@@ -60,11 +65,31 @@ export function endDay(){
       if(rnd()<permitProb(o)){o.permit="ok";addLog(`${nm} için izin çıktı. Artık santral kurabilirsin.`);}
       else{o.permit="rejected";o.why=rejectWhy(o);addLog(`${nm} için izin reddedildi: ${o.why}.`);}}
   });
-  S.dayNo++;S.hour=0;newDay();save();renderReport();renderPanel();drawMap();
+  // istatistikler
+  const mwh=E.ges+E.res+E.off+E.hes,ss=S.stats;ss.mwh+=mwh;ss.net+=net;if(!ss.best||net>ss.best.net)ss.best={day:S.dayNo,net};
+  rollOutages();
+  S.dayNo++;S.hour=0;newDay();awardAch();save();renderReport();renderPanel();drawMap();
 }
 
-export function netWorth(){let v=S.money;Object.values(S.sites).forEach(o=>v+=landCost(o));S.plants.forEach(p=>v+=TECH[p.k].capex*p.mw/BLOCK);return v;}
+// Arızalar: her santral her gün ekipmanının arızasız gün olasılığına göre bozulabilir; 1-2 gün üretmez.
+// Mühendis uzmanlığı arıza olasılığını yarıya indirir.
+function rollOutages(){
+  const k=spec()==="eng"?0.5:1;
+  S.plants.forEach(p=>{
+    if(p.down){p.down--;if(!p.down)addLog(`${placeName(site(p.t))}: ${TECH[p.k].n} (${eqName(p.k,p.q)}) onarıldı, yeniden üretimde.`);return;}
+    if(rnd()<(1-eqOf(p).avail)*k){p.down=1+(rnd()<0.4?1:0);S.stats.outages++;
+      addLog(`${placeName(site(p.t))}: ${TECH[p.k].n} ${p.mw} MW arızalandı (${eqName(p.k,p.q)}), ${p.down} gün üretim yok.`);}
+  });
+}
+
+// Yeni rozetleri aç ve bildir
+export function awardAch(){
+  checkAch(S,netWorth()).forEach(a=>addLog(`Rozet kazandın: ${a.n}. ${a.d}`));
+  renderProfileChip();
+}
+
+export function netWorth(){let v=S.money;Object.values(S.sites).forEach(o=>v+=landCost(o));S.plants.forEach(p=>v+=p.cost??TECH[p.k].capex*p.mw/BLOCK);return v;}
 export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p.mw,0);}
 
-export function newDayHydro(p){const t=site(p.t),pr=D[t.mreg].price;let b=p.mw*24*t.hydro*0.4;p.plan=Array(24).fill(0);
+export function newDayHydro(p){const t=site(p.t),pr=D[t.mreg].price;let b=p.down?0:p.mw*24*t.hydro*0.4*eqOf(p).perf;p.plan=Array(24).fill(0);
   [...Array(24).keys()].filter(h=>h>=S.hour).sort((a,c)=>pr[c]-pr[a]).forEach(h=>{const e=Math.min(p.mw,b);p.plan[h]=e;b-=e;});}

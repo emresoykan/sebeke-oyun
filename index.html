@@ -12,7 +12,8 @@
 <body>
 <main>
   <header>
-    <div><h1>Şebeke</h1><div class="sub">Dünya • <span id="dayLbl">Gün 1</span> • <span id="clockTop">00:00</span></div></div>
+    <div><h1>Şebeke</h1><div class="sub">Dünya • <span id="dayLbl">Gün 1</span> • <span id="clockTop">00:00</span></div>
+      <button class="pchip" id="profileBtn" aria-haspopup="dialog" aria-label="Oyuncu profili"></button></div>
     <div class="cash"><b id="cash">–</b><span>Nakit</span></div>
   </header>
 
@@ -59,9 +60,10 @@
     <div class="goal"><div id="goalBar"></div></div>
   </div>
 
-  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble; Türkiye ve çevresi: Contains modified Copernicus Sentinel data 2024–2025. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir.</footer>
+  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble; Türkiye ve çevresi: Contains modified Copernicus Sentinel data 2024–2025. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri, ekipman performansları ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir. Ekipman markaları ve modelleri kurgusaldır.</footer>
 </main>
 
+<dialog id="profileDlg" aria-label="Oyuncu profili"></dialog>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
