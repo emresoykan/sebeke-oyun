@@ -32,6 +32,9 @@ let viewer=null, scene=null, google=null, nightShader=null, ready=false, lastFra
 const borders=[];
 const siteEnts=new Map();
 let selOuter=null, selInner=null;
+// seçim halkası ve saha işaretleri her zaman üstte çizilir: Google 3D zemini (arazi yüksekliği) onları kısmen örtüp
+// karolar yüklendikçe titreştirmesin. Kürenin arkasına geçenler stepClock içinde gizlenir.
+const ON_TOP=Number.POSITIVE_INFINITY;
 
 function selectSite(id){const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
 // Seçili sahaya eğik açıyla yaklaş: kamera sahanın güneyinde, kuzeye bakar
@@ -70,7 +73,7 @@ function addLabels(){
 
 // Etiket çakışmalarını ayıkla: öncelik sırasına göre yerleştir, çakışanı gizle (Cesium bunu kendisi yapmaz)
 const decl=[];let lastDecl=0;
-const win=new Cesium.Cartesian2(),toCam=new Cesium.Cartesian3(),up=new Cesium.Cartesian3();
+const win=new Cesium.Cartesian2(),toCam=new Cesium.Cartesian3(),up=new Cesium.Cartesian3(),pos=new Cesium.Cartesian3();
 function declutter(){
   const cp=viewer.camera.positionWC,placed=[],W=viewer.canvas.clientWidth,Hh=viewer.canvas.clientHeight;
   for(const e of decl){
@@ -139,8 +142,8 @@ export async function initMap(){
   viewer.screenSpaceEventHandler.setInputAction(onClick,Cesium.ScreenSpaceEventType.LEFT_CLICK);
   viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   addBorders();addLabels();addParks();
-  selOuter=viewer.entities.add({point:{pixelSize:24,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.BLACK,outlineWidth:3.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5}});
-  selInner=viewer.entities.add({point:{pixelSize:22,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.WHITE,outlineWidth:1.6,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5}});
+  selOuter=viewer.entities.add({point:{pixelSize:24,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.BLACK,outlineWidth:3.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
+  selInner=viewer.entities.add({point:{pixelSize:22,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.WHITE,outlineWidth:1.6,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
   scene.preRender.addEventListener(stepClock);
   initModels(scene);ready=true;drawMap();
   await addGoogle();
@@ -161,7 +164,11 @@ function stepClock(){
   // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün); Türkiye çerçevesinin kaba kıyı çizgisi
   // net uydu görüntüsünde kıyıyla örtüşmediği için daha erken gizlenir
   const h=viewer.camera.positionCartographic.height;borders[0].show=h>4e4;borders[1].show=h>5e5;
-  if(now-lastDecl>150){lastDecl=now;declutter();}
+  if(now-lastDecl>150){lastDecl=now;declutter();
+    // her zaman üstte çizilen işaretler kürenin arkasına geçince görünmesin
+    const cp=viewer.camera.positionWC,front=e=>{const p=e.position.getValue(viewer.clock.currentTime,pos);if(!p)return false;
+      Cesium.Cartesian3.normalize(p,up);Cesium.Cartesian3.subtract(cp,p,toCam);return Cesium.Cartesian3.dot(up,toCam)>0;};
+    selOuter.show=selInner.show=front(selOuter);for(const e of siteEnts.values())e.show=front(e);}
   if(!targetTime)return;const clk=viewer.clock,diff=Cesium.JulianDate.secondsDifference(targetTime,clk.currentTime);
   if(Math.abs(diff)>6*3600||Math.abs(diff)<1)clk.currentTime=Cesium.JulianDate.clone(targetTime,clk.currentTime); // gece yarısı geçişi: atla
   else clk.currentTime=Cesium.JulianDate.addSeconds(clk.currentTime,diff*(1-Math.exp(-dt*8)),clk.currentTime); // ~0,3 sn'de yetiş
@@ -175,9 +182,9 @@ export function drawMap(){
     live.add(id);const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     let e=siteEnts.get(id);
     if(!e){e=viewer.entities.add({position:Cesium.Cartesian3.fromDegrees(o.lon,o.lat),
-      point:{pixelSize:12,outlineWidth:2.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5},
+      point:{pixelSize:12,outlineWidth:2.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP},
       label:{font:`600 12px ${FONT}`,fillColor:Cesium.Color.WHITE,outlineColor:Cesium.Color.BLACK.withAlpha(0.8),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset:new Cesium.Cartesian2(0,18),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:1.5e5,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,H(3))}});
+        pixelOffset:new Cesium.Cartesian2(0,18),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,H(3))}});
       e.siteId=id;siteEnts.set(id,e);}
     e.point.color=top?Cesium.Color.fromCssColorString(cssv(TECH[top.k].c)):Cesium.Color.WHITE.withAlpha(0.3);
     e.point.outlineColor=Cesium.Color.fromCssColorString(STATUS[o.permit]);
