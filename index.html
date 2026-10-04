@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Şebeke: Dünya (Prototip v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>Şebeke</h1><div class="sub">Dünya • <span id="dayLbl">Gün 1</span> • <span id="clockTop">00:00</span></div></div>
+    <div class="cash"><b id="cash">–</b><span>Nakit</span></div>
+  </header>
+
+  <div class="mapwrap" id="mapwrap"><div id="map" role="application" aria-label="3D dünya: döndürmek için sürükle, yakınlaştırmak için kaydır veya iki parmakla aç, eğmek için sağ tık veya Ctrl ile sürükle ya da iki parmakla yukarı kaydır, saha seçmek için dokun"></div></div>
+  <div class="maplegend">
+    <span><i style="background:rgba(255,255,255,.25);outline:2px solid #fff;outline-offset:-2px;border-radius:50%"></i>Senin sahan</span><span><i style="background:#F2C94C;border-radius:50%"></i>İzin bekliyor</span><span><i style="background:#F06A7D;border-radius:50%"></i>İzin reddedildi</span>
+    <span><i style="background:var(--solar);border-radius:50%"></i>GES</span><span><i style="background:var(--wind);border-radius:50%"></i>RES</span><span><i style="background:var(--hydro);border-radius:50%"></i>HES</span><span><i style="background:var(--batt);border-radius:50%"></i>Batarya</span><span><i style="background:rgba(194,54,74,.35);outline:1px dashed #F06A7D;outline-offset:-1px"></i>Korunan alan</span>
+  </div>
+
+  <div class="panel" id="panel"></div>
+
+  <div class="sky" id="sky">
+    <div class="clock" id="clock">Türkiye piyasası</div>
+    <div class="legend"><span><i style="background:#fff"></i>Fiyat</span><span><i style="background:var(--solar)"></i>GES</span><span><i style="background:var(--wind)"></i>RES</span><span><i style="background:var(--hydro)"></i>HES</span><span><i style="background:var(--batt)"></i>Batarya</span></div>
+    <canvas id="chart" aria-label="Seçili piyasanın 24 saatlik fiyatı ve senin üretimin" role="img"></canvas>
+  </div>
+  <div class="readouts">
+    <div class="ro"><small>Anlık fiyat (seçili piyasa)</small><b id="roPrice">–</b></div>
+    <div class="ro"><small>Toplam anlık üretim</small><b id="roGen">–</b></div>
+    <div class="ro"><small>Bugünkü net gelir</small><b id="roRev">–</b></div>
+    <div class="ro"><small>Kurulu güç</small><b id="roCap">–</b></div>
+  </div>
+  <div class="controls">
+    <button id="pauseBtn">Duraklat</button>
+    <button id="speedBtn">Hız: 1x</button>
+    <button id="resetBtn">Yeniden başla</button>
+  </div>
+
+  <h2>Bildirimler</h2>
+  <div class="report"><ul class="log" id="log"><li style="color:var(--muted)">Dünyayı döndür, yakınlaştır ve bir noktaya dokun; araziyi satın al ve izin başvurusu yap.</li></ul></div>
+
+  <h2>Dünün raporu</h2>
+  <div class="report" id="report"><p style="margin:0;color:var(--muted)">İlk gün bitince burada santral türlerine göre gelir ve capture oranını göreceksin.</p></div>
+
+  <h2>Güneş capture oranı trendi</h2>
+  <div class="report">
+    <div style="font-size:.85rem;color:var(--muted)">Son 14 gün. Her piyasada güneş kapasitesi arttıkça öğle fiyatları düşer.</div>
+    <div class="trend" id="trend"></div>
+  </div>
+
+  <h2>Hedef</h2>
+  <div class="report">
+    <div>Portföy değerini <b>5 M$</b>'a ulaştır. Şu an: <b id="nw">–</b></div>
+    <div class="goal"><div id="goalBar"></div></div>
+  </div>
+
+  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble; Türkiye ve çevresi: Contains modified Copernicus Sentinel data 2024–2025. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir.</footer>
+</main>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
