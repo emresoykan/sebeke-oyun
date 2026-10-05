@@ -5,6 +5,7 @@ import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth } from "../sim.js";
 import { updateButtons } from "./panel.js";
 import { setGameClock } from "./map.js";
+import { CAL, fmtDate, seasonOf } from "../calendar.js";
 
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
@@ -29,7 +30,7 @@ export function drawChart(){
 export function render(){
   const h=Math.min(S.hour,23),k=selMarket(),M=D[k],st=D.st;
   document.getElementById("cash").textContent=fmt$(S.money);
-  document.getElementById("dayLbl").textContent="Gün "+S.dayNo;
+  const sn=seasonOf(CAL.date);document.getElementById("dayLbl").textContent=`${sn.i} ${fmtDate(CAL.date)} • Gün ${S.dayNo}`;
   document.getElementById("clockTop").textContent=String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);

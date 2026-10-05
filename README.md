@@ -42,6 +42,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/profile.js` | Oyuncu profili: kimlik, uzmanlıklar, ünvanlar, rozetler |
 | `src/missions.js` | Görev zinciri: 14 sıralı görev, ödüller |
 | `src/events.js` | Olay kartları: 12 piyasa/hava/şebeke/mevzuat olayı ve seçenekleri |
+| `src/calendar.js` | Takvim ve mevsimler: tarih, güneş eğimi, gün uzunluğu, öğle güneşi yüksekliği, aylık talep |
 | `src/weather.js` | Hava modeli: hareket eden alçak/yüksek basınç, fırtına ve sıcak hava sistemleri; nokta başına bulut, yağış, rüzgâr hızı ve yönü (DOM'suz) |
 | `src/wxsite.js` | Havanın oyuna bağlanması: günlük 24 saatlik tahmin, piyasa temsilî noktaları, saha havası |
 | `src/ui/weatherLayer.js` | Haritada bulut katmanı, şimşek, rüzgâr okları ve fırtına uyarı halkaları |
@@ -89,6 +90,19 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Görev zinciri:** Haritanın üstündeki çubuk sıradaki görevi, kısa bir açıklamayı ve ödülü gösterir. 14 görev oyunun ilk yarım saatini yönlendirir: arazi alma, izin, ilk santral, kârlı gün, ilk olay kararı, rüzgâr ve batarya ile çeşitlendirme, ikinci ve üçüncü piyasa, 25 MW, dolu saha, 500 b$ ve 1 M$ portföy. Eski kayıtlarda geçmişte tamamlanan görevler ödülsüz geçilir.
 - **Olay kartları:** İlk santralden sonra, 3. günden itibaren gün başında yaklaşık %45 olasılıkla bir olay çıkar (ilk olay garantili, iki olay arasında en az bir gün). Oyun durur, oyuncu seçeneklerden birini seçer. Olaylar gerçek piyasa olgularından esinlenir ve her kartta bir "piyasa notu" vardır: kuraklık, fırtına (kesme hızı, sigorta), tatil günü öğle fiyat çöküşü (kanibalizasyon, ikili anlaşma), gaz şoku (marjinal fiyatlama), vadeli satış teklifi (hedge), ekipman zammı (CAPEX), şebeke kısıtı, toz (soiling), yerel halk tepkisi (sosyal lisans), sıcak hava dalgası (akşam piki, bakım erteleme), destek programı ve trafo arızası. Seçimlerin etkileri birkaç gün sürer ve haritanın altında etiket olarak görünür.
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
+
+## Mevsimler
+
+Oyun 20 Mart 2026'da başlar; her oyun günü takvimi 3 gün ilerletir (bir yıl = 120 oyun günü). Başlıkta tarih ve mevsim görünür; mevsim değişince bildirim gelir.
+
+- **Güneş:** Gün doğumu/batımı ve öğle güneşinin yüksekliği güneşin eğimine göre değişir (Türkiye enleminde gün yazın ~14,5, kışın ~9,4 saat). Cesium'un güneşi de oyun takvimini kullanır.
+- **Rüzgâr:** Orta enlemlerde kışın güçlü, yazın sakin; Ege'de yaz meltemi tersine yazın güçlenir.
+- **Hava sistemleri:** Kışın alçak basınç kuşağı güneye iner (Akdeniz'e yağmur), yazın kuzeye çekilir; sıcak hava kütleleri yaz yaşanan yarımkürede doğar.
+- **Kar:** Soğuk bölgelerde yağış kar olarak düşer: GES panelleri 2 gün karla kaplanır (%25 üretim), HES sahasında kar birikir ve ilkbaharda eriyerek suya dönüşür.
+- **Talep ve fiyat:** Aylık talep çarpanı (kışın ısınma, yazın klima yüksek; ilkbaharda düşük); güney yarımkürede mevsimler ters.
+- **Olaylar:** Yazın kuraklık, sıcak hava ve toz; kışın fırtına kartları daha sık çıkar.
+
+8 günlük örnek (Aydın GES, TR fiyat): Nisan KF 0,20 / 49 $/MWh, Temmuz 0,35 / 54, Ekim 0,21 / 58, Ocak 0,07 / 72.
 
 ## Hava durumu
 

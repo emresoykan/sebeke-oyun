@@ -21,14 +21,17 @@ const KINDS={
   storm:{n:5,r:[160,320],life:[14,36]},
   heat:{n:2,r:[500,800],life:[60,120]}
 };
+// Mevsim: güneşin eğimi (derece). Kışın kuzey yarımkürede alçak basınç kuşağı güneye iner (Akdeniz'e yağmur getirir),
+// yazın kuzeye çekilir; sıcak hava kütleleri yaz yaşanan yarımkürede doğar. Oyun her gün başında ayarlar.
+let DECL=0;export const setSeason=d=>{DECL=d;};
 // Türkiye ve Avrupa çevresinde (batısında) daha sık sistem doğsun ki oyunun odak bölgesinde hava hareketli olsun
 function spawn(wx,type){
   const k=KINDS[type],focus=rand(wx)<(type==="low"?0.22:type==="storm"?0.2:0.35);
   let lat,lon;
-  if(type==="low"){lat=(rand(wx)<0.7?1:-1)*between(wx,32,62);lon=focus?between(wx,-25,35):between(wx,-180,180);if(focus)lat=Math.abs(lat);}
+  if(type==="low"){const nh=focus||rand(wx)<0.7,d=nh?DECL:-DECL;lat=(nh?1:-1)*between(wx,34+0.45*d,61+0.25*d);lon=focus?between(wx,-25,35):between(wx,-180,180);}
   else if(type==="high"){lat=(rand(wx)<0.6?1:-1)*between(wx,20,42);lon=focus?between(wx,-30,40):between(wx,-180,180);if(focus)lat=Math.abs(lat);}
   else if(type==="storm"){const trop=rand(wx)<0.5;lat=(rand(wx)<0.65?1:-1)*(trop?between(wx,8,22):between(wx,34,48));lon=focus&&!trop?between(wx,15,45):between(wx,-180,180);if(focus&&!trop)lat=Math.abs(lat);}
-  else{lat=between(wx,28,42);lon=focus?between(wx,20,50):between(wx,-120,120);}
+  else{const nh=DECL>-6||(focus&&DECL>-12);lat=(nh?1:-1)*between(wx,28,42);lon=focus&&nh?between(wx,20,50):between(wx,-120,120);}
   const mid=Math.abs(lat)>=28,dir=Math.sign(lat)||1;
   // hareket (derece/saat): orta enlemlerde batılı rüzgârlar, tropiklerde doğulu rüzgârlar
   let vx=mid?between(wx,0.3,0.6):-between(wx,0.15,0.3),vy=between(wx,-0.04,0.04)+(type==="storm"&&!mid?0.06*dir:0);
@@ -90,7 +93,15 @@ export function sampleWx(wx,lat,lon,base){
 }
 
 // Sahanın iklim tabanı: bulutluluk enleme ve güneş potansiyeline, ortalama rüzgâr hızı rüzgâr potansiyeline bağlı
-export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),speed:4+8.5*(t.wind||0.4)}); // ortalama rüzgâr hızı 4-12 m/s
+export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),speed:(4+8.5*(t.wind||0.4))*windSeason(t.lat,t.lon)}); // ortalama rüzgâr hızı 4-12 m/s
+// Mevsimsel rüzgâr: orta enlemlerde kış rüzgârlı, yaz sakin; Ege'de yaz poyrazı (meltem/etezyen) tersine yazın güçlenir
+export function windSeason(lat,lon){
+  const w=(Math.sign(lat)||1)*DECL/23.44; // +1 yaz ortası, −1 kış ortası (o yarımküre için)
+  if(lat>34&&lat<41.5&&lon>22&&lon<30.5)return 1+0.22*Math.max(0,w)-0.04*Math.max(0,-w);
+  return Math.abs(lat)>30?1-0.12*w:1;
+}
+// Soğuk mu (yağış kar olarak düşer): kış yaşanan yarımkürede yüksek enlem ya da dağ
+export const isCold=(lat,mountain)=>{const w=(Math.sign(lat)||1)*DECL/23.44,a=Math.abs(lat);return w<-0.35&&(a>39.5||(mountain&&a>33))||(mountain&&w<0.1&&a>38);};
 // Güneş: sahanın güneş potansiyeli zaten iklimi içerir; hava bu ortalamanın etrafında dalgalanma yaratır.
 // Göreli açıklık = o anki açık gökyüzü oranı / sahanın ortalama açıklığı (en fazla %25 üstü)
 export const sunRel=(w,b)=>Math.min(1.25,clearFactor(w.c)/clearFactor(b.cloud));
@@ -104,6 +115,7 @@ export const dirName=d=>DIRS[Math.round(d/45)%8];
 // Kısa hava özeti: simge ve metin
 export function wxLabel(w,night){
   if(w.storm>0.35)return {i:"⛈️",t:"Fırtına"};
+  if(w.snow)return {i:"🌨️",t:"Karlı"};
   if(w.rain>0.25)return {i:"🌧️",t:"Yağmurlu"};
   if(w.c>0.7)return {i:"☁️",t:"Kapalı"};
   if(w.c>0.4)return {i:night?"☁️":"⛅",t:"Parçalı bulutlu"};

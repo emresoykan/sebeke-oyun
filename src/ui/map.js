@@ -15,6 +15,7 @@ import { TECH, SITE_MIN_KM } from "../config.js";
 import { km } from "../world.js";
 import { S } from "../state.js";
 import { cssv, daylight } from "../utils.js";
+import { CAL } from "../calendar.js";
 import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
@@ -156,12 +157,12 @@ export async function initMap(){
 }
 
 // Oyun saati → Cesium saati: güneş konumu, gece/gündüz sınırı ve gölgeler gerçek coğrafyaya göre hesaplanır.
-// Tarih sonbahar ekinoksuna sabitlenir (gün ve gece eşit), saat Türkiye saatidir (UTC+3).
-const BASE_DATE=Cesium.JulianDate.fromIso8601("2026-09-22T00:00:00Z");
+// Tarih oyunun takviminden gelir (mevsimle güneşin yüksekliği ve gün uzunluğu değişir), saat Türkiye saatidir (UTC+3).
+
 let targetTime=null;
 export function setGameClock(hour){
   if(!viewer)return;
-  targetTime=Cesium.JulianDate.addHours(BASE_DATE,hour-3,new Cesium.JulianDate());
+  targetTime=Cesium.JulianDate.addHours(Cesium.JulianDate.fromDate(CAL.date),hour-3,new Cesium.JulianDate());
   if(nightShader)nightShader.setUniform("u_day",0.15+0.85*daylight(Math.min(hour,23)));
 }
 function stepClock(){

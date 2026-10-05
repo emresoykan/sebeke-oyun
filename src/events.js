@@ -11,6 +11,7 @@ import { showEvent } from "./ui/eventcard.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { checkMissions } from "./missions.js";
+import { CAL, seasonOf } from "./calendar.js";
 
 const RENEW=["ges","res","off","hes"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
@@ -121,7 +122,10 @@ export function maybeEvent(){
   if(S.evCool>0){S.evCool--;return;}
   if(S.evDone>0&&rnd()>0.45)return;
   const recent=S.evHist||[],pool=EVENTS.filter(e=>e.ok()&&!recent.includes(e.id));if(!pool.length)return;
-  const ev=pool[Math.floor(rnd()*pool.length)],m=mainMkt(),opts=ev.opts(m);
+  // mevsime göre olasılık: yazın kuraklık, sıcak hava ve toz; kışın fırtına
+  const sk=seasonOf(CAL.date).k,W={sum:{drought:2.5,heat:2.5,dust:2,storm:0.6},win:{storm:2,drought:0.2,heat:0.1,dust:0.4},spr:{drought:0.5,heat:0.5},aut:{storm:1.4,heat:0.5}}[sk];
+  const wt=e=>W[e.id]??1,tot=pool.reduce((a,e)=>a+wt(e),0);let r=rnd()*tot,ev=pool[pool.length-1];for(const e of pool){r-=wt(e);if(r<=0){ev=e;break;}}
+  const m=mainMkt(),opts=ev.opts(m);
   S.evHist=[ev.id,...recent].slice(0,4);
   showEvent({tag:ev.tag,title:ev.title,text:ev.text(m),learn:ev.learn,opts},i=>{
     const r=opts[i].run();S.evDone=(S.evDone||0)+1;S.evCool=1;
