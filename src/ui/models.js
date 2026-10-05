@@ -8,6 +8,7 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import * as Cesium from "cesium";
 import { S } from "../state.js";
 import { plantStatus } from "../plantstatus.js";
+import { tierOf, TIER_ORDER } from "../equipment.js";
 
 const RAD=Math.PI/180;
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
@@ -68,15 +69,15 @@ function turbine(sea,parts){
   const rotor=new THREE.Group();rotor.position.set(-3.8,top+2,0);
   const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
   for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
-  const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);
+  const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);g.name=`tw${k}`;
   const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(4,top+4.6,0);bc.name=`beacon${k}`;g.add(bc);
   parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});parts.beacons.push(bc.name);
   return g;
 }
-function windFarm(mw,sea,parts,yaw){
-  const n=Math.min(4,Math.max(1,Math.ceil(mw/10))),g=new THREE.Group(),cols=n>2?2:n,sp=150;
-  for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols);
-    t.position.set((c-(cols-1)/2)*sp+(r%2?sp*.35:0),0,(r-(Math.ceil(n/cols)-1)/2)*sp*1.1);t.rotation.y=yaw;g.add(t);
+function windFarm(mw,sea,parts,yaw,sc=1){
+  const n=Math.min(4,Math.max(1,Math.ceil(mw/10))),g=new THREE.Group(),cols=n>2?2:n,sp=150*sc;
+  for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols);t.scale.setScalar(sc);
+    t.position.set((c-(cols-1)/2)*sp+(r%2?sp*.35:0),0,(r-(Math.ceil(n/cols)-1)/2)*sp*1.1);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
     if(!sea){const cp=pad(26,26,M.gravel);cp.position.x=t.position.x;cp.position.z=t.position.z;g.add(cp);}}
   if(!sea&&n>1){const xs=g.children.filter(c=>c.type==="Group").map(c=>c.position);const a=xs[0],b=xs[xs.length-1];
     const road=pad(Math.hypot(b.x-a.x,b.z-a.z)+20,6,M.road,.05);road.position.x=(a.x+b.x)/2;road.position.z=(a.z+b.z)/2;road.rotation.z=-Math.atan2(b.z-a.z,b.x-a.x);g.add(road);}
@@ -86,11 +87,13 @@ function windFarm(mw,sea,parts,yaw){
 }
 
 // ---- GES: ekvatora bakan eğik panel sıraları, ayaklar, invertör/trafo köşkü ----
-function solarFarm(mw,lat,parts){
+// panel tonu ekipman kademesine göre: ekonomi açık mavi polikristal, premium koyu tek renk TOPCon
+const PANEL_TINT={eco:0xC4D6FF,std:0xFFFFFF,pre:0x6A7380};
+function solarFarm(mw,lat,parts,tier="std"){
   // ~0,5 ha/MW kare saha; ortadan geçen servis yolu sıraları iki yarıya böler
   const g=new THREE.Group(),side=Math.sqrt(mw*5000),pitch=8,rows=Math.max(4,Math.round(side/pitch)),L=Math.round(side-12),half=(L-8)/2;
   const tilt=25*RAD*(lat>=0?1:-1),D=rows*pitch,legStep=12,perHalf=Math.floor(half/legStep)+1;
-  const mat=M.panel.clone();mat.map=M.panel.map.clone();mat.map.repeat.set(half/24,1);mat.map.needsUpdate=true;
+  const mat=M.panel.clone();mat.map=M.panel.map.clone();mat.map.repeat.set(half/24,1);mat.map.needsUpdate=true;mat.color.setHex(PANEL_TINT[tier]);
   const pg=new THREE.BoxGeometry(half,.12,4.4),lg=new THREE.CylinderGeometry(.12,.12,1,6);
   const panels=new THREE.InstancedMesh(pg,mat,rows*2),legs=new THREE.InstancedMesh(lg,M.frame,rows*2*perHalf*2);
   panels.castShadow=panels.receiveShadow=true;legs.castShadow=true;
@@ -146,12 +149,14 @@ function substation(){
 
 function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return ((Math.abs(h)%50)-25)*RAD;}
 
+// türbin boyu ekipman kademesine göre (rotor çapı ve göbek yüksekliği birlikte ölçeklenir)
+const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
 function buildSite(id,o,ps){
-  const by={};ps.forEach(p=>by[p.k]=(by[p.k]||0)+p.mw);
-  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[]},groups=[];
-  if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id)));
-  if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id)));
-  if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts));
+  const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
+  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[]},groups=[];
+  if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id),TURBINE_SCALE[top.res]));
+  if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id),TURBINE_SCALE[top.off]));
+  if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges));
   if(by.hes)groups.push(hydro(parts));
   if(by.batt)groups.push(bess(by.batt,parts));
   if(!o.sea&&(by.res||by.ges||by.batt))groups.push(substation());
@@ -181,7 +186,7 @@ export function syncModels(){
   const live=new Set();
   Object.entries(S.sites).forEach(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id);if(!ps.length)return;live.add(id);
-    const sig=ps.map(p=>p.k+p.mw).sort().join(","),cur=sites.get(id);
+    const sig=ps.map(p=>p.k+tierOf(p)+p.mw).sort().join(","),cur=sites.get(id);
     if(cur&&cur.sig===sig)return;
     if(cur&&cur.model)scene.primitives.remove(cur.model);
     sites.set(id,{sig,model:null,parts:null});
@@ -196,6 +201,9 @@ function animate(s,st,dt){
   const m=s.model,spin=!reduced.matches,wind=st.res||st.off;
   for(const r of s.parts.rotors){const target=wind&&wind.f>=0.03?(0.55+1.15*wind.f)*r.f:0;r.w+=(target-r.w)*Math.min(1,dt*0.6);if(spin)r.a+=r.w*dt;
     const n=m.getNode(r.name);if(n){Cesium.Matrix3.fromRotationX(r.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
+  // türbinler rüzgârın estiği yöne döner (rotor rüzgâra bakar): yön kuzeyden saat yönünde d derece ise yaw = d+90°
+  if(st.wx)for(const y of s.parts.yaws){let d=(st.wx.dir+90)*RAD-y.cur;d=Math.atan2(Math.sin(d),Math.cos(d));y.cur+=d*Math.min(1,dt*0.25);
+    const n=m.getNode(y.name);if(n){Cesium.Matrix3.fromRotationY(y.cur-y.base,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
   const blink=st.night&&(performance.now()%1600<800);s.parts.beacons.forEach(b=>show(m,b,blink));
   s.parts.flows.forEach(f=>show(m,f,!!(st.hes&&st.hes.run)));
   const b=st.batt,bs=!b?"off":b.chg?"chg":b.dis?"dis":"off",pulse=(b&&(b.chg||b.dis))?Math.sin(performance.now()/260)>-0.4:true;

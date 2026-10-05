@@ -5,13 +5,17 @@
 import { SAVE_KEY, REG, MARKETS } from "./config.js";
 import { describe } from "./world.js";
 import { renderLog } from "./ui/hud.js";
+import { freshStats } from "./profile.js";
 
 export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:150000,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3}};}
-export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return o;}}catch(e){}return fresh();}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:150000,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[]};}
+export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
+// Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
+// (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
+function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.stats)o.stats=freshStats();if(!o.ach)o.ach=[];if(!o.mods)o.mods=[];return o;}
 export function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 export function addLog(msg){S.log.unshift("Gün "+S.dayNo+": "+msg);S.log=S.log.slice(0,8);renderLog();}
 
