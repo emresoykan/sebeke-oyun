@@ -19,6 +19,8 @@ import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate } from "./calend
 import { MREF, siteWx, clock } from "./wxsite.js";
 import { RENEW, production, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
+import { rivalsDay, rivalCap } from "./rivals.js";
+import { news } from "./news.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -26,7 +28,9 @@ const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: 
 export function newDay(){
   // takvim ve mevsim: gün uzunluğu, güneş yüksekliği, hava sistemlerinin enlemi ve talep
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl);
-  const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);}
+  const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
+  const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
+  if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   setD({st:{E:{ges:0,res:0,off:0,hes:0},R:{ges:0,res:0,off:0,hes:0},imb:0,bNet:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0},wxf:forecast(S.wx,24)});
   MARKETS.forEach(k=>{
@@ -34,8 +38,9 @@ export function newDay(){
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
     const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>p.k==="ges"&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
-    const mS=S.mSolar[k]+solarMW/200, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl);
-    const price=BASE.map((b,h)=>clamp(mult*(b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+0.35*ws[h].heat:1)-57*mS*shape(h)*amp*sunH[h]-10*windH[h]),0,110*mult));
+    // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür
+    const rc=rivalCap(k),mS=S.mSolar[k]+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=10*(1+rc.res/400);
+    const price=BASE.map((b,h)=>clamp(mult*(b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+0.35*ws[h].heat:1)-57*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0}))};
     priceMods(k,D[k]); // olay etkileri, günlük ortalama ve batarya planı
@@ -43,8 +48,24 @@ export function newDay(){
   S.plants.forEach(p=>{if(p.k!=="hes")return;const t=site(p.t),pr=D[t.mreg].price;
     let budget=p.down?0:p.mw*24*t.hydro*(0.25+rnd()*0.3)*eqOf(p).perf*factor("out",t.mreg,"hes")*(0.6+1.2*(p.wet??0.35));p.plan=Array(24).fill(0); // son günlerin yağışı ve kar erimesi
     [...Array(24).keys()].sort((a,b)=>pr[b]-pr[a]).forEach(h=>{const e=Math.min(p.mw,budget);p.plan[h]=e;budget-=e;});});
+  if(fresh)dailyNews();
   dayAhead(); // GÖP: üretim tahmini ve teklif
   if(S.desk.fc==="pre"){const f=deskSummary().fee;S.money-=f;D.st.fee=f;}
+}
+
+// Günün haberleri: oyuncu sahaları için hava uyarıları, piyasa fiyat rekorları ve sıfır fiyat
+function dailyNews(){
+  let warn=0;
+  Object.values(S.sites).forEach(t=>{if(warn>=2)return;const ks=new Set(S.plants.filter(p=>site(p.t)===t).map(p=>p.k));if(!ks.size)return;
+    let mx=0,hm=0,snow=false;for(let h=0;h<24;h++){const w=siteWx(t,h);if(w.hub>mx){mx=w.hub;hm=h;}if(w.snow)snow=true;}
+    if((ks.has("res")||ks.has("off"))&&mx>25){news("⛈️",`Fırtına uyarısı: ${placeName(t)} için saat ${String(hm).padStart(2,"0")}:00 civarı ${mx.toFixed(0)} m/s rüzgâr bekleniyor, türbinler durabilir.`,"wx");warn++;}
+    else if(ks.has("ges")&&snow&&!(t.snowDays>0)){news("🌨️",`Kar uyarısı: ${placeName(t)} için kar bekleniyor, paneller örtülebilir.`,"wx");warn++;}});
+  if(!S.rec)S.rec={};
+  const mk=new Set(["T",...S.plants.map(p=>site(p.t).mreg)]);
+  mk.forEach(k=>{const pr=D[k].price,mx=Math.max(...pr),h=pr.indexOf(mx),r=S.rec[k];
+    if(!r){S.rec[k]={max:mx,z:-99};return;}
+    if(mx>r.max){r.max=mx;if(S.dayNo>3)news("📈",`${REG[k].n} piyasasında rekor: saat ${String(h).padStart(2,"0")}:00 için ${Math.round(mx)} $/MWh.`,"price");}
+    if(pr.some(v=>v<=0.5)&&S.dayNo-r.z>=7){r.z=S.dayNo;news("☀️",`${REG[k].n} piyasasında öğle fiyatı sıfıra iniyor: güneş arzı talebi aşıyor.`,"price");}});
 }
 
 export function tick(){

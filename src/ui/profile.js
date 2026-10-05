@@ -1,4 +1,5 @@
 // --- Oyuncu profili arayüzü: başlıktaki rozet, ilk açılışta şirket kurma formu ve profil penceresi ---
+import { RIVALS, rivalValue, rivalMW } from "../rivals.js";
 import { S } from "../state.js";
 import { TECH } from "../config.js";
 import { getProfile, saveProfile, SPECS, COLORS, initials, titleOf, ACH, marketCount } from "../profile.js";
@@ -64,6 +65,8 @@ function openView(){
       <div><small>Toplam üretim</small><b>${Math.round(st.mwh).toLocaleString("tr-TR")} MWh</b></div><div><small>Toplam net gelir</small><b class="${st.net<0?"neg":"pos"}">${fmt$(st.net)}</b></div>
       <div><small>En iyi gün</small><b>${st.best?`${fmt$(st.best.net)} (Gün ${st.best.day})`:"–"}</b></div><div><small>Arıza</small><b>${st.outages}</b></div>
     </div>
+    ${S.rivals?`<h4>Sıralama <span class="pmuted">portföy değerine göre</span></h4><ol class="prank">${[{n:P.company,c:P.color,v:nw,mw,me:true},...RIVALS.map(r=>({n:r.n,c:r.c,v:rivalValue(r.id),mw:rivalMW(r.id)}))]
+      .sort((a,b)=>b.v-a.v).map(x=>`<li class="${x.me?"me":""}"><i style="background:${x.c}"></i><b>${esc(x.n)}</b><span>${x.mw} MW</span><span>${fmt$(x.v)}</span></li>`).join("")}</ol>`:""}
     ${mw?`<h4>Filo</h4><div class="pfleet">${byTech.map(([k,v])=>`<span style="--c:var(${TECH[k].c})">${TECH[k].n} ${v} MW</span>`).join("")}</div>
       <div class="pfleet tiers">${byTier.filter(x=>x[1]).map(([q,v])=>`<span class="t-${q}">${TIERS[q]} ${v} MW</span>`).join("")}</div>`:""}
     <h4>Rozetler <span class="pmuted">${got.size}/${ACH.length}</span></h4>

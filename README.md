@@ -48,6 +48,8 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/weatherLayer.js` | Haritada bulut katmanı, şimşek, rüzgâr okları ve fırtına uyarı halkaları |
 | `src/market.js` | GÖP ve dengesizlik: gerçek üretim, ilişkili tahmin hatası, teklif (taahhüt), saatlik uzlaştırma, bataryayla dengeleme |
 | `src/ui/desk.js`, `src/ui/modal.js` | GÖP masası penceresi; gün başı pencerelerinin (olay kartı, masa) sırası |
+| `src/rivals.js` | Kurgusal rakip şirketler: saha seçimi, yatırım bütçesi, inşaat, piyasaya etkisi, portföy değeri |
+| `src/news.js`, `src/ui/ticker.js` | Haber bandı: rakip hamleleri, hava uyarıları, fiyat rekorları, olaylar, mevsim |
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
@@ -129,6 +131,16 @@ Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saa
 - **Rapor:** Dünün raporunda dengesizlik maliyeti, eksik/fazla MWh, tahmin hatası oranı, batarya dengeleme ve servis ücreti ayrı satırlarda görünür.
 
 Ölçüm (Aydın 5 MW GES + 5 MW RES, Çanakkale 5 MW RES, 5 MW batarya; aynı tohumla 2 dönem × 25 gün): standart serviste tahmin hatası üretimin ~%13'ü, dengesizlik maliyeti yenilenebilir piyasa değerinin ~%3'ü; premium serviste hata ~%7–9, maliyet ~%1,5–1,7. Teklif oranı %100, %90–95 ve %110'dan biraz daha kârlı çıktı.
+
+## Rakipler ve haber bandı
+
+Üç kurgusal şirket (Kuzgun Enerji, Mavi Ufuk Güç, Tundra Renewables) dünyanın güneşli ve rüzgârlı bölgelerinde saha açar; sahaların ~%60'ı Türkiye'dedir. Her şirketin günlük yatırım bütçesi birikir, yeterince biriktiğinde yeni saha (20–40 MW) açar ya da mevcut sahasını 10 MW büyütür. Yeni saha 3 gün inşaatta kalır.
+
+- **Harita:** Rakip sahaları şirket renginde eşkenar dörtgenle görünür (inşaattakiler soluk). Dokununca panelde şirket, kapasite ve durum çıkar.
+- **Arazi:** Rakip sahasının 20 km yakınında saha açılamaz; rakipler de oyuncunun sahalarından uzak durur.
+- **Piyasa:** İşletmedeki rakip güneşi öğle fiyatlarını, rakip rüzgârı rüzgârlı saatlerin fiyatını düşürür (oyuncunun kendi kapasitesinden daha zayıf bir etkiyle).
+- **Sıralama:** Profil penceresinde oyuncu ve rakipler portföy değerine göre sıralanır (rakip değeri = birikmiş bütçe + yatırım tutarı + arazi). 120 günlük ölçümde rakiplerin portföyü 3,9–5,8 M$'a ulaştı.
+- **Haber bandı:** Başlığın altında en yeni haber görünür, diğerleri 7 saniyede bir döner; dokununca son 14 haber listelenir. Kaynaklar: rakip yatırımları, oyuncu sahaları için fırtına/kar uyarıları, piyasa fiyat rekorları ve sıfır fiyat, olay kartları, mevsim değişimi. Hareket azaltma ayarında geçiş animasyonu kapanır.
 
 ## Harita
 

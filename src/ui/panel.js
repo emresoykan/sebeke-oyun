@@ -1,5 +1,5 @@
 // --- Panel ---
-import { BLOCK, SITE_LIMIT, REG, TECH, TER_N } from "../config.js";
+import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N } from "../config.js";
 import { S, selSite } from "../state.js";
 import { allowed, landCost, permitFee, permitProb, oddsTxt, ministry } from "../rules.js";
 import { fmt$, dots, shape } from "../utils.js";
@@ -10,6 +10,8 @@ import { flyToSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
 import { siteWx, siteForecast } from "../wxsite.js";
 import { wxLabel, dirName } from "../weather.js";
+import { rivalNear } from "../rivals.js";
+import { km } from "../world.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2)+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -47,8 +49,11 @@ export function renderPanel(){
   html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span>`:
     `<span>Güneş</span><span class="dots">${dots(t.solar)}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`)+`</div>`;
   html+=`<div id="wxBox">${wxHtml(t)}</div>`;
-  const p=permitProb(t);
-  if(!o){
+  const p=permitProb(t),rv=o?null:rivalNear(t.lat,t.lon);
+  if(rv){const {r,s:x}=rv,d=km(t.lat,t.lon,x.lat,x.lon);
+    html+=`<div class="rival" style="--rc:${r.c}"><b>${r.n}</b> • ${x.mw} MW ${TECH[x.k].n} ${x.build>0?`(inşaat, ${x.build} gün)`:`(Gün ${x.day}'den beri işletmede)`}<br><small>${x.city} yakını, ${x.country} • ${REG[x.mreg].n} piyasası${d>=1?` • ${d.toFixed(0)} km uzakta`:""}</small></div>`;
+    html+=`<div class="status bad">Bu bölge rakip şirketin sahasına çok yakın: ${SITE_MIN_KM} km içinde yeni saha açılamaz.</div>`;}
+  else if(!o){
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
     html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}">${t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
   }else if(o.permit==="none"||o.permit==="rejected"){

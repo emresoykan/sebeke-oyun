@@ -21,6 +21,7 @@ import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
 import { initModels, syncModels } from "./models.js";
 import { initWeatherLayer } from "./weatherLayer.js";
+import { rivalSites } from "../rivals.js";
 
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
 window.CESIUM_BASE_URL=base+"cesium/";
@@ -32,7 +33,7 @@ const STATUS={none:"#FFFFFF",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 
 let viewer=null, scene=null, google=null, nightShader=null, ready=false, lastFrame=0;
 const borders=[];
-const siteEnts=new Map();
+const siteEnts=new Map(), rivEnts=new Map();
 let selOuter=null, selInner=null;
 // seçim halkası ve saha işaretleri her zaman üstte çizilir: Google 3D zemini (arazi yüksekliği) onları kısmen örtüp
 // karolar yüklendikçe titreştirmesin. Kürenin arkasına geçenler stepClock içinde gizlenir.
@@ -114,6 +115,8 @@ function pickGround(pos){
 }
 function onClick(e){
   const picked=scene.pick(e.position);
+  // rakip sahası: panelde şirket bilgisi gösterilir
+  if(picked&&picked.id&&picked.id.rivalPos){const [lat,lon]=picked.id.rivalPos;S.sel={id:null,lat,lon};renderPanel();drawMap();render();return;}
   let id=picked?(typeof picked.id==="string"?picked.id:picked.id&&picked.id.siteId):null;
   if(id&&!S.sites[id])id=null;
   if(id)return selectSite(id);
@@ -176,10 +179,27 @@ function stepClock(){
     // her zaman üstte çizilen işaretler kürenin arkasına geçince görünmesin
     const cp=viewer.camera.positionWC,front=e=>{const p=e.position.getValue(viewer.clock.currentTime,pos);if(!p)return false;
       Cesium.Cartesian3.normalize(p,up);Cesium.Cartesian3.subtract(cp,p,toCam);return Cesium.Cartesian3.dot(up,toCam)>0;};
-    selOuter.show=selInner.show=front(selOuter);for(const e of siteEnts.values())e.show=front(e);}
+    selOuter.show=selInner.show=front(selOuter);for(const e of siteEnts.values())e.show=front(e);for(const e of rivEnts.values())e.show=front(e);}
   if(!targetTime)return;const clk=viewer.clock,diff=Cesium.JulianDate.secondsDifference(targetTime,clk.currentTime);
   if(Math.abs(diff)>6*3600||Math.abs(diff)<1)clk.currentTime=Cesium.JulianDate.clone(targetTime,clk.currentTime); // gece yarısı geçişi: atla
   else clk.currentTime=Cesium.JulianDate.addSeconds(clk.currentTime,diff*(1-Math.exp(-dt*8)),clk.currentTime); // ~0,3 sn'de yetiş
+}
+
+// Rakip sahaları: şirket renginde eşkenar dörtgen; inşaattakiler soluk
+const diamonds={};
+function diamond(c){if(diamonds[c])return diamonds[c];const cv=document.createElement("canvas");cv.width=cv.height=28;const x=cv.getContext("2d");
+  x.translate(14,14);x.rotate(Math.PI/4);x.fillStyle=c;x.strokeStyle="rgba(10,15,25,.85)";x.lineWidth=2.5;x.fillRect(-7,-7,14,14);x.strokeRect(-7,-7,14,14);return diamonds[c]=cv;}
+function drawRivals(){
+  const live=new Set();
+  rivalSites().forEach(({r,i,s})=>{const key=r.id+":"+i;live.add(key);let e=rivEnts.get(key);
+    if(!e){e=viewer.entities.add({position:Cesium.Cartesian3.fromDegrees(s.lon,s.lat),
+      billboard:{image:diamond(r.c),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP},
+      label:{font:`600 11px ${FONT}`,fillColor:Cesium.Color.fromCssColorString(r.c),outlineColor:Cesium.Color.BLACK.withAlpha(0.85),outlineWidth:3,style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset:new Cesium.Cartesian2(0,16),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,H(4))}});
+      e.rivalPos=[s.lat,s.lon];rivEnts.set(key,e);}
+    e.billboard.color=s.build>0?Cesium.Color.WHITE.withAlpha(0.5):Cesium.Color.WHITE;
+    e.label.text=`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`;});
+  for(const [k,e] of rivEnts)if(!live.has(k)){viewer.entities.remove(e);rivEnts.delete(k);}
 }
 
 // Sahaları, seçimi ve 3D modelleri haritaya yansıt
@@ -199,6 +219,7 @@ export function drawMap(){
     e.label.text=mw?`${mw} MW`:"";
   });
   for(const [id,e] of siteEnts)if(!live.has(id)){viewer.entities.remove(e);siteEnts.delete(id);}
+  drawRivals();
   const p=Cesium.Cartesian3.fromDegrees(S.sel.lon,S.sel.lat);selOuter.position=p;selInner.position=p;
   syncModels();
 }

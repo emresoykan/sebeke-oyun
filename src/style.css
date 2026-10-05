@@ -213,3 +213,25 @@ dialog#deskDlg::backdrop{background:rgba(5,10,15,.6)}
 .dopt b{display:block;font-size:.88rem}.dopt small{display:block;color:var(--muted);font-size:.76rem}
 .dauto{display:flex;gap:8px;align-items:flex-start;font-size:.82rem;color:var(--muted)}
 .mut{color:var(--muted);font-weight:400}
+
+/* Haber bandı */
+.ticker{position:relative;margin:8px 0 0}
+.tk-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-weight:400;padding:7px 10px;border-radius:10px;overflow:hidden}
+.tk-tag{flex:none;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--neg);color:#fff;border-radius:6px;padding:2px 7px}
+.tk-item{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.86rem}
+.tk-item.in{animation:tkIn .45s ease-out}
+.tk-i{margin-right:4px}.tk-d{color:var(--muted);font-size:.74rem;margin-right:4px}
+@keyframes tkIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.tk-item.in{animation:none}}
+.tk-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);margin:0;padding:6px 10px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:320px;overflow:auto}
+.tk-list li{padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem;line-height:1.35}
+.tk-list li:last-child{border-bottom:0}
+/* Rakip saha bilgisi ve sıralama */
+.rival{margin:8px 0;padding:8px 10px;border-left:4px solid var(--rc);background:var(--bg);border-radius:0 8px 8px 0;font-size:.9rem}
+.rival small{color:var(--muted)}
+.prank{margin:0 0 6px;padding:0;list-style:none;counter-reset:r}
+.prank li{counter-increment:r;display:grid;grid-template-columns:22px 12px 1fr auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line);font-size:.88rem}
+.prank li::before{content:counter(r)".";color:var(--muted)}
+.prank li i{width:10px;height:10px;transform:rotate(45deg);display:block}
+.prank li.me{background:rgba(255,255,255,.05);border-radius:6px}.prank li.me i{border-radius:50%;transform:none}
+.prank li span{color:var(--muted);font-size:.8rem;text-align:right}

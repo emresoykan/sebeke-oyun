@@ -7,6 +7,7 @@ import { siteMW, newDayHydro, awardAch } from "./sim.js";
 import { capexOf, eqName, TIERS } from "./equipment.js";
 import { checkMissions } from "./missions.js";
 import { sfx } from "./ui/fx.js";
+import { rivalNear } from "./rivals.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -14,7 +15,7 @@ import { drawMap } from "./ui/map.js";
 function refresh(){awardAch();checkMissions();save();renderPanel();drawMap();render();}
 
 // Seçili noktada yeni saha aç (arazi satın al / deniz alanı kirala)
-export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c)return;S.money-=c;
+export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon))return;S.money-=c;
   const id="s"+(S.nextId++);S.sites[id]={...t,permit:"none"};S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);refresh();}
 export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();}

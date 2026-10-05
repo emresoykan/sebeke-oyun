@@ -2,6 +2,7 @@
 // Gün başında, oyuncunun santrali varsa belirli olasılıkla bir olay çıkar; oyun durur, oyuncu seçeneklerden birini seçer.
 // Olaylar gerçek piyasa olgularından esinlenir (kuraklık, gaz şoku, şebeke kısıtı, tatil günü fiyat çöküşü...);
 // her kartta kısa bir "piyasa notu" vardır. Sayılar oyun dengesi için temsilidir.
+import { news } from "./news.js";
 import { REG, TECH, MARKETS } from "./config.js";
 import { placeName } from "./world.js";
 import { S, D, save, addLog } from "./state.js";
@@ -130,7 +131,7 @@ export function maybeEvent(){
   S.evHist=[ev.id,...recent].slice(0,4);
   showEvent({tag:ev.tag,title:ev.title,text:ev.text(m),learn:ev.learn,opts},i=>{
     const r=opts[i].run();S.evDone=(S.evDone||0)+1;S.evCool=1;applyDesk(S.hour); // olayın etkisi tahmine ve teklife yansısın
-    addLog(`${ev.title}: ${opts[i].l}. ${r}`);checkMissions();save();renderPanel();render();
+    addLog(`${ev.title}: ${opts[i].l}. ${r}`);news("📰",`${ev.title}: ${opts[i].l}.`,"event");checkMissions();save();renderPanel();render();
     return r;
   });
 }

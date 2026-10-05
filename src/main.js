@@ -11,6 +11,7 @@ import { initSound } from "./ui/fx.js";
 import { clock } from "./wxsite.js";
 import { initWeatherToggle } from "./ui/weatherLayer.js";
 import { openDesk } from "./ui/desk.js";
+import { initTicker } from "./ui/ticker.js";
 
 let timer=null, speed=1, paused=false, held=false; // held: olay kartı açıkken oyun bekler
 
@@ -25,4 +26,4 @@ document.getElementById("resetBtn").onclick=()=>{if(confirm("Tüm ilerleme silin
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initProfile(()=>{loop();openDesk();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{loop();openDesk();});

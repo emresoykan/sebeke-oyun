@@ -17,11 +17,12 @@
     <div class="cash"><b id="cash">–</b><span>Nakit</span></div>
   </header>
 
+  <div class="ticker" id="ticker" hidden><button class="tk-btn" aria-expanded="false" aria-controls="tkList" aria-label="Haberler: son haberleri göster"><span class="tk-tag">Haberler</span><span class="tk-item"></span></button><ul class="tk-list" id="tkList" hidden></ul></div>
   <div class="mission" id="mission" aria-live="polite"></div>
   <div class="mapwrap" id="mapwrap"><div id="map" role="application" aria-label="3D dünya: döndürmek için sürükle, yakınlaştırmak için kaydır veya iki parmakla aç, eğmek için sağ tık veya Ctrl ile sürükle ya da iki parmakla yukarı kaydır, saha seçmek için dokun"></div></div>
   <div class="maplegend">
     <span><i style="background:rgba(255,255,255,.25);outline:2px solid #fff;outline-offset:-2px;border-radius:50%"></i>Senin sahan</span><span><i style="background:#F2C94C;border-radius:50%"></i>İzin bekliyor</span><span><i style="background:#F06A7D;border-radius:50%"></i>İzin reddedildi</span>
-    <span><i style="background:var(--solar);border-radius:50%"></i>GES</span><span><i style="background:var(--wind);border-radius:50%"></i>RES</span><span><i style="background:var(--hydro);border-radius:50%"></i>HES</span><span><i style="background:var(--batt);border-radius:50%"></i>Batarya</span><span><i style="background:rgba(194,54,74,.35);outline:1px dashed #F06A7D;outline-offset:-1px"></i>Korunan alan</span>
+    <span><i style="background:var(--solar);border-radius:50%"></i>GES</span><span><i style="background:var(--wind);border-radius:50%"></i>RES</span><span><i style="background:var(--hydro);border-radius:50%"></i>HES</span><span><i style="background:var(--batt);border-radius:50%"></i>Batarya</span><span><i style="background:#FF7A45;transform:rotate(45deg) scale(.8)"></i>Rakip saha</span><span><i style="background:rgba(194,54,74,.35);outline:1px dashed #F06A7D;outline-offset:-1px"></i>Korunan alan</span>
   </div>
 
   <div class="mods" id="mods" hidden></div>
@@ -65,7 +66,7 @@
     <div class="goal"><div id="goalBar"></div></div>
   </div>
 
-  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble; Türkiye ve çevresi: Contains modified Copernicus Sentinel data 2024–2025. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri, ekipman performansları ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir. Ekipman markaları ve modelleri kurgusaldır. Hava durumu simülasyondur.</footer>
+  <footer>Prototip. Uydu görüntüsü: NASA Blue Marble; Türkiye ve çevresi: Contains modified Copernicus Sentinel data 2024–2025. Ülke sınırları, şehirler ve coğrafi bölgeler: Natural Earth. Korunan alanlar ve arazi tipleri oyun için yaklaşık çizilmiştir. Fiyatlar, maliyetler, kaynak potansiyelleri, ekipman performansları ve izin olasılıkları oyun dengesi için temsilidir; gerçek veri veya yatırım varsayımı değildir. Ekipman markaları, modelleri ve rakip şirketler kurgusaldır. Hava durumu simülasyondur.</footer>
 </main>
 
 <dialog id="profileDlg" aria-label="Oyuncu profili"></dialog>
