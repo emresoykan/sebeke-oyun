@@ -182,3 +182,11 @@ dialog#eventDlg::backdrop{background:rgba(5,10,15,.6)}
 @keyframes fpos{30%{color:var(--pos);transform:scale(1.08)}}
 @keyframes fneg{30%{color:var(--neg);transform:scale(.96)}}
 @media (prefers-reduced-motion:reduce){.toast,.cash b{animation:none!important}.mbar div{transition:none}}
+
+/* hava durumu */
+.wx{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:var(--bg)}
+.wxnow{display:flex;align-items:center;gap:8px;font-size:.86rem}
+.wxi{font-size:1.4rem;line-height:1}
+.wxfc{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:6px;text-align:center}
+.wxfc div{display:flex;flex-direction:column;align-items:center;font-size:.95rem;line-height:1.15}
+.wxfc small{font-size:.66rem;color:var(--muted)}

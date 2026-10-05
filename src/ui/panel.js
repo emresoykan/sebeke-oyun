@@ -2,16 +2,25 @@
 import { BLOCK, SITE_LIMIT, REG, TECH, TER_N } from "../config.js";
 import { S, selSite } from "../state.js";
 import { allowed, landCost, permitFee, permitProb, oddsTxt, ministry } from "../rules.js";
-import { fmt$, dots } from "../utils.js";
+import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build } from "../actions.js";
 import { plantStatus, statusText } from "../plantstatus.js";
 import { flyToSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
+import { siteWx, siteForecast } from "../wxsite.js";
+import { wxLabel, dirName } from "../weather.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2)+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
 let tab=null; // ekipman kartlarında seçili teknoloji
+
+// Anlık hava ve günün kalan saatleri için 3 saatlik tahmin şeridi
+function wxHtml(t){
+  const w=siteWx(t),l=wxLabel(w,shape(Math.min(S.hour,23))===0),rain=w.rain>0.25?" • Yağış var":"";
+  const fc=siteForecast(t,Math.min(S.hour,23)).map(({h,w})=>{const x=wxLabel(w,shape(h)===0);return `<div title="${String(h).padStart(2,"0")}:00 ${x.t}, rüzgâr ${w.hub.toFixed(0)} m/s"><small>${String(h).padStart(2,"0")}</small><span>${x.i}</span><small>${w.hub.toFixed(0)} m/s</small></div>`;}).join("");
+  return `<div class="wx"><div class="wxnow"><span class="wxi">${l.i}</span><span><b>${l.t}</b> • Rüzgâr ${w.hub.toFixed(0)} m/s ${dirName(w.dir)} (türbin yüksekliği)${rain}</span></div><div class="wxfc" aria-label="Hava tahmini">${fc}</div></div>`;
+}
 const pctTxt=v=>"%"+(Math.round(v*1000)/10).toLocaleString("tr-TR");
 
 // Ekipman seçimi: teknoloji sekmeleri ve her kademe için bir kart (marka, özellik, üretim, arıza riski, maliyet)
@@ -37,6 +46,7 @@ export function renderPanel(){
   html+=`<h3>${title}</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
   html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span>`:
     `<span>Güneş</span><span class="dots">${dots(t.solar)}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`)+`</div>`;
+  html+=`<div id="wxBox">${wxHtml(t)}</div>`;
   const p=permitProb(t);
   if(!o){
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
@@ -59,4 +69,4 @@ export function renderPanel(){
     else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }
-export function updateButtons(){const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&siteMW(S.sel.id)+BLOCK>SITE_LIMIT)d=true;b.disabled=d;});}
+export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&siteMW(S.sel.id)+BLOCK>SITE_LIMIT)d=true;b.disabled=d;});}

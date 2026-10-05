@@ -8,13 +8,15 @@ import { initProfile } from "./ui/profile.js";
 import { skipDone } from "./missions.js";
 import { renderMission } from "./ui/mission.js";
 import { initSound } from "./ui/fx.js";
+import { clock } from "./wxsite.js";
+import { initWeatherToggle } from "./ui/weatherLayer.js";
 
 let timer=null, speed=1, paused=false, held=false; // held: olay kartı açıkken oyun bekler
 
-function loop(){clearInterval(timer);if(!paused&&!held)timer=setInterval(tick,500/speed);}
+function loop(){clearInterval(timer);clock.ms=500/speed;clock.paused=paused||held;clock.at=performance.now();if(!paused&&!held)timer=setInterval(tick,500/speed);}
 window.addEventListener("sebeke:hold",()=>{held=true;loop();});
 window.addEventListener("sebeke:release",()=>{held=false;loop();});
-initSound(document.getElementById("soundBtn"));
+initSound(document.getElementById("soundBtn"));initWeatherToggle(document.getElementById("wxBtn"));
 document.getElementById("pauseBtn").onclick=e=>{paused=!paused;e.target.textContent=paused?"Devam et":"Duraklat";loop();};
 document.getElementById("speedBtn").onclick=e=>{speed=speed===1?3:speed===3?8:1;e.target.textContent="Hız: "+speed+"x";loop();};
 document.getElementById("resetBtn").onclick=()=>{if(confirm("Tüm ilerleme silinsin mi?")){setS(fresh());save();newDay();location.reload();}};

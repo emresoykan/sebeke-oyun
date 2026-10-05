@@ -19,6 +19,7 @@ import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
 import { initModels, syncModels } from "./models.js";
+import { initWeatherLayer } from "./weatherLayer.js";
 
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
 window.CESIUM_BASE_URL=base+"cesium/";
@@ -145,7 +146,7 @@ export async function initMap(){
   selOuter=viewer.entities.add({point:{pixelSize:24,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.BLACK,outlineWidth:3.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
   selInner=viewer.entities.add({point:{pixelSize:22,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.WHITE,outlineWidth:1.6,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
   scene.preRender.addEventListener(stepClock);
-  initModels(scene);ready=true;drawMap();
+  initModels(scene);initWeatherLayer(viewer);ready=true;drawMap();
   await addGoogle();
   if(import.meta.env.DEV){window.__viewer=viewer;window.__Cesium=Cesium;}
 }

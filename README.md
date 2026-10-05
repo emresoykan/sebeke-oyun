@@ -42,6 +42,9 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/profile.js` | Oyuncu profili: kimlik, uzmanlıklar, ünvanlar, rozetler |
 | `src/missions.js` | Görev zinciri: 14 sıralı görev, ödüller |
 | `src/events.js` | Olay kartları: 12 piyasa/hava/şebeke/mevzuat olayı ve seçenekleri |
+| `src/weather.js` | Hava modeli: hareket eden alçak/yüksek basınç, fırtına ve sıcak hava sistemleri; nokta başına bulut, yağış, rüzgâr hızı ve yönü (DOM'suz) |
+| `src/wxsite.js` | Havanın oyuna bağlanması: günlük 24 saatlik tahmin, piyasa temsilî noktaları, saha havası |
+| `src/ui/weatherLayer.js` | Haritada bulut katmanı, şimşek, rüzgâr okları ve fırtına uyarı halkaları |
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
@@ -86,6 +89,17 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Görev zinciri:** Haritanın üstündeki çubuk sıradaki görevi, kısa bir açıklamayı ve ödülü gösterir. 14 görev oyunun ilk yarım saatini yönlendirir: arazi alma, izin, ilk santral, kârlı gün, ilk olay kararı, rüzgâr ve batarya ile çeşitlendirme, ikinci ve üçüncü piyasa, 25 MW, dolu saha, 500 b$ ve 1 M$ portföy. Eski kayıtlarda geçmişte tamamlanan görevler ödülsüz geçilir.
 - **Olay kartları:** İlk santralden sonra, 3. günden itibaren gün başında yaklaşık %45 olasılıkla bir olay çıkar (ilk olay garantili, iki olay arasında en az bir gün). Oyun durur, oyuncu seçeneklerden birini seçer. Olaylar gerçek piyasa olgularından esinlenir ve her kartta bir "piyasa notu" vardır: kuraklık, fırtına (kesme hızı, sigorta), tatil günü öğle fiyat çöküşü (kanibalizasyon, ikili anlaşma), gaz şoku (marjinal fiyatlama), vadeli satış teklifi (hedge), ekipman zammı (CAPEX), şebeke kısıtı, toz (soiling), yerel halk tepkisi (sosyal lisans), sıcak hava dalgası (akşam piki, bakım erteleme), destek programı ve trafo arızası. Seçimlerin etkileri birkaç gün sürer ve haritanın altında etiket olarak görünür.
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
+
+## Hava durumu
+
+Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur, kuvvetli ve dönen rüzgâr), yüksek basınçlar (açık ve durgun hava), fırtına hücreleri ve sıcak hava kütleleri. Orta enlemlerde batıdan doğuya, tropiklerde doğudan batıya ilerler, ömürleri boyunca güçlenip zayıflarlar; Avrupa-Türkiye çevresinde biraz daha sık doğarlar. Yeni sistemler tohumlu rastgele sayıyla doğduğu için gün başındaki 24 saatlik tahmin gün içindeki gerçekleşmeyle aynıdır. Model gerçek örüntülere benzeyen bir oyun simülasyonudur, meteorolojik tahmin değildir.
+
+- **Üretim:** GES, sahanın o saatteki bulut örtüsüne göre ortalamasının etrafında dalgalanır (tam kapalı havada ~%20). RES, göbek yüksekliğindeki rüzgârdan güç eğrisiyle üretir: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde kesme hızında durur. HES'in su bütçesi son günlerin yağışıyla değişir.
+- **Fiyat:** Her piyasanın temsilî noktasındaki saatlik bulut ve rüzgâr fiyatı belirler (rüzgârlı gece ucuz, bulutlu öğle pahalı); sıcak hava akşam talebini artırır.
+- **Harita:** 6 km yükseklikte, gece tarafı karartılan bulut katmanı (yağmur ve fırtına bulutları daha koyu, fırtınalarda şimşek); bölgeye yaklaşınca rüzgâr okları (uzunluk hız, renk şiddet) ve fırtına hücrelerine kesikli uyarı halkası. Yaklaştıkça bulutlar incelir, sahaları kapatmaz. "Hava katmanı" düğmesi görselleri kapatır (etkiler sürer).
+- **Panel ve 3D:** Seçili noktada anlık hava ve günün kalan saatleri için 3 saatlik tahmin; türbinler rüzgârın estiği yöne döner. Fırtına bir rüzgâr sahasında kesme hızını aşınca bildirim gelir.
+
+Kalibrasyon (6 tohum × 30 gün): Türkiye sahalarında RES kapasite faktörü eski modelle uyumlu (Aydın ~0,34, Kars ~0,48), offshore ~0,52, güneş ortalaması sahanın uzun dönem ortalamasının ~%95'i; Türkiye'de yağışlı saat oranı ~%20.
 
 ## Harita
 
