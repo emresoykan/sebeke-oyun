@@ -50,6 +50,8 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/desk.js`, `src/ui/modal.js` | GÖP masası penceresi; gün başı pencerelerinin (olay kartı, masa) sırası |
 | `src/rivals.js` | Kurgusal rakip şirketler: saha seçimi, yatırım bütçesi, inşaat, piyasaya etkisi, portföy değeri |
 | `src/news.js`, `src/ui/ticker.js` | Haber bandı: rakip hamleleri, hava uyarıları, fiyat rekorları, olaylar, mevsim |
+| `src/league.js`, `src/net/fb.js`, `src/ui/league.js` | Arkadaş ligi: sıralama, eşik duyuruları, Firebase bağlantısı (yalnızca lige katılınca yüklenir), lig penceresi |
+| `firebase/firestore.rules` | Lig veritabanının güvenlik kuralları |
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
@@ -149,6 +151,24 @@ Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saa
 - **Sinematik tur:** Kurulu sahanın panelindeki "🎬 Sinematik tur" kamerayı sahaya indirir ve etrafında yavaşça döndürür (~70 sn'de bir tur, en fazla 75 sn). Haritaya dokunmak veya kaydırmak turu bitirir.
 - Hareket azaltma ayarı açıksa açılış ve tur animasyonsuz yapılır.
 - **Grafik kalitesi** ("Grafik" düğmesi: Otomatik → Yüksek → Dengeli → Düşük): Yüksek 4x kenar yumuşatma ve ekranın piksel oranında (en fazla 2x) çizim; Dengeli kenar yumuşatmayı FXAA'ya çevirir, CSS pikseli çözünürlüğünde çizer ve Google 3D'den daha az ayrıntı yükler; Düşük ayrıca çözünürlüğü %80'e indirir, gölgeleri kapatır, boşta 24 kare/sn çizer. Otomatik mod ekran kartına göre başlar (Intel HD/UHD ve giriş seviyesi GeForce MX → Dengeli, yazılımla çizim → Düşük) ve kare hızı uzun süre 20'nin altında kalırsa bir kademe düşer. Adresin sonuna `?fps` eklenirse haritanın köşesinde kare hızı ve kare süresi görünür.
+
+## Arkadaş ligi
+
+Oyuncular bir davet koduyla aynı lige katılır ("🏆 Lig" düğmesi). Sıralama portföy değerine göredir; her satırda şirket adı, ünvan, kurulu güç ve oyun günü görünür. Kişi adı paylaşılmaz. Bir oyuncu yeni bir eşiği geçince (10, 25, 50, 100 … MW; 250 b$, 500 b$, 1 M$, 2,5 M$; 5 M$ hedefi; yeni ünvan) lige duyuru düşer; diğer oyuncular bunu haber bandında ve bildirim balonunda görür. Lige katılırken mevcut ilerleme yeniden duyurulmaz.
+
+- **Sunucu:** Firebase Firestore ve anonim giriş (e-posta/şifre yok, tarayıcı başına bir kimlik). Firebase SDK'sı yalnızca bir lige katılınca yüklenir.
+- **Güvenlik kuralları** (`firebase/firestore.rules`): lig listesi okunamaz, kodu bilen ligi görür; herkes yalnızca kendi kaydını yazar; alanların tipi ve aralığı denetlenir, serbest metin yoktur (duyuru metni istemcide türden üretilir); kayıt en fazla 10 sn'de bir güncellenir; duyurular değiştirilemez ve silinemez; yalnızca lig üyesi duyuru yazabilir. Kurallar Firebase emülatöründe 29 senaryoyla test edildi.
+- **Sınır:** Skorlar oyuncunun tarayıcısında hesaplanır. Kurallar biçimi ve sıklığı denetler ama bilerek sahte değer gönderen birini tamamen engelleyemez; davet kodlu arkadaş grubu için tasarlandı.
+
+**Kurulum (bir kez):**
+1. [Firebase konsolunda](https://console.firebase.google.com) **yeni** bir proje açın (Google Analytics gerekmez). Ücretsiz Spark planında kalır; mevcut, faturalandırma bağlı Google Cloud projesini seçmeyin.
+2. Build → Authentication → Get started → Sign-in method → **Anonymous** → Enable. Settings → Authorized domains'e `emresoykan.github.io` ekleyin.
+3. Build → Firestore Database → Create database → konum `eur3 (europe-west)` → **production mode**.
+4. Firestore → Rules sekmesine `firebase/firestore.rules` dosyasının içeriğini yapıştırıp **Publish**.
+5. Proje ayarları (dişli) → General → Your apps → Web (`</>`) → uygulamayı kaydedin (Hosting gerekmez) → gösterilen `firebaseConfig` nesnesini kopyalayın.
+6. GitHub depo → Settings → Secrets and variables → Actions → New repository secret: ad `FIREBASE_CONFIG`, değer kopyaladığınız `{ ... }` nesnesi. Sonraki yayında "🏆 Lig" düğmesi görünür.
+
+Firebase web yapılandırması gizli anahtar değildir (tarayıcıya gömülür, erişimi güvenlik kuralları korur); yine de depoya yazılmaz, secret olarak verilir. Yerel test: `npx firebase emulators:start --only auth,firestore --project demo-sebeke` ve geliştirme sunucusunda `?fbemu=127.0.0.1`.
 
 ## Harita
 
