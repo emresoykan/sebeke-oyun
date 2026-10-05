@@ -129,6 +129,10 @@ export async function initMap(){
   viewer=new Cesium.Viewer("map",{baseLayer:day,animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,
     navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:4,requestRenderMode:false});
   scene=viewer.scene;
+  // kamera dururken 30 kare/sn yeterli (rotorlar ve bulutlar akıcı kalır); kullanıcı haritayı oynatırken tam hız
+  viewer.targetFrameRate=30;
+  viewer.camera.moveStart.addEventListener(()=>{viewer.targetFrameRate=undefined;});
+  viewer.camera.moveEnd.addEventListener(()=>{viewer.targetFrameRate=30;});
   viewer.useBrowserRecommendedResolution=false;viewer.resolutionScale=Math.min(2,devicePixelRatio||1)/(devicePixelRatio||1);
   // Türkiye ve çevresi: ~300 m/piksel Sentinel-2 yaz mozaiği (yakınlaşınca dünya dokusunun bulanıklığını giderir)
   const s2credit=`Contains modified Copernicus Sentinel data ${trMosaic.years.join("–")}`;
@@ -165,6 +169,8 @@ function stepClock(){
   // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün); Türkiye çerçevesinin kaba kıyı çizgisi
   // net uydu görüntüsünde kıyıyla örtüşmediği için daha erken gizlenir
   const h=viewer.camera.positionCartographic.height;borders[0].show=h>4e4;borders[1].show=h>5e5;
+  // gölgeler yalnızca yakın planda görünür; uzaktayken kapatmak ekran kartını epey rahatlatır
+  const sh=h<8e4;if(viewer.shadows!==sh)viewer.shadows=sh;
   if(now-lastDecl>150){lastDecl=now;declutter();
     // her zaman üstte çizilen işaretler kürenin arkasına geçince görünmesin
     const cp=viewer.camera.positionWC,front=e=>{const p=e.position.getValue(viewer.clock.currentTime,pos);if(!p)return false;
