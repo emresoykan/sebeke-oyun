@@ -142,6 +142,13 @@ Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saa
 - **Sıralama:** Profil penceresinde oyuncu ve rakipler portföy değerine göre sıralanır (rakip değeri = birikmiş bütçe + yatırım tutarı + arazi). 120 günlük ölçümde rakiplerin portföyü 3,9–5,8 M$'a ulaştı.
 - **Haber bandı:** Başlığın altında en yeni haber görünür, diğerleri 7 saniyede bir döner; dokununca son 14 haber listelenir. Kaynaklar: rakip yatırımları, oyuncu sahaları için fırtına/kar uyarıları, piyasa fiyat rekorları ve sıfır fiyat, olay kartları, mevsim değişimi. Hareket azaltma ayarında geçiş animasyonu kapanır.
 
+## Ses ve kamera
+
+- **Ortam sesi** ("Ses" düğmesiyle açılır; ses dosyası yok, WebAudio ile üretilir): kameranın bulunduğu noktanın havasına göre rüzgâr (hız arttıkça yükselir ve tizleşir), yağmur ve fırtınada ara ara gök gürültüsü. Yere yaklaştıkça hava sesi artar, uzaydan bakarken yalnızca hafif bir uğultu kalır. Oyuncunun rüzgâr sahasına ~4 km yaklaşınca türbin sesi eklenir: kanat geçişleriyle dalgalanır, üretim arttıkça güçlenir. Sekme arka plandayken ses durur.
+- **Açılış:** Kamera uzaydan dönerek Türkiye'ye iner.
+- **Sinematik tur:** Kurulu sahanın panelindeki "🎬 Sinematik tur" kamerayı sahaya indirir ve etrafında yavaşça döndürür (~70 sn'de bir tur, en fazla 75 sn). Haritaya dokunmak veya kaydırmak turu bitirir.
+- Hareket azaltma ayarı açıksa açılış ve tur animasyonsuz yapılır.
+
 ## Harita
 
 Oyuncu kürenin herhangi bir noktasına dokunup orada saha açar. Noktanın ülkesi, piyasası, arazi tipi ve kaynak potansiyeli `world.js` içinde gerçek coğrafyadan hesaplanır:

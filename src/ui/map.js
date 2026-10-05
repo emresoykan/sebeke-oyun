@@ -42,9 +42,39 @@ const ON_TOP=Number.POSITIVE_INFINITY;
 function selectSite(id){const o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};renderPanel();drawMap();render();}
 // Seçili sahaya eğik açıyla yaklaş: kamera sahanın güneyinde, kuzeye bakar
 export function flyToSite(id){
-  const o=S.sites[id];if(!viewer||!o)return;
+  const o=S.sites[id];if(!viewer||!o)return;stopOrbit();
   viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(o.lon+0.006,o.lat-0.028,1400),
     orientation:{heading:Cesium.Math.toRadians(-10),pitch:Cesium.Math.toRadians(-22),roll:0},duration:2.4});
+}
+
+// Ortam sesi için kameranın konumu
+export function camInfo(){if(!viewer)return null;const c=viewer.camera.positionCartographic;return {lat:Cesium.Math.toDegrees(c.latitude),lon:Cesium.Math.toDegrees(c.longitude),h:c.height};}
+
+// Sinematik tur: kamera sahanın etrafında yavaşça döner; dokunma, sürükleme veya kaydırma turu bitirir
+let orbit=null;
+const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
+export function stopOrbit(){if(!orbit)return;orbit=null;viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);document.body.classList.remove("cine");}
+export function orbitSite(id){
+  const o=S.sites[id];if(!viewer||!o)return;stopOrbit();
+  const carto=Cesium.Cartographic.fromDegrees(o.lon,o.lat),gh=(google?scene.sampleHeight(carto):scene.globe.getHeight(carto))||0;
+  const center=Cesium.Cartesian3.fromDegrees(o.lon,o.lat,gh+60),h0=Cesium.Math.toRadians(-10);
+  if(reducedMotion.matches){viewer.camera.lookAt(center,new Cesium.HeadingPitchRange(h0,Cesium.Math.toRadians(-16),1000));viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);return;}
+  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(center,250),{offset:new Cesium.HeadingPitchRange(h0,Cesium.Math.toRadians(-16),1000),duration:2.6,
+    complete:()=>{orbit={center,head:h0,t0:performance.now(),last:performance.now()};document.body.classList.add("cine");}});
+}
+function stepOrbit(now){
+  if(!orbit)return;const dt=(now-orbit.last)/1000;orbit.last=now;const t=(now-orbit.t0)/1000;
+  if(t>75)return stopOrbit();
+  orbit.head+=dt*0.09; // ~70 sn'de bir tur
+  const range=1000-250*Math.sin(t*0.12),pitch=Cesium.Math.toRadians(-16+5*Math.sin(t*0.07));
+  viewer.camera.lookAt(orbit.center,new Cesium.HeadingPitchRange(orbit.head,pitch,range));
+}
+// Açılış: kamera uzaydan dönerek Türkiye'ye iner
+function intro(){
+  const lon=S.sel.lon,lat=S.sel.lat,end=Cesium.Cartesian3.fromDegrees(lon,lat-1.2,innerWidth<600?5.2e6:3.4e6);
+  if(reducedMotion.matches){viewer.camera.setView({destination:end});return;}
+  viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(lon-75,lat-8,3.4e7)});
+  viewer.camera.flyTo({destination:end,duration:5.5,easingFunction:Cesium.EasingFunction.CUBIC_IN_OUT});
 }
 
 // Kara sınırları ve Türkiye çerçevesi zemine oturan çizgilerle çizilir (yüzeyle derinlik çakışması olmaz)
@@ -147,7 +177,8 @@ export async function initMap(){
   Object.assign(scene.globe,{enableLighting:true,dynamicAtmosphereLighting:true,dynamicAtmosphereLightingFromSun:true,baseColor:Cesium.Color.fromCssColorString("#0B1D33")});
   scene.screenSpaceCameraController.minimumZoomDistance=600;
   viewer.shadowMap.softShadows=true;viewer.shadowMap.size=2048;viewer.shadowMap.maximumDistance=25000;
-  viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(S.sel.lon,S.sel.lat,innerWidth<600?1.45e7:1.6e7)});
+  intro();
+  ["pointerdown","wheel"].forEach(ev=>viewer.canvas.addEventListener(ev,stopOrbit,{passive:true}));
   viewer.screenSpaceEventHandler.setInputAction(onClick,Cesium.ScreenSpaceEventType.LEFT_CLICK);
   viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   addBorders();addLabels();addParks();
@@ -170,6 +201,7 @@ export function setGameClock(hour){
 }
 function stepClock(){
   const now=performance.now(),dt=Math.min(0.25,(now-(lastFrame||now))/1000);lastFrame=now;
+  stepOrbit(now);
   // çok alçaktan bakarken sınır çizgilerini gizle (yakın planda arazi görünsün); Türkiye çerçevesinin kaba kıyı çizgisi
   // net uydu görüntüsünde kıyıyla örtüşmediği için daha erken gizlenir
   const h=viewer.camera.positionCartographic.height;borders[0].show=h>4e4;borders[1].show=h>5e5;

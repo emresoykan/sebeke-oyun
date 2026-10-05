@@ -235,3 +235,7 @@ dialog#deskDlg::backdrop{background:rgba(5,10,15,.6)}
 .prank li i{width:10px;height:10px;transform:rotate(45deg);display:block}
 .prank li.me{background:rgba(255,255,255,.05);border-radius:6px}.prank li.me i{border-radius:50%;transform:none}
 .prank li span{color:var(--muted);font-size:.8rem;text-align:right}
+
+/* Sinematik tur */
+body.cine .mapwrap::after{content:"🎬 Sinematik tur • bitirmek için haritaya dokun";position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:5;pointer-events:none;
+  background:rgba(5,10,15,.62);color:#fff;font-size:.8rem;padding:5px 12px;border-radius:999px;white-space:nowrap}

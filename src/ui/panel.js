@@ -6,7 +6,7 @@ import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build } from "../actions.js";
 import { plantStatus, statusText } from "../plantstatus.js";
-import { flyToSite } from "./map.js";
+import { flyToSite, orbitSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
 import { siteWx, siteForecast } from "../wxsite.js";
 import { wxLabel, dirName } from "../weather.js";
@@ -66,11 +66,11 @@ export function renderPanel(){
     const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
     html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${SITE_LIMIT} MW kurulu${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
-    if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button></div>`;
+    if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
     html+=buildHtml(t);
   }
   el.innerHTML=html;
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="land")buyLand();else if(a==="permit")applyPermit(S.sel.id);
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="permit")applyPermit(S.sel.id);
     else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }

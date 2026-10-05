@@ -45,7 +45,8 @@ export function sfx(type){
       o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+d+0.02);t+=d*0.8;});
   }catch(e){}
 }
+export const isSoundOn=()=>soundOn;
 export function initSound(btn){
   const lbl=()=>{btn.textContent=soundOn?"Ses: açık":"Ses: kapalı";btn.setAttribute("aria-pressed",soundOn);};
-  lbl();btn.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem(SOUND_KEY,soundOn?"1":"0");}catch(e){}lbl();sfx("coin");};
+  lbl();btn.onclick=()=>{soundOn=!soundOn;try{localStorage.setItem(SOUND_KEY,soundOn?"1":"0");}catch(e){}lbl();sfx("coin");window.dispatchEvent(new CustomEvent("sebeke:sound"));};
 }
