@@ -11,7 +11,7 @@ export const SPECS={
   eng:{n:"Mühendis",d:"Santral arızaları yarı yarıya azalır."},
   fin:{n:"Finansçı",d:"Santral kurulum maliyeti %6 düşer."},
   reg:{n:"Mevzuat uzmanı",d:"İzin ihtimali 10 puan artar (korunan alanlar hariç), inceleme 1 gün kısalır."},
-  trd:{n:"Piyasa analisti",d:"Rüzgâr tahmin sapmasından doğan dengesizlik maliyeti %35 azalır."}
+  trd:{n:"Piyasa analisti",d:"Üretim tahminlerin %35 daha isabetli: GÖP teklifinde dengesizlik maliyeti azalır."}
 };
 
 let P=null;

@@ -2,11 +2,9 @@
 import { S } from "../state.js";
 import { sfx } from "./fx.js";
 import { renderMods } from "./mission.js";
+import { enqueue } from "./modal.js";
 
-// Oyun döngüsünü main.js durdurur/sürdürür
-const hold=v=>window.dispatchEvent(new CustomEvent(v?"sebeke:hold":"sebeke:release"));
-
-export function showEvent(ev,pick){
+export function showEvent(ev,pick){enqueue(done=>{
   const d=document.getElementById("eventDlg");
   d.innerHTML=`<div class="evcard"><span class="evtag">${ev.tag}</span><h3>${ev.title}</h3><p>${ev.text}</p>
     <div class="evlearn"><b>Piyasa notu</b> ${ev.learn}</div>
@@ -15,7 +13,7 @@ export function showEvent(ev,pick){
   d.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{
     const r=pick(+b.dataset.i);renderMods();
     d.querySelector(".evopts").outerHTML=`<div class="evresult">${r}</div><div class="pact"><button class="pri" data-a="ok">Devam</button></div>`;
-    const ok=d.querySelector('[data-a="ok"]');ok.focus();ok.onclick=()=>{d.close();hold(false);};
+    const ok=d.querySelector('[data-a="ok"]');ok.focus();ok.onclick=()=>{d.close();done();};
   });
-  hold(true);sfx("event");d.showModal();d.scrollTop=0;
-}
+  sfx("event");d.showModal();d.scrollTop=0;
+});}

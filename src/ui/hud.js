@@ -6,6 +6,7 @@ import { netWorth } from "../sim.js";
 import { updateButtons } from "./panel.js";
 import { setGameClock } from "./map.js";
 import { CAL, fmtDate, seasonOf } from "../calendar.js";
+import { hasRenew } from "../market.js";
 
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
@@ -37,10 +38,11 @@ export function render(){
   document.getElementById("roPrice").textContent=fmtP(M.price[h]);
   let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+Math.max(0,x.b);});
   document.getElementById("roGen").textContent=g.toFixed(1)+" MW";
-  const net=st.R.ges+st.R.res+st.R.off+st.R.hes-st.imb+st.bNet-st.opex,r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
+  const net=st.R.ges+st.R.res+st.R.off+st.R.hes-st.imb+st.bNet-st.opex-st.fee,r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";
   if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>alert("Tebrikler: 5 M$ portföy değerine ulaştın. Oynamaya devam edebilirsin."),50);}
+  document.getElementById("deskBtn").disabled=!(hasRenew()||S.plants.some(p=>p.k==="batt"));
   updateButtons();drawChart();setGameClock(S.hour);
 }
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
@@ -49,14 +51,17 @@ export function renderReport(){
   const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
   if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur.`;
+  else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
   else if(L.E.hes>0)note=`HES suyunu en pahalı saatlere sakladığı için birim başına en yüksek fiyatı yakalar. Ama su miktarı her gün değişir; kurak günlerde üretim düşer.`;
   else if(L.E.ges>0&&L.sRate<0.75)note=`Güneşin kazandığı ortalama fiyat, kurulu olduğu piyasaların ortalamasının %${Math.round(L.sRate*100)}'i. Güneşi farklı piyasalara yaymak veya batarya eklemek bu kaybı azaltır.`;
-  else if(L.imb>0)note=`Rüzgâr tahmin sapmaları ${fmt$(L.imb)} dengesizlik maliyeti yarattı. Offshore daha istikrarlı üretir ama kurulumu pahalıdır.`;
+  else if(L.imb>0)note=`Tahmin sapmaları ${fmt$(L.imb)} dengesizlik maliyeti yarattı. GÖP masasında teklifini belirsizliğe göre ayarlayabilirsin.`;
   else note=`Farklı piyasalarda kurulum yapmak, tek bir piyasanın fiyat düşüşüne karşı portföyünü korur.`;
   document.getElementById("report").innerHTML=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>Gün ${L.dayNo}</span><span>Net: <b class="${L.net<0?"neg":"pos"}">${fmt$(L.net)}</b></span></div>
-  <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Gelir</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
+  <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Piyasa değeri</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
   <tr><td>Batarya arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>
-  <tr><td>Dengesizlik</td><td></td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
+  <tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
+  ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}
+  ${L.fee>0?`<tr><td>Tahmin servisi</td><td></td><td class="neg">−${fmt$(L.fee)}</td><td></td></tr>`:""}
   <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr></table></div><div class="note">${note}</div>`;
   const tr=document.getElementById("trend");tr.innerHTML="";S.hist.forEach(v=>{const d=document.createElement("div");d.style.height=clamp(v,0,1.2)/1.2*100+"%";d.title=Math.round(v*100)+"%";tr.appendChild(d);});
 }

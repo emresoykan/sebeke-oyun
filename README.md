@@ -46,6 +46,8 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/weather.js` | Hava modeli: hareket eden alçak/yüksek basınç, fırtına ve sıcak hava sistemleri; nokta başına bulut, yağış, rüzgâr hızı ve yönü (DOM'suz) |
 | `src/wxsite.js` | Havanın oyuna bağlanması: günlük 24 saatlik tahmin, piyasa temsilî noktaları, saha havası |
 | `src/ui/weatherLayer.js` | Haritada bulut katmanı, şimşek, rüzgâr okları ve fırtına uyarı halkaları |
+| `src/market.js` | GÖP ve dengesizlik: gerçek üretim, ilişkili tahmin hatası, teklif (taahhüt), saatlik uzlaştırma, bataryayla dengeleme |
+| `src/ui/desk.js`, `src/ui/modal.js` | GÖP masası penceresi; gün başı pencerelerinin (olay kartı, masa) sırası |
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
@@ -106,7 +108,7 @@ Oyun 20 Mart 2026'da başlar; her oyun günü takvimi 3 gün ilerletir (bir yıl
 
 ## Hava durumu
 
-Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur, kuvvetli ve dönen rüzgâr), yüksek basınçlar (açık ve durgun hava), fırtına hücreleri ve sıcak hava kütleleri. Orta enlemlerde batıdan doğuya, tropiklerde doğudan batıya ilerler, ömürleri boyunca güçlenip zayıflarlar; Avrupa-Türkiye çevresinde biraz daha sık doğarlar. Yeni sistemler tohumlu rastgele sayıyla doğduğu için gün başındaki 24 saatlik tahmin gün içindeki gerçekleşmeyle aynıdır. Model gerçek örüntülere benzeyen bir oyun simülasyonudur, meteorolojik tahmin değildir.
+Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur, kuvvetli ve dönen rüzgâr), yüksek basınçlar (açık ve durgun hava), fırtına hücreleri ve sıcak hava kütleleri. Orta enlemlerde batıdan doğuya, tropiklerde doğudan batıya ilerler, ömürleri boyunca güçlenip zayıflarlar; Avrupa-Türkiye çevresinde biraz daha sık doğarlar. Yeni sistemler tohumlu rastgele sayıyla doğduğu için paneldeki hava tahmini gün içindeki gerçekleşmeyle aynıdır; GÖP masasındaki üretim tahmini ise buna hata ekler (aşağıda). Model gerçek örüntülere benzeyen bir oyun simülasyonudur, meteorolojik tahmin değildir.
 
 - **Üretim:** GES, sahanın o saatteki bulut örtüsüne göre ortalamasının etrafında dalgalanır (tam kapalı havada ~%20). RES, göbek yüksekliğindeki rüzgârdan güç eğrisiyle üretir: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde kesme hızında durur. HES'in su bütçesi son günlerin yağışıyla değişir.
 - **Fiyat:** Her piyasanın temsilî noktasındaki saatlik bulut ve rüzgâr fiyatı belirler (rüzgârlı gece ucuz, bulutlu öğle pahalı); sıcak hava akşam talebini artırır.
@@ -114,6 +116,19 @@ Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur,
 - **Panel ve 3D:** Seçili noktada anlık hava ve günün kalan saatleri için 3 saatlik tahmin; türbinler rüzgârın estiği yöne döner. Fırtına bir rüzgâr sahasında kesme hızını aşınca bildirim gelir.
 
 Kalibrasyon (6 tohum × 30 gün): Türkiye sahalarında RES kapasite faktörü eski modelle uyumlu (Aydın ~0,34, Kars ~0,48), offshore ~0,52, güneş ortalaması sahanın uzun dönem ortalamasının ~%95'i; Türkiye'de yağışlı saat oranı ~%20.
+
+## GÖP masası ve dengesizlik
+
+Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saatlik üretim tahmini hazırlanır ve oyuncu GÖP masasında ne kadarını gün öncesi piyasasında satacağını seçer. Teklif edilen miktar (taahhüt) GÖP fiyatından satılır. Gerçekleşen üretim teklifinden saparsa fark dengesizlik fiyatından kapanır: eksik üretim PTF'nin %35 fazlasıyla alınır, fazla üretim PTF'nin %30 altından satılır. (Gerçek piyasada dengesizlik fiyatı PTF ve SMF'den türetilir; bu oranlar oyun dengesi için temsilîdir.)
+
+- **Tahmin hatası:** Saatler arasında ilişkilidir (bir saat yüksek tahmin edildiyse sonraki saatler de büyük olasılıkla yüksektir) ve gün içinde ileriye doğru büyür. Rüzgârda güç eğrisinin dik bölgesinde (4,5–11,5 m/s) ve fırtınada, güneşte parçalı bulutlu havada artar.
+- **Teklif oranı:** %70–110. Düşük teklif eksik riskini azaltır ama fazlayı ucuza satarsın; ceza neredeyse simetrik olduğundan en iyi teklif çoğu gün tahmine yakındır.
+- **Tahmin servisi:** Premium servis hatayı yarıya indirir, yenilenebilir MW başına günlük 4 $ ücretlidir. Tüccar uzmanlığı hatayı ayrıca %35 azaltır.
+- **Batarya:** Arbitraj (ucuz saatte şarj, pahalı saatte deşarj), dengeleme (sapmayı karşılar) veya boşta.
+- **Gün içi:** Masa "GÖP masası" düğmesiyle yeniden açılabilir; değişiklik yalnızca kalan saatlere uygulanır. Olay kartı üretimi veya fiyatı değiştirirse kalan saatlerin teklifi yeniden hesaplanır. "Otomatik gönder" seçiliyse masa her gün kendiliğinden açılmaz.
+- **Rapor:** Dünün raporunda dengesizlik maliyeti, eksik/fazla MWh, tahmin hatası oranı, batarya dengeleme ve servis ücreti ayrı satırlarda görünür.
+
+Ölçüm (Aydın 5 MW GES + 5 MW RES, Çanakkale 5 MW RES, 5 MW batarya; aynı tohumla 2 dönem × 25 gün): standart serviste tahmin hatası üretimin ~%13'ü, dengesizlik maliyeti yenilenebilir piyasa değerinin ~%3'ü; premium serviste hata ~%7–9, maliyet ~%1,5–1,7. Teklif oranı %100, %90–95 ve %110'dan biraz daha kârlı çıktı.
 
 ## Harita
 

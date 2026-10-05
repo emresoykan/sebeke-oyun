@@ -1,9 +1,9 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
-import { BASE, EFF, IMB, BLOCK, REG, MARKETS, TECH } from "./config.js";
+import { BASE, EFF, BLOCK, REG, MARKETS, TECH } from "./config.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
 import { permitProb, rejectWhy, landCost } from "./rules.js";
-import { rnd, clamp, gauss, shape } from "./utils.js";
+import { rnd, clamp, shape } from "./utils.js";
 import { render, renderReport } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -14,9 +14,11 @@ import { factor, salePrice, priceMods, ageMods } from "./mods.js";
 import { maybeEvent } from "./events.js";
 import { checkMissions } from "./missions.js";
 import { dayFx, celebrate, toast } from "./ui/fx.js";
-import { initWx, stepWx, forecast, sampleWx, sunRel, powerCurve, clearFactor, setSeason } from "./weather.js";
+import { initWx, stepWx, forecast, sampleWx, clearFactor, setSeason } from "./weather.js";
 import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate } from "./calendar.js";
 import { MREF, siteWx, clock } from "./wxsite.js";
+import { RENEW, production, dayAhead, settle, deskSummary } from "./market.js";
+import { openDesk } from "./ui/desk.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -26,7 +28,7 @@ export function newDay(){
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl);
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);}
   if(!S.wx)S.wx=initWx();
-  setD({st:{E:{ges:0,res:0,off:0,hes:0},R:{ges:0,res:0,off:0,hes:0},imb:0,bNet:0,curt:0,opex:0,sBase:0},wxf:forecast(S.wx,24)});
+  setD({st:{E:{ges:0,res:0,off:0,hes:0},R:{ges:0,res:0,off:0,hes:0},imb:0,bNet:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0},wxf:forecast(S.wx,24)});
   MARKETS.forEach(k=>{
     // piyasanın temsilî noktasındaki saatlik hava tahmini: bulut güneş üretimini, rüzgâr rüzgâr üretimini, sıcak hava akşam talebini belirler
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
@@ -41,28 +43,37 @@ export function newDay(){
   S.plants.forEach(p=>{if(p.k!=="hes")return;const t=site(p.t),pr=D[t.mreg].price;
     let budget=p.down?0:p.mw*24*t.hydro*(0.25+rnd()*0.3)*eqOf(p).perf*factor("out",t.mreg,"hes")*(0.6+1.2*(p.wet??0.35));p.plan=Array(24).fill(0); // son günlerin yağışı ve kar erimesi
     [...Array(24).keys()].sort((a,b)=>pr[b]-pr[a]).forEach(h=>{const e=Math.min(p.mw,budget);p.plan[h]=e;budget-=e;});});
+  dayAhead(); // GÖP: üretim tahmini ve teklif
+  if(S.desk.fc==="pre"){const f=deskSummary().fee;S.money-=f;D.st.fee=f;}
 }
 
 export function tick(){
   const h=S.hour, st=D.st; let cash=0;
-  const imbK=spec()==="trd"?IMB*0.65:IMB;
+  const dev={},val={},batts={},bm=S.desk?S.desk.batt:"arb"; // piyasa başına sapma (gerçek − taahhüt) ve değeri
   S.plants.forEach(p=>{
-    const t=site(p.t), M=D[t.mreg], pr=M.price[h], g=M.gen[h], q=eqOf(p);
+    const t=site(p.t), M=D[t.mreg], m=t.mreg, pr=M.price[h], g=M.gen[h], q=eqOf(p);
     const ox=TECH[p.k].opex*q.opex*p.mw/BLOCK/24;st.opex+=ox;cash-=ox;
-    if(p.down)return; // arızalı santral üretmez, işletme gideri sürer
-    const sp=salePrice(t.mreg,p.k,h,pr),of=factor("out",t.mreg,p.k,h),w=siteWx(t,h);
+    const sp=salePrice(m,p.k,h,pr);
+    if(p.down){ // arızalı santral üretmez, işletme gideri sürer; GÖP'te sattığı miktar eksik üretim olarak dengesizliğe düşer
+      const c=p.cm?p.cm[h]:0;if(c){cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)-c;val[m]=(val[m]||0)-c*sp;}return;}
+    const w=siteWx(t,h);
     if(p.k==="hes"){if(w.snow)p.snowAcc=(p.snowAcc||0)+w.rain;else p.wetAcc=(p.wetAcc||0)+w.rain;}
     if(w.snow&&p.k==="ges")t.snowDays=2; // paneller karla kaplanır
-    if(p.k==="ges"){let e=p.mw*t.solar*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*(0.95+rnd()*0.05)*q.perf*of*(t.snowDays>0?0.25:1);if(sp<=0){st.curt+=e;e=0;}
-      st.E.ges+=e;st.R.ges+=e*sp;st.sBase+=e*M.avg;g.s+=e;cash+=e*sp;}
-    else if(p.k==="res"||p.k==="off"){const v=w.hub,f=clamp(powerCurve(v)*q.perf*of,0,1);stormCheck(p,t,v);
-      const a=clamp(f*(1+gauss()*0.25),0,1),e=p.mw*a,imb=Math.abs(e-p.mw*f)*pr*imbK;
-      st.E[p.k]+=e;st.R[p.k]+=e*sp;st.imb+=imb;g.w+=e;cash+=e*sp-imb;}
-    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;st.E.hes+=e;st.R.hes+=e*sp;g.h+=e;cash+=e*sp;}
+    if(RENEW.includes(p.k)){
+      let {e,v}=production(p,h);if(p.k!=="ges")stormCheck(p,t,v);
+      if(p.k==="ges"&&sp<=0){st.curt+=e;e=0;}
+      const c=p.cm?p.cm[h]:e; // GÖP taahhüdü (gün ortasında kurulan santralde üretimin kendisi)
+      cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)+e-c;val[m]=(val[m]||0)+(e-c)*sp;
+      st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
+      if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else g.w+=e;}
+    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
     else if(p.k==="batt"){p.soc=p.soc||0;const cap=p.mw*2;
+      if(bm==="bal"){(batts[m]=batts[m]||[]).push(p);return;}if(bm==="off")return;
       if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
       else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);p.soc-=e;st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
   });
+  // dengesizlik uzlaştırması: piyasa başına net sapma; dengeleme modundaki batarya önce sapmayı kapatır
+  for(const m in dev){const c=settle(m,dev[m],D[m].price[h],batts[m]||[],st);st.dev+=Math.abs(dev[m]);cash+=c;st.imb+=val[m]-c;}
   S.money+=cash; S.hour++;stepWx(S.wx,1);clock.at=performance.now();
   if(S.hour>=24)endDay();
   render();
@@ -70,9 +81,9 @@ export function tick(){
 
 export function endDay(){
   const st=D.st, E=st.E, R=st.R;
-  const net=R.ges+R.res+R.off+R.hes-st.imb+st.bNet-st.opex;
+  const net=R.ges+R.res+R.off+R.hes-st.imb+st.bNet-st.opex-st.fee;
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
-  S.last={dayNo:S.dayNo,E:{...E},R:{...R},imb:st.imb,bNet:st.bNet,curt:st.curt,opex:st.opex,net,sRate};
+  S.last={dayNo:S.dayNo,E:{...E},R:{...R},imb:st.imb,bNet:st.bNet,curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
   MARKETS.forEach(k=>S.mSolar[k]=Math.min(1.6,S.mSolar[k]+0.012));
   // izin süreçleri
@@ -92,7 +103,7 @@ export function endDay(){
   Object.values(S.sites).forEach(o=>{if(o.snowDays>0)o.snowDays--;});
   rollOutages();ageMods();
   S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();save();renderReport();renderPanel();drawMap();
-  dayFx(S.last);maybeEvent();
+  dayFx(S.last);maybeEvent();openDesk();
 }
 
 // Arızalar: her santral her gün ekipmanının arızasız gün olasılığına göre bozulabilir; 1-2 gün üretmez.

@@ -12,6 +12,7 @@ import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { checkMissions } from "./missions.js";
 import { CAL, seasonOf } from "./calendar.js";
+import { applyDesk } from "./market.js";
 
 const RENEW=["ges","res","off","hes"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
@@ -128,7 +129,7 @@ export function maybeEvent(){
   const m=mainMkt(),opts=ev.opts(m);
   S.evHist=[ev.id,...recent].slice(0,4);
   showEvent({tag:ev.tag,title:ev.title,text:ev.text(m),learn:ev.learn,opts},i=>{
-    const r=opts[i].run();S.evDone=(S.evDone||0)+1;S.evCool=1;
+    const r=opts[i].run();S.evDone=(S.evDone||0)+1;S.evCool=1;applyDesk(S.hour); // olayın etkisi tahmine ve teklife yansısın
     addLog(`${ev.title}: ${opts[i].l}. ${r}`);checkMissions();save();renderPanel();render();
     return r;
   });

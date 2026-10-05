@@ -190,3 +190,26 @@ dialog#eventDlg::backdrop{background:rgba(5,10,15,.6)}
 .wxfc{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:6px;text-align:center}
 .wxfc div{display:flex;flex-direction:column;align-items:center;font-size:.95rem;line-height:1.15}
 .wxfc small{font-size:.66rem;color:var(--muted)}
+
+/* GÖP masası */
+dialog#deskDlg{width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);color:var(--ink)}
+dialog#deskDlg::backdrop{background:rgba(5,10,15,.6)}
+.desk h3{margin:8px 0 4px;font-size:1.25rem;font-weight:800}
+.desk h3 small{font-size:.8rem;font-weight:400;color:var(--muted);margin-left:6px}
+.dsub{margin:0 0 10px;font-size:.9rem;line-height:1.45}
+#deskChart{width:100%;height:150px;display:block;background:rgba(10,20,35,.55);border-radius:10px}
+.dleg{display:flex;flex-wrap:wrap;gap:12px;font-size:.75rem;color:var(--muted);margin:6px 0 10px}
+.dleg i{display:inline-block;width:12px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px}
+.dleg .b{background:var(--wind)}.dleg .u{background:rgba(140,190,255,.35)}.dleg .c{background:#fff;height:3px;box-shadow:0 0 0 1px var(--muted)}.dleg .p{border-top:2px dashed var(--solar);height:0}
+.dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.dstats div{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.dstats small{display:block;color:var(--muted);font-size:.72rem}.dstats b{font-size:.95rem}
+.dslider{display:block;font-size:.9rem}.dslider b{float:right}.dslider input{width:100%;margin:6px 0 2px}
+.dhint{font-size:.78rem;color:var(--muted);line-height:1.4;margin-bottom:10px}
+.desk fieldset{border:1px solid var(--line);border-radius:10px;padding:6px 10px 8px;margin:0 0 10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 10px}
+.desk fieldset .dhint{grid-column:1/-1;margin:2px 0 0}
+.desk legend{font-size:.8rem;color:var(--muted);padding:0 4px}
+.dopt{display:flex;gap:8px;align-items:flex-start;cursor:pointer;padding:3px 0}
+.dopt b{display:block;font-size:.88rem}.dopt small{display:block;color:var(--muted);font-size:.76rem}
+.dauto{display:flex;gap:8px;align-items:flex-start;font-size:.82rem;color:var(--muted)}
+.mut{color:var(--muted);font-weight:400}
