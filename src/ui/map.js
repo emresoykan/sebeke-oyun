@@ -22,6 +22,7 @@ import { renderPanel } from "./panel.js";
 import { initModels, syncModels } from "./models.js";
 import { initWeatherLayer } from "./weatherLayer.js";
 import { rivalSites } from "../rivals.js";
+import { gfx, onGfx, frameTick } from "./quality.js";
 
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
 window.CESIUM_BASE_URL=base+"cesium/";
@@ -45,6 +46,14 @@ export function flyToSite(id){
   const o=S.sites[id];if(!viewer||!o)return;stopOrbit();
   viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(o.lon+0.006,o.lat-0.028,1400),
     orientation:{heading:Cesium.Math.toRadians(-10),pitch:Cesium.Math.toRadians(-22),roll:0},duration:2.4});
+}
+
+// Grafik kalitesi: kenar yumuşatma, çözünürlük, Google 3D ayrıntısı ve boşta kare hızı
+function applyGfx(L){
+  if(!viewer)return;const dpr=devicePixelRatio||1;
+  scene.msaaSamples=L.msaa;scene.postProcessStages.fxaa.enabled=L.fxaa;
+  viewer.resolutionScale=Math.min(L.px,dpr)/dpr;viewer.targetFrameRate=L.idle;
+  if(google)google.maximumScreenSpaceError=L.sse;
 }
 
 // Ortam sesi için kameranın konumu
@@ -135,7 +144,7 @@ async function addGoogle(){
   if(!GOOGLE_KEY)return;
   try{
     google=await Cesium.createGooglePhotorealistic3DTileset({key:GOOGLE_KEY,onlyUsingWithGoogleGeocoder:true},{showCreditsOnScreen:true,shadows:Cesium.ShadowMode.RECEIVE});
-    nightShader=makeNightShader();google.customShader=nightShader;scene.primitives.add(google);scene.globe.show=false;
+    nightShader=makeNightShader();google.customShader=nightShader;google.maximumScreenSpaceError=gfx().sse;scene.primitives.add(google);scene.globe.show=false;
   }catch(e){console.warn("Google 3D Tiles yüklenemedi, gömülü görüntüyle devam ediliyor:",e);google=null;}
 }
 
@@ -161,13 +170,12 @@ export async function initMap(){
   Cesium.Ion.defaultAccessToken=undefined;
   const day=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-day.jpg",{credit:"Görüntü: NASA Blue Marble"}));
   viewer=new Cesium.Viewer("map",{baseLayer:day,animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,
-    navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:4,requestRenderMode:false});
+    navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,shouldAnimate:false,shadows:true,msaaSamples:gfx().msaa,requestRenderMode:false});
   scene=viewer.scene;
   // kamera dururken 30 kare/sn yeterli (rotorlar ve bulutlar akıcı kalır); kullanıcı haritayı oynatırken tam hız
-  viewer.targetFrameRate=30;
   viewer.camera.moveStart.addEventListener(()=>{viewer.targetFrameRate=undefined;});
-  viewer.camera.moveEnd.addEventListener(()=>{viewer.targetFrameRate=30;});
-  viewer.useBrowserRecommendedResolution=false;viewer.resolutionScale=Math.min(2,devicePixelRatio||1)/(devicePixelRatio||1);
+  viewer.camera.moveEnd.addEventListener(()=>{viewer.targetFrameRate=gfx().idle;});
+  viewer.useBrowserRecommendedResolution=false;applyGfx(gfx());onGfx(applyGfx);
   // Türkiye ve çevresi: ~300 m/piksel Sentinel-2 yaz mozaiği (yakınlaşınca dünya dokusunun bulanıklığını giderir)
   const s2credit=`Contains modified Copernicus Sentinel data ${trMosaic.years.join("–")}`;
   trMosaic.parts.forEach(p=>viewer.imageryLayers.add(Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/"+p.file,
@@ -206,7 +214,8 @@ function stepClock(){
   // net uydu görüntüsünde kıyıyla örtüşmediği için daha erken gizlenir
   const h=viewer.camera.positionCartographic.height;borders[0].show=h>4e4;borders[1].show=h>5e5;
   // gölgeler yalnızca yakın planda görünür; uzaktayken kapatmak ekran kartını epey rahatlatır
-  const sh=h<8e4;if(viewer.shadows!==sh)viewer.shadows=sh;
+  const sh=gfx().shadows&&h<8e4;if(viewer.shadows!==sh)viewer.shadows=sh;
+  frameTick(now);
   if(now-lastDecl>150){lastDecl=now;declutter();
     // her zaman üstte çizilen işaretler kürenin arkasına geçince görünmesin
     const cp=viewer.camera.positionWC,front=e=>{const p=e.position.getValue(viewer.clock.currentTime,pos);if(!p)return false;
