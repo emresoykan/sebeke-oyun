@@ -176,6 +176,8 @@ export async function initMap(){
   viewer.camera.moveStart.addEventListener(()=>{viewer.targetFrameRate=undefined;});
   viewer.camera.moveEnd.addEventListener(()=>{viewer.targetFrameRate=gfx().idle;});
   viewer.useBrowserRecommendedResolution=false;applyGfx(gfx());onGfx(applyGfx);
+  // adres sonuna ?fps eklenirse köşede kare hızı ve kare süresi gösterilir (performans teşhisi için)
+  if(new URLSearchParams(location.search).has("fps"))scene.debugShowFramesPerSecond=true;
   // Türkiye ve çevresi: ~300 m/piksel Sentinel-2 yaz mozaiği (yakınlaşınca dünya dokusunun bulanıklığını giderir)
   const s2credit=`Contains modified Copernicus Sentinel data ${trMosaic.years.join("–")}`;
   trMosaic.parts.forEach(p=>viewer.imageryLayers.add(Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/"+p.file,

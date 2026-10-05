@@ -148,7 +148,7 @@ Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saa
 - **Açılış:** Kamera uzaydan dönerek Türkiye'ye iner.
 - **Sinematik tur:** Kurulu sahanın panelindeki "🎬 Sinematik tur" kamerayı sahaya indirir ve etrafında yavaşça döndürür (~70 sn'de bir tur, en fazla 75 sn). Haritaya dokunmak veya kaydırmak turu bitirir.
 - Hareket azaltma ayarı açıksa açılış ve tur animasyonsuz yapılır.
-- **Grafik kalitesi** ("Grafik" düğmesi: Otomatik → Yüksek → Dengeli → Düşük): Yüksek 4x kenar yumuşatma ve ekranın piksel oranında (en fazla 2x) çizim; Dengeli kenar yumuşatmayı FXAA'ya çevirir, CSS pikseli çözünürlüğünde çizer ve Google 3D'den daha az ayrıntı yükler; Düşük ayrıca çözünürlüğü %80'e indirir, gölgeleri kapatır, boşta 24 kare/sn çizer. Otomatik mod ekran kartına göre başlar (Intel HD/UHD ve giriş seviyesi GeForce MX → Dengeli, yazılımla çizim → Düşük) ve kare hızı uzun süre 20'nin altında kalırsa bir kademe düşer.
+- **Grafik kalitesi** ("Grafik" düğmesi: Otomatik → Yüksek → Dengeli → Düşük): Yüksek 4x kenar yumuşatma ve ekranın piksel oranında (en fazla 2x) çizim; Dengeli kenar yumuşatmayı FXAA'ya çevirir, CSS pikseli çözünürlüğünde çizer ve Google 3D'den daha az ayrıntı yükler; Düşük ayrıca çözünürlüğü %80'e indirir, gölgeleri kapatır, boşta 24 kare/sn çizer. Otomatik mod ekran kartına göre başlar (Intel HD/UHD ve giriş seviyesi GeForce MX → Dengeli, yazılımla çizim → Düşük) ve kare hızı uzun süre 20'nin altında kalırsa bir kademe düşer. Adresin sonuna `?fps` eklenirse haritanın köşesinde kare hızı ve kare süresi görünür.
 
 ## Harita
 
