@@ -239,3 +239,24 @@ dialog#deskDlg::backdrop{background:rgba(5,10,15,.6)}
 /* Sinematik tur */
 body.cine .mapwrap::after{content:"🎬 Sinematik tur • bitirmek için haritaya dokun";position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:5;pointer-events:none;
   background:rgba(5,10,15,.62);color:#fff;font-size:.8rem;padding:5px 12px;border-radius:999px;white-space:nowrap}
+
+/* Arkadaş ligi */
+dialog#leagueDlg{width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);color:var(--ink)}
+dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
+.lgview h3{margin:0 0 8px;font-size:1.25rem;font-weight:800}.lgview h4{margin:14px 0 6px}
+.lgform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.lgform input{flex:1;min-width:140px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;text-transform:uppercase;letter-spacing:.08em}
+.lgcode{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;border:1px dashed var(--line);border-radius:12px}
+.lgcode b{font-size:1.2rem;letter-spacing:.12em;font-family:ui-monospace,monospace}
+.lgst{color:var(--muted)}.lgst.on{color:var(--pos)}.lgst.error{color:var(--neg)}
+.lgrank{margin:0;padding:0;list-style:none;counter-reset:r}
+.lgrank li{counter-increment:r;display:grid;grid-template-columns:22px 12px 1fr auto;gap:2px 10px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);font-size:.88rem}
+.lgrank li::before{content:counter(r)".";color:var(--muted)}
+.lgrank li i{width:10px;height:10px;border-radius:50%;display:block}
+.lgrank li b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.lgrank li .v{font-weight:700;text-align:right}
+.lgrank li .sub{grid-column:3/5;color:var(--muted);font-size:.78rem}
+.lgrank li.me{background:rgba(255,255,255,.05);border-radius:6px}
+.lgrank li.pmuted::before{content:none}
+.lgfeed{margin:0;padding:0;list-style:none}.lgfeed li{padding:6px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.lgdemo{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(242,201,76,.15);border:1px solid rgba(242,201,76,.5);font-size:.82rem}

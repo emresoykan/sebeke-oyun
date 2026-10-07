@@ -2,6 +2,8 @@
 // SITE_LIMIT: bir sahadaki azami kurulu güç; SITE_MIN_KM: iki saha arasındaki asgari mesafe
 export const SAVE_KEY="sebeke-world-v3", BLOCK=5, SITE_LIMIT=40, SITE_MIN_KM=20, GOAL=5e6, EFF=0.88, IMB=0.12;
 export const COAST_KM=150, SHALLOW_KM=200;
+// Başlangıç nakdi: arazi + izinden sonra bir RES ve bir GES kurmaya yeter (eski 150 b$ ile RES için uzun süre beklemek gerekiyordu)
+export const START_MONEY=250000, START_TOPUP=100000;
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 export const REG={
