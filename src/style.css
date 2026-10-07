@@ -259,3 +259,4 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .lgrank li.me{background:rgba(255,255,255,.05);border-radius:6px}
 .lgrank li.pmuted::before{content:none}
 .lgfeed{margin:0;padding:0;list-style:none}.lgfeed li{padding:6px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.lgdemo{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(242,201,76,.15);border:1px solid rgba(242,201,76,.5);font-size:.82rem}

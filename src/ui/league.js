@@ -1,5 +1,5 @@
 // --- Arkadaş ligi penceresi: lig kur / katıl, sıralama ve son duyurular ---
-import { LG, leagueAvailable, joinLeague, leaveLeague, newCode, normCode, codeOk, feedText, safeColor } from "../league.js";
+import { LG, DEMO, leagueAvailable, joinLeague, leaveLeague, newCode, normCode, codeOk, feedText, safeColor } from "../league.js";
 import { fmt$ } from "../utils.js";
 import { TITLES } from "../profile.js";
 
@@ -29,7 +29,7 @@ function body(){
 function render(){
   const d=dlg();if(!d||!d.open)return;
   const v=d.querySelector("#lgCode")?.value||"";
-  d.innerHTML=`<div class="lgview"><h3>🏆 Arkadaş ligi</h3>${body()}<div class="pact">${LG.code?'<button data-a="leave">Ligden ayrıl</button>':""}<button class="pri" data-a="close">Kapat</button></div></div>`;
+  d.innerHTML=`<div class="lgview"><h3>🏆 Arkadaş ligi</h3>${DEMO?'<p class="lgdemo">Önizleme modu: sunucu yok, sıralamadaki "Örnek:" şirketler tarayıcıda canlandırılan örnek oyunculardır.</p>':""}${body()}<div class="pact">${LG.code?'<button data-a="leave">Ligden ayrıl</button>':""}<button class="pri" data-a="close">Kapat</button></div></div>`;
   const inp=d.querySelector("#lgCode");if(inp){inp.value=v;inp.onkeydown=e=>{if(e.key==="Enter")act("join");};}
   d.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.a));
 }

@@ -24,7 +24,9 @@ export function parseCfg(s){
 }
 const CFG=parseCfg(import.meta.env.VITE_FIREBASE_CONFIG);
 const EMU=import.meta.env.DEV?new URLSearchParams(location.search).get("fbemu"):null; // yalnızca yerel testte
-export const leagueAvailable=()=>!!CFG||!!EMU;
+// önizleme derlemesi (sunucusuz sayfa): tarayıcı içinde örnek oyuncularla çalışan demo lig
+export const DEMO=import.meta.env.VITE_LEAGUE_DEMO==="1";
+export const leagueAvailable=()=>!!CFG||!!EMU||DEMO;
 
 export const LG={code:null,status:"off",uid:null,players:[],feed:[],err:null};
 let api=null,unsub=[],lastPush=0,timer=null,seen=new Set(),joinedAt=0;
@@ -55,7 +57,7 @@ export function feedText(f){
 async function start(code){
   LG.code=code;LG.status="connecting";LG.err=null;emit();
   try{
-    const {connect}=await import("./net/fb.js");
+    const {connect}=DEMO?await import("./net/demo.js"):await import("./net/fb.js");
     api=await connect(CFG||{apiKey:"demo",projectId:"demo-sebeke",appId:"demo"},EMU);LG.uid=api.uid;
     unsub.forEach(f=>f());seen=new Set();let first=true;
     unsub=[api.watchPlayers(code,r=>{LG.players=r;LG.status="on";emit();},fail),
