@@ -154,7 +154,7 @@ Her gün başında yenilenebilir santrallerin (GES, RES, offshore) o günkü saa
 
 ## Arkadaş ligi
 
-Oyuncular bir davet koduyla aynı lige katılır ("🏆 Lig" düğmesi). Sıralama portföy değerine göredir; her satırda şirket adı, ünvan, kurulu güç ve oyun günü görünür. Kişi adı paylaşılmaz. Bir oyuncu yeni bir eşiği geçince (10, 25, 50, 100 … MW; 250 b$, 500 b$, 1 M$, 2,5 M$; 5 M$ hedefi; yeni ünvan) lige duyuru düşer; diğer oyuncular bunu haber bandında ve bildirim balonunda görür. Lige katılırken mevcut ilerleme yeniden duyurulmaz.
+Oyuncular bir davet koduyla aynı lige katılır ("🏆 Lig" düğmesi). Sıralama portföy değerine göredir; her satırda şirket adı, ünvan, kurulu güç ve oyun günü görünür. Kişi adı paylaşılmaz. Bir oyuncu yeni bir eşiği geçince (10, 25, 50, 100 … MW; 500 b$, 1 M$, 2,5 M$; 5 M$ hedefi; yeni ünvan) lige duyuru düşer; diğer oyuncular bunu haber bandında ve bildirim balonunda görür. Lige katılırken mevcut ilerleme yeniden duyurulmaz.
 
 - **Sunucu:** Firebase Firestore ve anonim giriş (e-posta/şifre yok, tarayıcı başına bir kimlik). Firebase SDK'sı yalnızca bir lige katılınca yüklenir.
 - **Güvenlik kuralları** (`firebase/firestore.rules`): lig listesi okunamaz, kodu bilen ligi görür; herkes yalnızca kendi kaydını yazar; alanların tipi ve aralığı denetlenir, serbest metin yoktur (duyuru metni istemcide türden üretilir); kayıt en fazla 10 sn'de bir güncellenir; duyurular değiştirilemez ve silinemez; yalnızca lig üyesi duyuru yazabilir. Kurallar Firebase emülatöründe 29 senaryoyla test edildi.

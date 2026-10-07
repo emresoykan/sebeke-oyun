@@ -12,7 +12,7 @@ import { news } from "./news.js";
 import { toast } from "./ui/fx.js";
 
 const KEY="sebeke-league-v1", PUSH_MS=15000;
-const MW_STEPS=[10,25,50,100,200,300,500,750,1000,1500,2000], VAL_STEPS=[2.5e5,5e5,1e6,2.5e6];
+const MW_STEPS=[10,25,50,100,200,300,500,750,1000,1500,2000], VAL_STEPS=[5e5,1e6,2.5e6];
 const FIELDS=["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId"];
 
 // Firebase'in verdiği yapılandırma JSON ya da JavaScript nesnesi olarak yapıştırılabilir
