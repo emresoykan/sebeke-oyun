@@ -54,9 +54,23 @@ function drawClouds(){
 // tuval kaynağı yalnızca istenince yeniden yüklenir (sürekli çizim yok)
 function refreshCanvas(){const s=map.getSource("clouds");if(!s)return;s.play();requestAnimationFrame(()=>requestAnimationFrame(()=>s.pause()));}
 
+// Bulut tuvali ve fırtınalar Apple haritası (mapkit.js) tarafından da kullanılır
+export const wxOn=()=>on;
+export function cloudCanvas(){if(!cv){noise=makeNoise();cv=document.createElement("canvas");cv.width=W;cv.height=H;drawClouds();}return cv;}
+// oyun saati değiştiyse (en fazla ~1,2 sn'de bir) bulutları yeniden çizer; çizdiyse true döner
+export function tickClouds(force){
+  cloudCanvas();const key=`${S.dayNo}:${S.hour}`,now=performance.now();
+  if(force||(key!==cloudKey&&now-lastDraw>1200)){cloudKey=key;lastDraw=now;drawClouds();return true;}
+  return false;
+}
+export function activeStorms(){
+  const wx=snap(Math.min(S.hour,23),frac());
+  return on?wx.sys.filter(s=>s.type==="storm"&&s.age/s.life>0.15&&s.age/s.life<0.9):[];
+}
+
 // Fırtına hücreleri: kesikli halka, kuzey kenarında etiket, merkezde şimşek parlaması
 function drawStorms(){
-  const wx=snap(Math.min(S.hour,23),frac()),storms=on?wx.sys.filter(s=>s.type==="storm"&&s.age/s.life>0.15&&s.age/s.life<0.9):[];
+  const storms=activeStorms();
   const ring=s=>{const pts=[];for(let k=0;k<=48;k++){const a=k/48*2*Math.PI;pts.push([s.lon+s.r*0.75*Math.cos(a)/(111.32*Math.max(0.2,Math.cos(s.lat*Math.PI/180))),s.lat+s.r*0.75*Math.sin(a)/110.57]);}return pts;};
   map.getSource("storm-rings").setData(fc(storms.map(s=>({type:"Feature",properties:{},geometry:{type:"LineString",coordinates:ring(s)}}))));
   map.getSource("storm-labels").setData(fc(storms.map(s=>({type:"Feature",properties:{},geometry:{type:"Point",coordinates:[s.lon,s.lat+s.r*0.75/110.57]}}))));
@@ -66,12 +80,11 @@ function drawStorms(){
 }
 
 function update(force){
-  const key=`${S.dayNo}:${S.hour}`,now=performance.now();
-  if(force||(key!==cloudKey&&now-lastDraw>1200)){cloudKey=key;lastDraw=now;drawClouds();refreshCanvas();drawStorms();}
+  if(tickClouds(force)){refreshCanvas();drawStorms();}
 }
 
 export function initWeatherLayer(m){
-  map=m;noise=makeNoise();cv=document.createElement("canvas");cv.width=W;cv.height=H;drawClouds();
+  map=m;cloudCanvas();
   const before="labels-start";
   map.addSource("clouds",{type:"canvas",canvas:cv,animate:false,coordinates:[[-180,MAXLAT],[180,MAXLAT],[180,-MAXLAT],[-180,-MAXLAT]]});
   map.addLayer({id:"clouds",type:"raster",source:"clouds",layout:{visibility:on?"visible":"none"},paint:{"raster-fade-duration":0,"raster-resampling":"linear",
