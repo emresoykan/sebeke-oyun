@@ -71,7 +71,7 @@ function drawStorms(){
 const arrowColor=v=>v<5?"#9FD3FF":v<12?"#FFFFFF":v<20?"#FFD54A":"#FF5A5A";
 function drawArrows(force){
   const z=map.getZoom();
-  if(!on||z<3.2||z>11.5){if(arrowKey!==null){map.getSource("wind").setData(fc([]));arrowKey=null;}return;}
+  if(!on||z<3.2||z>9){if(arrowKey!==null){map.getSource("wind").setData(fc([]));arrowKey=null;}return;}
   const b=map.getBounds(),n=Math.min(MAXLAT-1,b.getNorth()),s=Math.max(-MAXLAT+1,b.getSouth()),w=b.getWest(),e=b.getEast();
   const key=`${S.dayNo}:${S.hour}:${w.toFixed(2)}:${n.toFixed(2)}:${z.toFixed(1)}`;if(!force&&key===arrowKey)return;arrowKey=key;
   const wx=snap(Math.min(S.hour,23),frac()),NX=9,NY=6,y0=yOfLat(n),y1=yOfLat(s),out=[];
@@ -94,7 +94,7 @@ export function initWeatherLayer(m){
   const before="labels-start";
   map.addSource("clouds",{type:"canvas",canvas:cv,animate:false,coordinates:[[-180,MAXLAT],[180,MAXLAT],[180,-MAXLAT],[-180,-MAXLAT]]});
   map.addLayer({id:"clouds",type:"raster",source:"clouds",layout:{visibility:on?"visible":"none"},paint:{"raster-fade-duration":0,"raster-resampling":"linear",
-    "raster-opacity":["interpolate",["linear"],["zoom"],2,0.9,4,0.55,6,0.3,8,0]}},before);
+    "raster-opacity":["interpolate",["linear"],["zoom"],2,0.9,4,0.5,5.5,0.2,7,0]}},before);
   ["storm-rings","storm-labels","lightning","wind"].forEach(id=>map.addSource(id,{type:"geojson",data:fc([])}));
   map.addImage("wind-arrow",arrowImg(),{sdf:true,pixelRatio:2});
   map.addLayer({id:"lightning",type:"circle",source:"lightning",paint:{"circle-radius":16,"circle-color":"#EAF0FF","circle-blur":0.9,"circle-opacity":0}},before);
@@ -102,7 +102,7 @@ export function initWeatherLayer(m){
   map.addLayer({id:"storm-labels",type:"symbol",source:"storm-labels",maxzoom:9,layout:{"text-field":"Fırtına","text-font":FONT.m,"text-size":13,"text-anchor":"bottom","text-offset":[0,-0.3],"text-allow-overlap":true},
     paint:{"text-color":"#FFFFFF","text-halo-color":"#5A0A12","text-halo-width":1.6}},before);
   map.addLayer({id:"wind",type:"symbol",source:"wind",layout:{"icon-image":"wind-arrow","icon-rotate":["get","rot"],"icon-rotation-alignment":"map","icon-size":["get","sz"],"icon-allow-overlap":true,"icon-ignore-placement":true},
-    paint:{"icon-color":["get","col"],"icon-opacity":0.85,"icon-halo-color":"rgba(0,0,0,0.55)","icon-halo-width":1.2}},before);
+    paint:{"icon-color":["get","col"],"icon-opacity":["interpolate",["linear"],["zoom"],7,0.85,9,0],"icon-halo-color":"rgba(0,0,0,0.55)","icon-halo-width":1.2}},before);
   update(true);
   map.on("moveend",()=>drawArrows(false));
   setInterval(()=>update(false),400);

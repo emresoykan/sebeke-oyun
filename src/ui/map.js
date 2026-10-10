@@ -96,7 +96,7 @@ function onClick(e){
   renderPanel();drawMap();render();
 }
 
-const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:2);
+const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.med?2:3);
 function applyGfx(L){if(!map)return;map.setPixelRatio(flatRatio(L));if(map.getLayer("hillshade"))map.setLayoutProperty("hillshade","visibility",L.shadows?"visible":"none");}
 
 export async function initMap(){

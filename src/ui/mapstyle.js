@@ -30,7 +30,7 @@ const cityPts=fc(cities.map(([n,a3,lat,lon,pop,mz,cap])=>({type:"Feature",proper
 
 // Yedek katmanlar (yalnızca vektör katmanlar yüklenemezse görünür) ve vektöre bağlı katmanlar
 export const FALLBACK=["fb-borders","fb-country","fb-city-dot","fb-city","fb-town-dot","fb-town"];
-export const VECTOR=["omt-water","omt-wood","omt-sand","omt-ice","omt-waterway","omt-road-major","omt-road-primary","omt-road-minor","omt-border","omt-water-name","omt-country","omt-city-dot","omt-city","omt-town"];
+export const VECTOR=["omt-water","omt-wood","omt-grass","omt-sand","omt-ice","omt-residential","omt-park","omt-building","omt-waterway","omt-road-street","omt-road-major","omt-road-primary","omt-road-minor","omt-border","omt-water-name","omt-country","omt-city-dot","omt-city","omt-town","omt-peak","omt-suburb","omt-poi"];
 
 // yerel şehirler: başkentler 4. yakınlıktan, diğerleri büyüklüğüne göre 5–6'dan itibaren
 const CITY_Z=["any",["==",["get","cap"],1],[">=",["get","pop"],1500000]];
@@ -64,13 +64,21 @@ export function buildStyle(){
     {id:"omt-water",type:"fill",source:"omt","source-layer":"water",minzoom:6,paint:{"fill-color":"#16285E","fill-opacity":["interpolate",["linear"],["zoom"],6,0,8,0.55]}},
     {id:"omt-wood",type:"fill",source:"omt","source-layer":"landcover",minzoom:7,filter:["==",["get","class"],"wood"],paint:{"fill-color":"#285A5C","fill-opacity":0.55}},
     {id:"omt-sand",type:"fill",source:"omt","source-layer":"landcover",minzoom:7,filter:["==",["get","class"],"sand"],paint:{"fill-color":"#7E806E","fill-opacity":0.6}},
+    {id:"omt-grass",type:"fill",source:"omt","source-layer":"landcover",minzoom:9,filter:["in",["get","class"],["literal",["grass","farmland","wetland"]]],paint:{"fill-color":["match",["get","class"],"wetland","#2A5E6E","farmland","#4A7464","#3F7466"],"fill-opacity":["interpolate",["linear"],["zoom"],9,0,11,0.35]}},
     {id:"omt-ice",type:"fill",source:"omt","source-layer":"landcover",minzoom:5,filter:["==",["get","class"],"ice"],paint:{"fill-color":"#687A9A","fill-opacity":0.8}},
-    {id:"hillshade",type:"hillshade",source:"dem",minzoom:3.5,paint:{"hillshade-exaggeration":["interpolate",["linear"],["zoom"],3.5,0,5,0.45,10,0.55],"hillshade-shadow-color":"#05110B","hillshade-highlight-color":"#DCEFD4","hillshade-accent-color":"#183324"}},
+    {id:"hillshade",type:"hillshade",source:"dem",minzoom:3.5,paint:{"hillshade-exaggeration":["interpolate",["linear"],["zoom"],3.5,0,5,0.45,10,0.55,14,0.7],"hillshade-shadow-color":"#05110B","hillshade-highlight-color":"#DCEFD4","hillshade-accent-color":"#183324"}},
     // denizde kabartma gölgesi yarı yarıya yumuşatılır (deniz tabanı verisindeki basamaklar beyaz çizgi gibi görünmesin)
     {id:"sea-damp",type:"color-relief",source:"dem",minzoom:3.5,paint:{"color-relief-opacity":["interpolate",["linear"],["zoom"],3.5,0,5,1],
       "color-relief-color":["interpolate",["linear"],["elevation"],-7000,"rgba(9,15,44,0.6)",-200,"rgba(20,34,84,0.55)",-1,"rgba(28,50,112,0.5)",0,"rgba(0,0,0,0)"]}},
-    {id:"omt-waterway",type:"line",source:"omt","source-layer":"waterway",minzoom:7,paint:{"line-color":"#1B2E6E","line-width":["interpolate",["linear"],["zoom"],7,0.6,12,2]}},
-    {id:"omt-road-minor",type:"line",source:"omt","source-layer":"transportation",minzoom:11,filter:["in",["get","class"],["literal",["secondary","tertiary","minor"]]],
+    // yerleşim, park ve binalar: yakın planda kent dokusu
+    {id:"omt-residential",type:"fill",source:"omt","source-layer":"landuse",minzoom:9,filter:["in",["get","class"],["literal",["residential","suburb","neighbourhood","commercial","industrial","retail"]]],
+      paint:{"fill-color":["match",["get","class"],"industrial","#4E5868","#55606E"],"fill-opacity":["interpolate",["linear"],["zoom"],9,0,11,0.45,14,0.35]}},
+    {id:"omt-park",type:"fill",source:"omt","source-layer":"park",minzoom:9,paint:{"fill-color":"#2E6A5A","fill-opacity":0.45}},
+    {id:"omt-building",type:"fill",source:"omt","source-layer":"building",minzoom:13,paint:{"fill-color":"#7D8A9A","fill-outline-color":"#A6B3C2","fill-opacity":["interpolate",["linear"],["zoom"],13,0,14,0.75]}},
+    {id:"omt-waterway",type:"line",source:"omt","source-layer":"waterway",minzoom:7,paint:{"line-color":"#24408A","line-width":["interpolate",["linear"],["zoom"],7,0.6,12,2,15,4]}},
+    {id:"omt-road-street",type:"line",source:"omt","source-layer":"transportation",minzoom:13,filter:["in",["get","class"],["literal",["service","track","path","rail"]]],
+      paint:{"line-color":["match",["get","class"],"rail","#C4B5A0","#8794A2"],"line-opacity":0.6,"line-width":["interpolate",["linear"],["zoom"],13,0.4,16,1.6]}},
+    {id:"omt-road-minor",type:"line",source:"omt","source-layer":"transportation",minzoom:10,filter:["in",["get","class"],["literal",["secondary","tertiary","minor"]]],
       paint:{"line-color":"#9AA8B6","line-opacity":0.7,"line-width":["interpolate",["linear"],["zoom"],11,0.6,15,2.5]}},
     {id:"omt-road-primary",type:"line",source:"omt","source-layer":"transportation",minzoom:8,filter:["==",["get","class"],"primary"],
       paint:{"line-color":"#B4C1CE","line-opacity":0.8,"line-width":["interpolate",["linear"],["zoom"],8,0.7,14,3]}},
@@ -106,7 +114,16 @@ export function buildStyle(){
     {id:"omt-city",type:"symbol",source:"omt","source-layer":"place",minzoom:5,filter:["==",["get","class"],"city"],
       layout:{"text-field":NAME,"text-font":FONT.m,"text-size":["interpolate",["linear"],["zoom"],4,11,10,16],"text-anchor":"left","text-offset":[0.5,0],"symbol-sort-key":["get","rank"],"text-max-width":9},paint:lbl()},
     {id:"omt-town",type:"symbol",source:"omt","source-layer":"place",minzoom:8,filter:["in",["get","class"],["literal",["town","village"]]],
-      layout:{"text-field":NAME,"text-font":FONT.r,"text-size":["interpolate",["linear"],["zoom"],8,10,13,14],"symbol-sort-key":["get","rank"],"text-max-width":9},paint:lbl()}
+      layout:{"text-field":NAME,"text-font":FONT.r,"text-size":["interpolate",["linear"],["zoom"],8,10,13,14],"symbol-sort-key":["get","rank"],"text-max-width":9},paint:lbl()},
+    {id:"omt-suburb",type:"symbol",source:"omt","source-layer":"place",minzoom:11,filter:["in",["get","class"],["literal",["suburb","quarter","neighbourhood","hamlet","isolated_dwelling"]]],
+      layout:{"text-field":NAME,"text-font":FONT.r,"text-size":["interpolate",["linear"],["zoom"],11,10,15,13],"text-max-width":8},paint:lbl(0,"#D5DCE6")},
+    // dağ zirveleri: ad ve yükseklik (m)
+    {id:"omt-peak",type:"symbol",source:"omt","source-layer":"mountain_peak",minzoom:9,filter:["has","name"],
+      layout:{"text-field":["format",NAME,{},["case",["has","ele"],["concat","\n",["to-string",["get","ele"]]," m"],""],{"font-scale":0.82}],
+        "text-font":FONT.r,"text-size":11,"text-max-width":8,"symbol-sort-key":["get","rank"]},paint:lbl(0,"#E8DCC4")},
+    // havalimanları
+    {id:"omt-poi",type:"symbol",source:"omt","source-layer":"aerodrome_label",minzoom:9,
+      layout:{"text-field":NAME,"text-font":FONT.r,"text-size":11,"text-max-width":9},paint:lbl(0,"#CFE0F5")}
   );
   layers.push(
     {id:"fb-country",type:"symbol",source:"country-labels",minzoom:3,maxzoom:7,layout:{...vis(!ONLINE),"text-field":["get","n"],"text-font":FONT.m,"text-size":["interpolate",["linear"],["zoom"],2,11,6,15],"symbol-sort-key":["get","r"],"text-max-width":7},paint:lbl()},
