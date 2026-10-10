@@ -77,6 +77,19 @@ SEA = [(-7000, (9, 15, 44)), (-3500, (12, 20, 56)), (-1000, (17, 29, 76)), (-150
 SAND, ICE = np.array([126, 128, 110], np.float32), np.array([104, 122, 154], np.float32)
 
 
+def shade_fn(elev, mpp):
+    """Kabartma gölgesi; döndürülen fonksiyon abartma katsayısı alır."""
+    gy, gx = np.gradient(elev)
+    def shade(ex):
+        dx, dy = gx * ex / mpp, gy * ex / mpp
+        # standart kabartma gölgesi (ESRI): ışık kuzeybatıdan (315°), 45° yükseklikten; görüntüde satırlar güneye artar
+        slope = np.arctan(np.hypot(dx, dy)); asp = np.arctan2(-dy, -dx)
+        zen, az = math.radians(45), math.radians((360 - 315 + 90) % 360)
+        s = math.cos(zen) * np.cos(slope) + math.sin(zen) * np.sin(slope) * np.cos(az - asp)
+        return np.clip(s, 0, 1)
+    return shade
+
+
 def render(z, x0, x1, y0, y1, countries, deserts, ice):
     elev = mosaic(z, x0, x1, y0, y1)
     h, w = elev.shape
@@ -89,14 +102,7 @@ def render(z, x0, x1, y0, y1, countries, deserts, ice):
     # piksel başına yer mesafesi (m): Mercator ölçeği enlemle değişir
     lat = np.array([tile_lat(y0 + (r + 0.5) / 256, z) for r in range(h)], np.float32)
     mpp = (40075016 * np.cos(np.radians(lat)) / (256 * 2 ** z))[:, None]
-    gy, gx = np.gradient(elev)
-    def shade(ex):
-        dx, dy = gx * ex / mpp, gy * ex / mpp
-        # standart kabartma gölgesi (ESRI): ışık kuzeybatıdan (315°), 45° yükseklikten; görüntüde satırlar güneye artar
-        slope = np.arctan(np.hypot(dx, dy)); asp = np.arctan2(-dy, -dx)
-        zen, az = math.radians(45), math.radians((360 - 315 + 90) % 360)
-        s = math.cos(zen) * np.cos(slope) + math.sin(zen) * np.sin(slope) * np.cos(az - asp)
-        return np.clip(s, 0, 1)
+    shade = shade_fn(elev, mpp)
     exl, exs = (14, 6) if z <= 4 else (5, 3)
     sl, ss = shade(exl), shade(exs)
     lc = ramp(np.maximum(elev, 0), LAND)

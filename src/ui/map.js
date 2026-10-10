@@ -15,10 +15,22 @@ import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
 import { rivalSites, RIVALS } from "../rivals.js";
 import { gfx, onGfx, LEVELS } from "./quality.js";
-import { buildStyle, ONLINE, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
+import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
 import { initWeatherLayer } from "./wxflat.js";
 
 maplibregl.setWorkerUrl(workerUrl);
+
+// Gömülü ayrıntılı kabartma karoları paketlerden okunur (z5–7 tek pakette, z8–9 z6 hücresine göre)
+if(HD){
+  const packs={},base=new URL(import.meta.env.BASE_URL,location.href).href;
+  const EMPTY=Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="),c=>c.charCodeAt(0)).buffer;
+  maplibregl.addProtocol("rhd",async p=>{
+    const [z,x,y]=p.url.slice(6).split("/").map(Number),key=z<=7?"lo":`${z}-${x>>(z-6)}-${y>>(z-6)}`;
+    packs[key]??=fetch(`${base}relief-hd/${key}.json`).then(r=>r.ok?r.json():{}).catch(()=>{delete packs[key];return {};});
+    const b64=(await packs[key])[`${z}/${x}/${y}`];
+    return {data:b64?Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer:EMPTY};
+  });
+}
 const STATUS={none:"#FFFFFF",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 const HALO="#0B1626";
 const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
@@ -105,7 +117,11 @@ export async function initMap(){
     minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,
     canvasContextAttributes:{antialias:gfx().msaa>1}});
   map.touchZoomRotate.disableRotation();
-  map.on("error",e=>{if(e.sourceId==="omt"&&!vectorOk)useFallback(true);});
+  // arazi verisi hiç gelmiyorsa (ör. önizleme) yakınlaşma sınırlanır: büyütülmüş bulanık görüntü gösterilmez
+  let demOk=false,demErr=0;
+  map.on("error",e=>{if(e.sourceId==="omt"&&!vectorOk)useFallback(true);
+    if(e.sourceId==="dem"&&!demOk&&++demErr===3)map.setMaxZoom(HD?11:8);});
+  map.on("data",e=>{if(e.sourceId==="dem"&&e.tile&&!demOk){demOk=true;map.setMaxZoom(16);}});
   // başarılı yükleme TileJSON'dan katman listesi gelmesiyle anlaşılır (başarısız yüklemede de "loaded" olur)
   map.on("sourcedata",e=>{if(e.sourceId==="omt"&&!vectorOk&&e.sourceDataType==="metadata"&&map.getSource("omt").vectorLayerIds){vectorOk=true;useFallback(false);}});
   await new Promise(r=>map.once("load",r));

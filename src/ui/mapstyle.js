@@ -13,6 +13,10 @@ import { GEO_LABELS } from "../data/geo-labels.js";
 const base=new URL(import.meta.env.BASE_URL,location.href).href;
 export const ONLINE=import.meta.env.VITE_OFFLINE_MAP!=="1";
 const MAXLAT=85.0511;
+// Türkiye için gömülü ayrıntılı kabartma (z10, ~120 m/piksel; scripts/build_relief_hd.py). Yalnızca dış sunucuya
+// erişemeyen derlemelerde (önizleme) açılır; canlı site aynı ayrıntıyı arazi verisinden zaten çeker.
+export const HD=import.meta.env.VITE_RELIEF_HD==="1";
+const HD_BOUNDS=[24.9609375,35.1738083,45.3515625,42.5530803];
 const corners=([w,s,e,n])=>[[w,n],[e,n],[e,s],[w,s]];
 const NAME=["coalesce",["get","name:tr"],["get","name:latin"],["get","name_en"],["get","name"]];
 const HALO="#0B1626";
@@ -43,6 +47,7 @@ export function buildStyle(){
     "country-labels":{type:"geojson",data:countryLabels},cities:{type:"geojson",data:cityPts},
     parks:{type:"geojson",data:parks},"park-labels":{type:"geojson",data:parkLabels}
   };
+  if(HD)sources["relief-hd"]={type:"raster",tiles:["rhd://{z}/{x}/{y}"],tileSize:512,minzoom:5,maxzoom:9,bounds:HD_BOUNDS};
   if(ONLINE){
     sources.omt={type:"vector",url:"https://tiles.openfreemap.org/planet"};
     sources.dem={type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:256,maxzoom:13,attribution:DEM_ATTR};
@@ -53,6 +58,7 @@ export function buildStyle(){
     {id:"relief-world",type:"raster",source:"relief-world",paint:{"raster-fade-duration":0,"raster-resampling":"linear"}},
     {id:"relief-tr",type:"raster",source:"relief-tr",paint:{"raster-fade-duration":0,"raster-opacity":["interpolate",["linear"],["zoom"],3.5,0,4.5,1]}},
   ];
+  if(HD)layers.push({id:"relief-hd",type:"raster",source:"relief-hd",minzoom:5,paint:{"raster-fade-duration":150,"raster-opacity":["interpolate",["linear"],["zoom"],5,0,6,1]}});
   if(ONLINE)layers.push(
     // yakın planda kara düz renk, deniz ve göller vektörden: zemin görüntüsünün bulanık kıyısı yerine keskin kıyı.
     // Yalnızca vektör katmanları gerçekten yüklenince açılır (yoksa denizler de kara rengine boyanırdı).
