@@ -56,7 +56,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
 | `src/ui/map.js` | Düz dünya haritası (MapLibre GL): sahalar, rakipler, seçim, korunan alanlar, gece gölgesi, tıklama, açılış uçuşu; 3D pencereyi açar |
 | `src/ui/mapstyle.js` | Harita stili: kabartmalı zemin görüntüleri, OpenFreeMap vektör katmanları, arazi gölgesi, yer adları, yedek katmanlar |
-| `src/ui/wxflat.js` | Düz haritada bulutlar, rüzgâr okları, fırtına halkaları, şimşek; hava katmanı düğmesi |
+| `src/ui/wxflat.js` | Düz haritada bulutlar, fırtına halkaları, şimşek; hava katmanı düğmesi |
 | `src/ui/globe3d.js`, `src/ui/weather3d.js` | İsteğe bağlı 3D yakın görünüm (CesiumJS): Google 3D Tiles veya gömülü NASA görüntüleri, 3D santraller, sinematik tur, 3D hava |
 | `src/ui/models.js` | 3D santral modelleri: three.js ile kurulur, glTF olarak Cesium'a verilir; rotor, ikaz ışığı, dolusavak ve LED canlandırması |
 | `src/plantstatus.js` | Sahadaki santrallerin o saatteki çalışma durumu (3D modeller ve panel ortak kullanır) |
@@ -118,7 +118,7 @@ Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur,
 
 - **Üretim:** GES, sahanın o saatteki bulut örtüsüne göre ortalamasının etrafında dalgalanır (tam kapalı havada ~%20). RES, göbek yüksekliğindeki rüzgârdan güç eğrisiyle üretir: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde kesme hızında durur. HES'in su bütçesi son günlerin yağışıyla değişir.
 - **Fiyat:** Her piyasanın temsilî noktasındaki saatlik bulut ve rüzgâr fiyatı belirler (rüzgârlı gece ucuz, bulutlu öğle pahalı); sıcak hava akşam talebini artırır.
-- **Harita:** 6 km yükseklikte, gece tarafı karartılan bulut katmanı (yağmur ve fırtına bulutları daha koyu, fırtınalarda şimşek); bölgeye yaklaşınca rüzgâr okları (uzunluk hız, renk şiddet) ve fırtına hücrelerine kesikli uyarı halkası. Yaklaştıkça bulutlar incelir, sahaları kapatmaz. "Hava katmanı" düğmesi görselleri kapatır (etkiler sürer).
+- **Harita:** 6 km yükseklikte, gece tarafı karartılan bulut katmanı (yağmur ve fırtına bulutları daha koyu, fırtınalarda şimşek) ve fırtına hücrelerine kesikli uyarı halkası. Yaklaştıkça bulutlar incelir, sahaları kapatmaz. "Hava katmanı" düğmesi görselleri kapatır (etkiler sürer).
 - **Panel ve 3D:** Seçili noktada anlık hava ve günün kalan saatleri için 3 saatlik tahmin; türbinler rüzgârın estiği yöne döner. Fırtına bir rüzgâr sahasında kesme hızını aşınca bildirim gelir.
 
 Kalibrasyon (6 tohum × 30 gün): Türkiye sahalarında RES kapasite faktörü eski modelle uyumlu (Aydın ~0,34, Kars ~0,48), offshore ~0,52, güneş ortalaması sahanın uzun dönem ortalamasının ~%95'i; Türkiye'de yağışlı saat oranı ~%20.
