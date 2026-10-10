@@ -1,5 +1,6 @@
 # Oyunu GitHub Pages'te yayınlar. Google Photorealistic 3D Tiles için depo ayarlarında
 # GOOGLE_MAPS_API_KEY adlı bir Actions secret tanımla; tanımlı değilse gömülü NASA görüntüsü kullanılır.
+# Arkadaş ligi için FIREBASE_CONFIG secret'ına Firebase web uygulamasının yapılandırmasını koy; yoksa lig gizlenir.
 name: GitHub Pages
 
 on:
@@ -29,6 +30,7 @@ jobs:
       - run: npx vite build --base=/${{ github.event.repository.name }}/
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          VITE_FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

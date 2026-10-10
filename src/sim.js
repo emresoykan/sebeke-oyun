@@ -21,6 +21,7 @@ import { RENEW, production, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
 import { rivalsDay, rivalCap } from "./rivals.js";
 import { news } from "./news.js";
+import { leagueDay } from "./league.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -124,7 +125,7 @@ export function endDay(){
   Object.values(S.sites).forEach(o=>{if(o.snowDays>0)o.snowDays--;});
   rollOutages();ageMods();
   S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();save();renderReport();renderPanel();drawMap();
-  dayFx(S.last);maybeEvent();openDesk();
+  dayFx(S.last);maybeEvent();openDesk();leagueDay();
 }
 
 // Arızalar: her santral her gün ekipmanının arızasız gün olasılığına göre bozulabilir; 1-2 gün üretmez.

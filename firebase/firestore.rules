@@ -1,0 +1,47 @@
+rules_version = '2';
+// Şebeke arkadaş ligi. Her lig bir davet koduyla açılır: leagues/{KOD}/players/{uid} ve leagues/{KOD}/feed/{id}.
+// Lig listesi okunamaz; kodu bilmeyen hiçbir şey göremez. Giriş anonimdir (Firebase Authentication, Anonymous).
+// Oyuncu yalnızca kendi kaydını yazar; alanlar tip ve aralık olarak denetlenir; kayıt en fazla 10 sn'de bir güncellenir.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function codeOk(code) { return code.matches('^[A-Z0-9]{6,16}$'); }
+    function hexColor(c) { return c is string && c.matches('^#[0-9A-Fa-f]{6}$'); }
+    function company(s) { return s is string && s.size() >= 1 && s.size() <= 40; }
+
+    match /leagues/{code} {
+      match /players/{uid} {
+        function validPlayer(d) {
+          return d.keys().hasOnly(['co', 'c', 'v', 'mw', 'd', 'ti', 'at'])
+            && d.keys().hasAll(['co', 'c', 'v', 'mw', 'd', 'ti', 'at'])
+            && company(d.co) && hexColor(d.c)
+            && d.v is number && d.v >= -10000000 && d.v <= 10000000000
+            && d.mw is int && d.mw >= 0 && d.mw <= 100000
+            && d.d is int && d.d >= 1 && d.d <= 1000000
+            && d.ti is int && d.ti >= 0 && d.ti <= 10
+            && d.at == request.time;
+        }
+        allow get: if signedIn() && codeOk(code);
+        allow list: if signedIn() && codeOk(code) && request.query.limit <= 50;
+        allow create: if signedIn() && codeOk(code) && request.auth.uid == uid && validPlayer(request.resource.data);
+        allow update: if signedIn() && codeOk(code) && request.auth.uid == uid && validPlayer(request.resource.data)
+          && request.time > resource.data.at + duration.value(10, 's');
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+      match /feed/{id} {
+        function validFeed(d) {
+          return d.keys().hasOnly(['uid', 'co', 'c', 'k', 'n', 'at'])
+            && d.keys().hasAll(['uid', 'co', 'c', 'k', 'n', 'at'])
+            && d.uid == request.auth.uid && company(d.co) && hexColor(d.c)
+            && d.k in ['join', 'mw', 'val', 'goal', 'title']
+            && d.n is number && d.n >= 0 && d.n <= 10000000000
+            && d.at == request.time;
+        }
+        allow list: if signedIn() && codeOk(code) && request.query.limit <= 50;
+        // yalnızca ligde kaydı olan oyuncu duyuru yazabilir; duyurular değiştirilemez ve silinemez
+        allow create: if signedIn() && codeOk(code) && validFeed(request.resource.data)
+          && exists(/databases/$(database)/documents/leagues/$(code)/players/$(request.auth.uid));
+      }
+    }
+  }
+}
