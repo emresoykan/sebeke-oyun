@@ -1,7 +1,6 @@
-// --- Düz haritada hava durumu: bulut örtüsü, yağmur ve fırtına bulutları, şimşek, rüzgâr okları, fırtına uyarı halkaları ---
+// --- Düz haritada hava durumu: bulut örtüsü, yağmur ve fırtına bulutları, şimşek, fırtına uyarı halkaları ---
 // Bulut dokusu Web Mercator satırlarıyla (512x512) çizilir ve dünyayı kaplayan bir tuval kaynağı olarak haritaya verilir;
 // yalnızca oyun saati değişince yeniden çizilir. Bulutların gece tarafı karartılır; yakınlaştıkça katman incelir.
-// Rüzgâr okları bölge ölçeğinde görünen alana ızgara olarak dizilir: yön rüzgârın estiği yön, boy ve renk hız.
 import { S } from "../state.js";
 import { sampleWx } from "../weather.js";
 import { snap, frac } from "../wxsite.js";
@@ -10,12 +9,11 @@ import { FONT, MAXLAT } from "./mapstyle.js";
 
 const W=512,H=512,GW=96,GH=64,PREF="sebeke-wx-layer";
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
-let map=null,on=true,cv=null,img=null,noise=null,cloudKey=null,arrowKey=null,lastDraw=0,flashT=null;
+let map=null,on=true,cv=null,img=null,noise=null,cloudKey=null,lastDraw=0,flashT=null;
 try{on=localStorage.getItem(PREF)!=="0";}catch(e){}
 const fc=features=>({type:"FeatureCollection",features});
 // Mercator: satır → enlem
 const latOfY=y=>Math.atan(Math.sinh(Math.PI*(1-2*y/H)))*180/Math.PI,lonOf=x=>x/W*360-180;
-const yOfLat=lat=>{const s=Math.sin(Math.max(-MAXLAT,Math.min(MAXLAT,lat))*Math.PI/180);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*H;};
 const GLAT=Array.from({length:GH},(_,j)=>latOfY((j+0.5)/GH*H));
 const COL_I=new Int32Array(W),COL_J=new Int32Array(W),COL_F=new Float32Array(W),ROW_J=new Int32Array(H),ROW_F=new Float32Array(H),ROW_C=new Float32Array(H),ROW_S=new Float32Array(H),COS=new Float32Array(W);
 for(let x=0;x<W;x++){const gx=(x+0.5)/W*GW-0.5,i0=Math.floor(gx);COL_I[x]=(i0+GW)%GW;COL_J[x]=(i0+1)%GW;COL_F[x]=gx-i0;}
@@ -56,9 +54,23 @@ function drawClouds(){
 // tuval kaynağı yalnızca istenince yeniden yüklenir (sürekli çizim yok)
 function refreshCanvas(){const s=map.getSource("clouds");if(!s)return;s.play();requestAnimationFrame(()=>requestAnimationFrame(()=>s.pause()));}
 
+// Bulut tuvali ve fırtınalar Apple haritası (mapkit.js) tarafından da kullanılır
+export const wxOn=()=>on;
+export function cloudCanvas(){if(!cv){noise=makeNoise();cv=document.createElement("canvas");cv.width=W;cv.height=H;drawClouds();}return cv;}
+// oyun saati değiştiyse (en fazla ~1,2 sn'de bir) bulutları yeniden çizer; çizdiyse true döner
+export function tickClouds(force){
+  cloudCanvas();const key=`${S.dayNo}:${S.hour}`,now=performance.now();
+  if(force||(key!==cloudKey&&now-lastDraw>1200)){cloudKey=key;lastDraw=now;drawClouds();return true;}
+  return false;
+}
+export function activeStorms(){
+  const wx=snap(Math.min(S.hour,23),frac());
+  return on?wx.sys.filter(s=>s.type==="storm"&&s.age/s.life>0.15&&s.age/s.life<0.9):[];
+}
+
 // Fırtına hücreleri: kesikli halka, kuzey kenarında etiket, merkezde şimşek parlaması
 function drawStorms(){
-  const wx=snap(Math.min(S.hour,23),frac()),storms=on?wx.sys.filter(s=>s.type==="storm"&&s.age/s.life>0.15&&s.age/s.life<0.9):[];
+  const storms=activeStorms();
   const ring=s=>{const pts=[];for(let k=0;k<=48;k++){const a=k/48*2*Math.PI;pts.push([s.lon+s.r*0.75*Math.cos(a)/(111.32*Math.max(0.2,Math.cos(s.lat*Math.PI/180))),s.lat+s.r*0.75*Math.sin(a)/110.57]);}return pts;};
   map.getSource("storm-rings").setData(fc(storms.map(s=>({type:"Feature",properties:{},geometry:{type:"LineString",coordinates:ring(s)}}))));
   map.getSource("storm-labels").setData(fc(storms.map(s=>({type:"Feature",properties:{},geometry:{type:"Point",coordinates:[s.lon,s.lat+s.r*0.75/110.57]}}))));
@@ -67,44 +79,22 @@ function drawStorms(){
   if(flash.length){map.setPaintProperty("lightning","circle-opacity",0.9);clearTimeout(flashT);flashT=setTimeout(()=>map.setPaintProperty("lightning","circle-opacity",0),180);}
 }
 
-// Rüzgâr okları: görünen alanda ~9x6 ızgara (bölge ölçeğinde)
-const arrowColor=v=>v<5?"#9FD3FF":v<12?"#FFFFFF":v<20?"#FFD54A":"#FF5A5A";
-function drawArrows(force){
-  const z=map.getZoom();
-  if(!on||z<3.2||z>7.5){if(arrowKey!==null){map.getSource("wind").setData(fc([]));arrowKey=null;}return;}
-  const b=map.getBounds(),n=Math.min(MAXLAT-1,b.getNorth()),s=Math.max(-MAXLAT+1,b.getSouth()),w=b.getWest(),e=b.getEast();
-  const key=`${S.dayNo}:${S.hour}:${w.toFixed(2)}:${n.toFixed(2)}:${z.toFixed(1)}`;if(!force&&key===arrowKey)return;arrowKey=key;
-  const wx=snap(Math.min(S.hour,23),frac()),NX=9,NY=6,y0=yOfLat(n),y1=yOfLat(s),out=[];
-  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
-    const lon=w+(i+0.5)/NX*(e-w),lat=latOfY(y0+(j+0.5)/NY*(y1-y0)),wd=sampleWx(wx,lat,((lon+540)%360)-180);if(wd.v<0.5)continue;
-    out.push({type:"Feature",properties:{rot:Math.atan2(wd.u,wd.vv)*180/Math.PI,col:arrowColor(wd.v),sz:0.55+0.6*Math.min(1,wd.v/16)},geometry:{type:"Point",coordinates:[lon,lat]}});}
-  map.getSource("wind").setData(fc(out));
-}
-// Ok simgesi (yukarı bakan, SDF: rengi katmanda verilir)
-function arrowImg(){const n=48,c=document.createElement("canvas");c.width=c.height=n;const x=c.getContext("2d");x.fillStyle="#fff";x.beginPath();
-  x.moveTo(24,3);x.lineTo(37,20);x.lineTo(28,20);x.lineTo(28,45);x.lineTo(20,45);x.lineTo(20,20);x.lineTo(11,20);x.closePath();x.fill();return x.getImageData(0,0,n,n);}
-
 function update(force){
-  const key=`${S.dayNo}:${S.hour}`,now=performance.now();
-  if(force||(key!==cloudKey&&now-lastDraw>1200)){cloudKey=key;lastDraw=now;drawClouds();refreshCanvas();drawStorms();drawArrows(true);}
+  if(tickClouds(force)){refreshCanvas();drawStorms();}
 }
 
 export function initWeatherLayer(m){
-  map=m;noise=makeNoise();cv=document.createElement("canvas");cv.width=W;cv.height=H;drawClouds();
+  map=m;cloudCanvas();
   const before="labels-start";
   map.addSource("clouds",{type:"canvas",canvas:cv,animate:false,coordinates:[[-180,MAXLAT],[180,MAXLAT],[180,-MAXLAT],[-180,-MAXLAT]]});
   map.addLayer({id:"clouds",type:"raster",source:"clouds",layout:{visibility:on?"visible":"none"},paint:{"raster-fade-duration":0,"raster-resampling":"linear",
     "raster-opacity":["interpolate",["linear"],["zoom"],2,0.9,4,0.5,5,0.2,6,0]}},before);
-  ["storm-rings","storm-labels","lightning","wind"].forEach(id=>map.addSource(id,{type:"geojson",data:fc([])}));
-  map.addImage("wind-arrow",arrowImg(),{sdf:true,pixelRatio:2});
+  ["storm-rings","storm-labels","lightning"].forEach(id=>map.addSource(id,{type:"geojson",data:fc([])}));
   map.addLayer({id:"lightning",type:"circle",source:"lightning",paint:{"circle-radius":16,"circle-color":"#EAF0FF","circle-blur":0.9,"circle-opacity":0}},before);
   map.addLayer({id:"storm-rings",type:"line",source:"storm-rings",paint:{"line-color":"#FF6B6B","line-width":2.2,"line-dasharray":[3,2]}},before);
   map.addLayer({id:"storm-labels",type:"symbol",source:"storm-labels",maxzoom:9,layout:{"text-field":"Fırtına","text-font":FONT.m,"text-size":13,"text-anchor":"bottom","text-offset":[0,-0.3],"text-allow-overlap":true},
     paint:{"text-color":"#FFFFFF","text-halo-color":"#5A0A12","text-halo-width":1.6}},before);
-  map.addLayer({id:"wind",type:"symbol",source:"wind",layout:{"icon-image":"wind-arrow","icon-rotate":["get","rot"],"icon-rotation-alignment":"map","icon-size":["get","sz"],"icon-allow-overlap":true,"icon-ignore-placement":true},
-    paint:{"icon-color":["get","col"],"icon-opacity":["interpolate",["linear"],["zoom"],5.5,0.85,7.5,0],"icon-halo-color":"rgba(0,0,0,0.55)","icon-halo-width":1.2}},before);
   update(true);
-  map.on("moveend",()=>drawArrows(false));
   setInterval(()=>update(false),400);
 }
 

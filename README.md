@@ -56,7 +56,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
 | `src/ui/map.js` | Düz dünya haritası (MapLibre GL): sahalar, rakipler, seçim, korunan alanlar, gece gölgesi, tıklama, açılış uçuşu; 3D pencereyi açar |
 | `src/ui/mapstyle.js` | Harita stili: kabartmalı zemin görüntüleri, OpenFreeMap vektör katmanları, arazi gölgesi, yer adları, yedek katmanlar |
-| `src/ui/wxflat.js` | Düz haritada bulutlar, rüzgâr okları, fırtına halkaları, şimşek; hava katmanı düğmesi |
+| `src/ui/wxflat.js` | Düz haritada bulutlar, fırtına halkaları, şimşek; hava katmanı düğmesi |
 | `src/ui/globe3d.js`, `src/ui/weather3d.js` | İsteğe bağlı 3D yakın görünüm (CesiumJS): Google 3D Tiles veya gömülü NASA görüntüleri, 3D santraller, sinematik tur, 3D hava |
 | `src/ui/models.js` | 3D santral modelleri: three.js ile kurulur, glTF olarak Cesium'a verilir; rotor, ikaz ışığı, dolusavak ve LED canlandırması |
 | `src/plantstatus.js` | Sahadaki santrallerin o saatteki çalışma durumu (3D modeller ve panel ortak kullanır) |
@@ -118,7 +118,7 @@ Dünya üzerinde ~30 hava sistemi dolaşır: alçak basınçlar (bulut, yağmur,
 
 - **Üretim:** GES, sahanın o saatteki bulut örtüsüne göre ortalamasının etrafında dalgalanır (tam kapalı havada ~%20). RES, göbek yüksekliğindeki rüzgârdan güç eğrisiyle üretir: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde kesme hızında durur. HES'in su bütçesi son günlerin yağışıyla değişir.
 - **Fiyat:** Her piyasanın temsilî noktasındaki saatlik bulut ve rüzgâr fiyatı belirler (rüzgârlı gece ucuz, bulutlu öğle pahalı); sıcak hava akşam talebini artırır.
-- **Harita:** 6 km yükseklikte, gece tarafı karartılan bulut katmanı (yağmur ve fırtına bulutları daha koyu, fırtınalarda şimşek); bölgeye yaklaşınca rüzgâr okları (uzunluk hız, renk şiddet) ve fırtına hücrelerine kesikli uyarı halkası. Yaklaştıkça bulutlar incelir, sahaları kapatmaz. "Hava katmanı" düğmesi görselleri kapatır (etkiler sürer).
+- **Harita:** 6 km yükseklikte, gece tarafı karartılan bulut katmanı (yağmur ve fırtına bulutları daha koyu, fırtınalarda şimşek) ve fırtına hücrelerine kesikli uyarı halkası. Yaklaştıkça bulutlar incelir, sahaları kapatmaz. "Hava katmanı" düğmesi görselleri kapatır (etkiler sürer).
 - **Panel ve 3D:** Seçili noktada anlık hava ve günün kalan saatleri için 3 saatlik tahmin; türbinler rüzgârın estiği yöne döner. Fırtına bir rüzgâr sahasında kesme hızını aşınca bildirim gelir.
 
 Kalibrasyon (6 tohum × 30 gün): Türkiye sahalarında RES kapasite faktörü eski modelle uyumlu (Aydın ~0,34, Kars ~0,48), offshore ~0,52, güneş ortalaması sahanın uzun dönem ortalamasının ~%95'i; Türkiye'de yağışlı saat oranı ~%20.
@@ -173,6 +173,14 @@ Oyuncular bir davet koduyla aynı lige katılır ("🏆 Lig" düğmesi). Sırala
 Firebase web yapılandırması gizli anahtar değildir (tarayıcıya gömülür, erişimi güvenlik kuralları korur); yine de depoya yazılmaz, secret olarak verilir. Yerel test: `npx firebase emulators:start --only auth,firestore --project demo-sebeke` ve geliştirme sunucusunda `?fbemu=127.0.0.1`.
 
 ## Harita
+
+**Apple Haritalar (isteğe bağlı ana harita).** `MAPKIT_TOKEN` secret'ı tanımlıysa oyun Apple'ın haritasında (MapKit JS) oynanır: varsayılan hibrit görünüm (uydu görüntüsü + yol ve yer adları), Apple'ın sağ üstteki düğmesiyle Standart/Uydu/Hibrit seçilir ve seçim hatırlanır. Sahalar, rakipler, seçim halkası, korunan alanlar, gece tarafı, bulutlar ve fırtına halkaları bu haritada da çizilir (`src/ui/mapkit.js`). MapKit yüklenemezse veya belirteç reddedilirse oyun aşağıdaki düz haritaya döner; `?map=maplibre` ile düz harita zorlanabilir.
+
+Belirteç kurulumu (Apple Developer Program üyeliği gerekir; ücretsiz kota Apple'ın sayfasına göre üyelik başına günde 250.000 harita görüntüleme ve 25.000 servis çağrısı):
+1. [developer.apple.com/account](https://developer.apple.com/account) → Certificates, Identifiers & Profiles → Services → Maps → Configure.
+2. Usage Dashboard'da Tokens → (+). Token Type: **MapKit JS**; Restriction Type: **Domain**; Websites: `emresoykan.github.io`; süre seçin; Create.
+3. Belirteci kopyalayıp GitHub'da Settings → Secrets and variables → Actions → New repository secret: ad `MAPKIT_TOKEN`. Belirteç alan adına kısıtlı olduğu için sayfaya gömülür; yine de sohbet veya depoya yazılmaz.
+4. main'e bir sonraki yayında Apple haritası açılır. Yerel geliştirmede `.env.local` içine `VITE_MAPKIT_TOKEN=...` yazılabilir (belirtecin alan adı listesine `localhost` eklenmişse).
 
 Oyun düz bir dünya haritasında (Web Mercator, MapLibre GL) oynanır; görünüm koyu temalı dünya haritalarından örnek alındı: derinliğe göre gölgelenmiş koyu lacivert denizler, mavimsi yeşil kabartmalı kara, gri-haki çöller, mavimsi gri buz. Uzak planda ülke sınırı ve ülke adı yoktur; kıta adları aralıklı büyük harfle, okyanus ve deniz adları italik açık maviyle yazılır. Sınırlar ve ülke adları yakınlaştıkça soluk olarak belirir, şehirler büyüklüğüne göre sırayla gelir. Bu zemin oyunla gelen iki görüntüdür (dünya ~2,4 km/piksel, Türkiye ve çevresi ~300 m/piksel; `scripts/build_relief.py`), bu yüzden harita sunucusuna ulaşılamasa da harita çalışır. Çevrimiçiyken yakınlaştıkça zemin AWS arazi verisinden (terrarium, ~13. yakınlığa kadar) yeniden renklendirilir: deniz derinliği lacivert tonlarıyla, karada yükseklik renkle ve kabartma gölgesiyle; denizde gölge yumuşatılır. Ayrıca [OpenFreeMap](https://openfreemap.org) vektör katmanları (kıyı ve göller, nehirler, otoyol ve yollar, şehir ve kasaba adları; Türkçe ad varsa o) eklenir. Vektör katmanları yüklenemezse oyunun kendi ülke adları, şehirleri ve sınırları gösterilir. Arazi verisine hiç ulaşılamazsa yakınlaşma sınırlanır (bulanık büyütme gösterilmez). Dış sunucuya erişemeyen önizleme derlemesi Türkiye için ~120 m/piksel ayrıntılı kabartma karolarını içinde taşır (`scripts/build_relief_hd.py`; göller yükseklik verisindeki düz yüzeylerden bulunur). Yazı tipleri (Noto Sans) sitede barındırılır.
 

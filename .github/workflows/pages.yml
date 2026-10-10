@@ -31,6 +31,7 @@ jobs:
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           VITE_FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
+          VITE_MAPKIT_TOKEN: ${{ secrets.MAPKIT_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

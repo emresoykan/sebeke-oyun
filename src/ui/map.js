@@ -39,10 +39,14 @@ const fc=features=>({type:"FeatureCollection",features});
 const pt=(lon,lat,properties)=>({type:"Feature",properties,geometry:{type:"Point",coordinates:[lon,lat]}});
 // harita yakınlığı → yaklaşık kamera yüksekliği (m); ses ve hava katmanı bunu kullanır
 export const zoomToH=z=>2.6e7/2**z;
+// Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita zorlanabilir
+const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&new URLSearchParams(location.search).get("map")!=="maplibre";
+let mk=null;
 
 // Kameranın bulunduğu nokta (ortam sesi için); 3D pencere açıksa onun kamerası
 export function camInfo(){
   if(globeOpen&&globe)return globe.camInfo();
+  if(mk)return mk.camInfo();
   if(!map)return null;const c=map.getCenter();return {lat:c.lat,lon:c.lng,h:zoomToH(map.getZoom())};
 }
 
@@ -95,23 +99,41 @@ function addNight(){
 export function setGameClock(hour){
   if(globeOpen&&globe)globe.setGlobeClock(hour);
   if(!ready)return;const h=Math.min(hour,23);
+  if(mk){mk.setClock(h);return;}
   if(h!==lastHour){lastHour=h;drawNight(h);}
 }
 
+// Seçim (iki harita da kullanır): rakip işareti, kendi sahan veya haritada bir nokta (yakında sahan varsa o seçilir)
+const afterSelect=()=>{renderPanel();drawMap();render();};
+function selectRival(lat,lon){S.sel={id:null,lat,lon};afterSelect();}
+function selectSite(id){const o=S.sites[id];if(!o)return;S.sel={id,lat:o.lat,lon:o.lon};afterSelect();}
+function selectPoint(lat,lon){
+  let id=null,bd=SITE_MIN_KM;
+  Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
+  S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};afterSelect();
+}
 function onClick(e){
   const f=map.queryRenderedFeatures(e.point,{layers:["rivals","sites"]})[0];
-  if(f&&f.layer.id==="rivals"){const [lon,lat]=f.geometry.coordinates;S.sel={id:null,lat,lon};}
-  else if(f&&f.layer.id==="sites"&&S.sites[f.properties.id]){const o=S.sites[f.properties.id];S.sel={id:f.properties.id,lat:o.lat,lon:o.lon};}
-  else{const {lat,lng}=e.lngLat.wrap();let id=null,bd=SITE_MIN_KM;
-    Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lng,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
-    S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lng.toFixed(4)};}
-  renderPanel();drawMap();render();
+  if(f&&f.layer.id==="rivals"){const [lon,lat]=f.geometry.coordinates;selectRival(lat,lon);}
+  else if(f&&f.layer.id==="sites"&&S.sites[f.properties.id])selectSite(f.properties.id);
+  else{const {lat,lng}=e.lngLat.wrap();selectPoint(lat,lng);}
 }
 
 const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.med?2:3);
 function applyGfx(L){if(!map)return;map.setPixelRatio(flatRatio(L));if(map.getLayer("hillshade"))map.setLayoutProperty("hillshade","visibility",L.shadows?"visible":"none");}
 
 export async function initMap(){
+  const el=document.getElementById("map");
+  if(MAPKIT){
+    try{
+      const m=await import("./mapkit.js");
+      await m.initMapKit(el,{selectPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mk=null;ready=false;el.replaceChildren();initFlat();}});
+      mk=m;ready=true;drawMap();setGameClock(S.hour);return;
+    }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();}
+  }
+  await initFlat();
+}
+async function initFlat(){
   const mobile=innerWidth<600,end={center:[S.sel.lon,S.sel.lat-1],zoom:mobile?3.6:4.6};
   map=new maplibregl.Map({container:"map",style:buildStyle(),center:reducedMotion.matches?end.center:[S.sel.lon-70,S.sel.lat-10],zoom:reducedMotion.matches?end.zoom:0.9,
     minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,
@@ -153,6 +175,7 @@ function fpsMeter(){
 export function drawMap(){
   if(globeOpen&&globe)globe.drawGlobe();
   if(!ready)return;
+  if(mk){mk.draw();return;}
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:""});})));
@@ -171,7 +194,8 @@ async function open3D(id,mode){
   b.querySelector(".close3d").focus({preventScroll:true});
 }
 export function close3D(){const b=box3d();if(!b||b.hidden)return;b.hidden=true;globeOpen=false;document.body.classList.remove("view3d");if(globe)globe.pauseGlobe(true);
-  if(map){const o=S.sites[S.sel.id];if(o)map.easeTo({center:[o.lon,o.lat],zoom:Math.max(map.getZoom(),9),duration:reducedMotion.matches?0:800});}}
+  const o=S.sites[S.sel.id];if(o&&mk)mk.focus(o.lon,o.lat);
+  if(map&&!mk){if(o)map.easeTo({center:[o.lon,o.lat],zoom:Math.max(map.getZoom(),9),duration:reducedMotion.matches?0:800});}}
 export function flyToSite(id){open3D(id,"fly");}
 export function orbitSite(id){open3D(id,"orbit");}
 export function initMap3DUI(){
