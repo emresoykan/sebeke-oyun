@@ -2,8 +2,9 @@
 
 Yükseklik: AWS Open Data "Terrain Tiles" (terrarium kodlaması; 3DEP, SRTM, GMTED, ETOPO1 türevi).
 Kara/deniz ayrımı oyunun ülke sınırlarından (Natural Earth) yapılır; böylece kıyı çizgisi oyun mantığıyla aynıdır.
-Renkler: denizde derinliğe göre lacivert tonları, karada yüksekliğe göre yeşil-zeytin tonları; çöller (oyunun arazi
-bölgeleri) kum rengi, Grönland ve Antarktika buz rengi; üzerine kuzeybatıdan aydınlatılmış kabartma gölgesi.
+Renkler koyu temalı bir dünya haritasına göre seçildi: denizde derinliğe göre koyu lacivert tonları, karada yüksekliğe
+göre mavimsi yeşil tonlar; çöller (oyunun arazi bölgeleri) gri-haki, Grönland ve Antarktika mavimsi gri buz; üzerine
+kuzeybatıdan aydınlatılmış kabartma gölgesi.
 
 Çıktılar:
   public/textures/relief-world.jpg  (z4, 4096x4096, enlem ±85.05)
@@ -71,9 +72,9 @@ def ramp(v, stops):
     return out
 
 
-LAND = [(0, (64, 116, 84)), (400, (72, 120, 82)), (1200, (96, 122, 86)), (2500, (128, 132, 110)), (4500, (190, 192, 186))]
-SEA = [(-7000, (8, 21, 64)), (-3500, (11, 29, 82)), (-1000, (16, 39, 100)), (-150, (22, 52, 122)), (0, (30, 64, 138))]
-SAND, ICE = np.array([190, 174, 132], np.float32), np.array([222, 230, 238], np.float32)
+LAND = [(0, (56, 110, 102)), (400, (60, 110, 98)), (1200, (70, 108, 96)), (2500, (96, 110, 104)), (4500, (150, 160, 172))]
+SEA = [(-7000, (9, 15, 44)), (-3500, (12, 20, 56)), (-1000, (17, 29, 76)), (-150, (23, 40, 96)), (0, (31, 54, 118))]
+SAND, ICE = np.array([126, 128, 110], np.float32), np.array([104, 122, 154], np.float32)
 
 
 def render(z, x0, x1, y0, y1, countries, deserts, ice):
@@ -99,7 +100,7 @@ def render(z, x0, x1, y0, y1, countries, deserts, ice):
     exl, exs = (14, 6) if z <= 4 else (5, 3)
     sl, ss = shade(exl), shade(exs)
     lc = ramp(np.maximum(elev, 0), LAND)
-    lc = lc * (1 - des[..., None] * 0.6) + SAND * des[..., None] * 0.6
+    lc = lc * (1 - des[..., None] * 0.7) + SAND * des[..., None] * 0.7
     lc = lc * (1 - icem[..., None]) + ICE * icem[..., None]
     lc *= (0.62 + 0.55 * sl)[..., None]
     sc = ramp(np.minimum(elev, 0), SEA) * (0.8 + 0.3 * ss)[..., None]

@@ -72,7 +72,7 @@ function drawNight(hour){
   const ch=new Float32Array(NW);for(let x=0;x<NW;x++)ch[x]=Math.cos(((x+0.5)/NW*360-180-sub)*RAD);
   for(let y=0;y<NH;y++){const la=Math.atan(Math.sinh(Math.PI*(1-2*(y+0.5)/NH))),a=Math.sin(la)*sd,b=Math.cos(la)*cd;
     for(let x=0;x<NW;x++){const el=Math.asin(Math.max(-1,Math.min(1,a+b*ch[x])))/RAD,t=Math.max(0,Math.min(1,(4-el)/14)),p=(y*NW+x)*4;
-      px[p]=2;px[p+1]=7;px[p+2]=19;px[p+3]=t*t*(3-2*t)*112;}}
+      px[p]=2;px[p+1]=6;px[p+2]=18;px[p+3]=t*t*(3-2*t)*72;}}
   g.putImageData(im,0,0);const src=map.getSource("night");src.play();requestAnimationFrame(()=>requestAnimationFrame(()=>src.pause()));
 }
 function addNight(){
@@ -109,6 +109,12 @@ export async function initMap(){
   // başarılı yükleme TileJSON'dan katman listesi gelmesiyle anlaşılır (başarısız yüklemede de "loaded" olur)
   map.on("sourcedata",e=>{if(e.sourceId==="omt"&&!vectorOk&&e.sourceDataType==="metadata"&&map.getSource("omt").vectorLayerIds){vectorOk=true;useFallback(false);}});
   await new Promise(r=>map.once("load",r));
+  // atıf kutusu kapalı başlasın (dar ekranda haritanın altını kapatmasın); ⓘ ile açılır
+  // (kaynaklar değiştikçe kendiliğinden yeniden açılır; kullanıcı ⓘ'ye basmadıkça kapalı tutulur)
+  const att=document.querySelector("#map .maplibregl-ctrl-attrib");
+  if(att){let userAt=0;att.addEventListener("click",()=>userAt=Date.now(),true);
+    const close=()=>{if(Date.now()-userAt>600&&(att.hasAttribute("open")||att.classList.contains("maplibregl-compact-show"))){att.removeAttribute("open");att.classList.remove("maplibregl-compact-show");}};
+    new MutationObserver(close).observe(att,{attributes:true,attributeFilter:["class","open"]});close();}
   // vektör kaynağı birkaç saniyede gelmezse yerel adlarla devam et
   if(ONLINE)setTimeout(()=>{if(!vectorOk)useFallback(true);},8000);
   addNight();addGameLayers();initWeatherLayer(map);
