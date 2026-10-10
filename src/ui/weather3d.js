@@ -1,4 +1,4 @@
-// --- Haritada hava durumu: bulut örtüsü, yağmur ve fırtına bulutları, şimşek, rüzgâr okları, fırtına uyarı halkaları ---
+// --- 3D görünümde hava durumu: bulut örtüsü, yağmur ve fırtına bulutları, şimşek, rüzgâr okları, fırtına uyarı halkaları ---
 // Bulutlar 6 km yükseklikte, tüm küreyi saran yarı saydam bir katmandır; doku her ~0,35 sn'de hava sistemlerinin o anki
 // (iki oyun saati arasında ara değerli) konumundan yeniden çizilir. Bulutların gece tarafı karartılır. Yaklaşınca katman
 // incelir, sahaların üstünü kapatmaz. Rüzgâr okları yalnızca bölge ölçeğine yaklaşınca, ekranın ortasındaki ızgarada çizilir.
@@ -113,7 +113,5 @@ export function initWeatherLayer(v){
   drawClouds();viewer.scene.preRender.addEventListener(update);
 }
 
-export function initWeatherToggle(btn){
-  const lbl=()=>{btn.textContent=on?"Hava katmanı: açık":"Hava katmanı: kapalı";btn.setAttribute("aria-pressed",on);};
-  lbl();btn.onclick=()=>{on=!on;try{localStorage.setItem(PREF,on?"1":"0");}catch(e){}lbl();rings.forEach(e=>e.show=false);cloudKey=null;if(arrows)drawArrows(true);};
-}
+// Hava katmanı düğmesi düz haritada (wxflat.js); tercih değişince buraya olayla bildirilir
+window.addEventListener("sebeke:wx",e=>{on=e.detail;rings.forEach(r=>r.show=false);cloudKey=null;if(arrows)drawArrows(true);});

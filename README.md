@@ -1,6 +1,6 @@
 # sebeke-oyun
 
-Şebeke: Dünya — yenilenebilir enerji portföyü kurma oyunu. Vite + vanilla JS (ES modülleri), CesiumJS 3D dünya, three.js ile kurulan 3D santraller.
+Şebeke: Dünya — yenilenebilir enerji portföyü kurma oyunu. Vite + vanilla JS (ES modülleri), MapLibre GL düz dünya haritası; isteğe bağlı 3D yakın görünüm için CesiumJS ve three.js ile kurulan 3D santraller.
 
 ## Çalıştırma
 
@@ -14,7 +14,7 @@ npm run build:preview  # dosya sayısı sınırlı yerler için hafif derleme (g
 
 ### Google Photorealistic 3D Tiles
 
-Gerçek 3D dünya (arazi, binalar, yüksek çözünürlüklü görüntü) için bir Google Maps Platform API anahtarı gerekir. Anahtar yoksa ya da yüklenemezse oyun gömülü NASA görüntüleriyle çalışır.
+3D yakın görünümde gerçek arazi ve binalar (Google Photorealistic 3D Tiles) için bir Google Maps Platform API anahtarı gerekir. Anahtar yoksa ya da yüklenemezse 3D görünüm gömülü NASA görüntüleriyle çalışır. Düz harita anahtar gerektirmez.
 
 1. Google Cloud Console'da bir proje aç, faturalandırmayı bağla ve **Map Tiles API**'yi etkinleştir.
 2. Bir API anahtarı oluştur. **Uygulama kısıtı:** HTTP yönlendirenleri (ör. `https://<kullanıcı>.github.io/*`, `http://localhost:5173/*`). **API kısıtı:** yalnızca Map Tiles API. Faturaya karşı günlük kota sınırı koy.
@@ -45,7 +45,6 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/calendar.js` | Takvim ve mevsimler: tarih, güneş eğimi, gün uzunluğu, öğle güneşi yüksekliği, aylık talep |
 | `src/weather.js` | Hava modeli: hareket eden alçak/yüksek basınç, fırtına ve sıcak hava sistemleri; nokta başına bulut, yağış, rüzgâr hızı ve yönü (DOM'suz) |
 | `src/wxsite.js` | Havanın oyuna bağlanması: günlük 24 saatlik tahmin, piyasa temsilî noktaları, saha havası |
-| `src/ui/weatherLayer.js` | Haritada bulut katmanı, şimşek, rüzgâr okları ve fırtına uyarı halkaları |
 | `src/market.js` | GÖP ve dengesizlik: gerçek üretim, ilişkili tahmin hatası, teklif (taahhüt), saatlik uzlaştırma, bataryayla dengeleme |
 | `src/ui/desk.js`, `src/ui/modal.js` | GÖP masası penceresi; gün başı pencerelerinin (olay kartı, masa) sırası |
 | `src/rivals.js` | Kurgusal rakip şirketler: saha seçimi, yatırım bütçesi, inşaat, piyasaya etkisi, portföy değeri |
@@ -55,7 +54,10 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
-| `src/ui/map.js` | CesiumJS 3D dünya: Google 3D Tiles veya gömülü NASA görüntüleri, gece/gündüz, sınırlar, şehirler, korunan alanlar, sahalar, tıklama |
+| `src/ui/map.js` | Düz dünya haritası (MapLibre GL): sahalar, rakipler, seçim, korunan alanlar, gece gölgesi, tıklama, açılış uçuşu; 3D pencereyi açar |
+| `src/ui/mapstyle.js` | Harita stili: kabartmalı zemin görüntüleri, OpenFreeMap vektör katmanları, arazi gölgesi, yer adları, yedek katmanlar |
+| `src/ui/wxflat.js` | Düz haritada bulutlar, rüzgâr okları, fırtına halkaları, şimşek; hava katmanı düğmesi |
+| `src/ui/globe3d.js`, `src/ui/weather3d.js` | İsteğe bağlı 3D yakın görünüm (CesiumJS): Google 3D Tiles veya gömülü NASA görüntüleri, 3D santraller, sinematik tur, 3D hava |
 | `src/ui/models.js` | 3D santral modelleri: three.js ile kurulur, glTF olarak Cesium'a verilir; rotor, ikaz ışığı, dolusavak ve LED canlandırması |
 | `src/plantstatus.js` | Sahadaki santrallerin o saatteki çalışma durumu (3D modeller ve panel ortak kullanır) |
 | `src/ui/panel.js` | Seçili nokta/saha paneli, ekipman kartları ve buton durumları |
@@ -172,14 +174,19 @@ Firebase web yapılandırması gizli anahtar değildir (tarayıcıya gömülür,
 
 ## Harita
 
-Oyuncu kürenin herhangi bir noktasına dokunup orada saha açar. Noktanın ülkesi, piyasası, arazi tipi ve kaynak potansiyeli `world.js` içinde gerçek coğrafyadan hesaplanır:
+Oyun düz bir dünya haritasında (Web Mercator, MapLibre GL) oynanır: koyu lacivert, derinliğe göre gölgelenmiş denizler; yüksekliğe göre yeşil-zeytin tonlarında kabartmalı kara; çöller kum, kutuplar buz rengi. Bu zemin oyunla gelen iki görüntüdür (dünya ~2,4 km/piksel, Türkiye ve çevresi ~300 m/piksel; `scripts/build_relief.py`), bu yüzden harita sunucusuna ulaşılamasa da harita çalışır. Çevrimiçiyken yakınlaştıkça [OpenFreeMap](https://openfreemap.org) vektör katmanları (keskin kıyılar, nehirler, otoyol ve yollar, şehir ve kasaba adları; Türkçe ad varsa o) ve AWS arazi verisinden kabartma gölgesi eklenir. Vektör katmanları yüklenemezse oyunun kendi ülke adları, şehirleri ve sınırları gösterilir. Yazı tipleri (Noto Sans) sitede barındırılır.
+
+- **Gece/gündüz:** Güneşin o saatteki yüksekliğinden hesaplanan yumuşak alacakaranlıklı gece gölgesi; mevsime göre kutuplarda gece veya gündüz uzar.
+- **3D yakın görünüm:** Kurulu sahanın panelindeki "3D yakından bak" ve "🎬 Sinematik tur", harita alanının üstünde CesiumJS ile 3D görünümü açar (Google 3D Tiles anahtarı varsa gerçek arazi ve binalar). Cesium yalnızca bu pencere ilk açılınca yüklenir; pencere kapalıyken çizim döngüsü durur. "← Haritaya dön" veya Esc düz haritaya döner.
+
+Oyuncu haritanın herhangi bir noktasına dokunup orada saha açar. Noktanın ülkesi, piyasası, arazi tipi ve kaynak potansiyeli `world.js` içinde gerçek coğrafyadan hesaplanır:
 
 - **Ülke ve piyasa:** Natural Earth ülke sınırları; ülkeler oyunun 8 piyasasına eşlenir (`scripts/build_geo.py`, `market()`).
 - **Arazi tipi:** Natural Earth dağ silsilesi, çöl ve havza poligonları. Toros ve Doğu Anadolu dağları ile tayga ve Güneydoğu Asya ormanları elle/kuralla yaklaşık eklenmiştir. Korunan alanlar `src/data/protected.js` içindeki temsili dairelerdir.
 - **Deniz:** Bir ülke kıyısına en fazla 200 km uzaklıktaki deniz noktaları offshore için uygundur.
 - **3D santraller:** Kurulu sahalarda gerçek oranlı, prosedürel 3D modeller çizilir (dış model dosyası yok). Uzaktan görünsün diye en az 120 piksel çizilir; yaklaştıkça gerçek ölçeğe döner. Rüzgâr gülleri o saatin rüzgârıyla döner (ataletle hızlanır/yavaşlar), gece kanat ucu ikaz ışıkları yanıp söner; paneller güneş ve gökyüzünü yansıtır, invertör ışığı üretim/kısıntı durumunu gösterir; HES planlı üretim saatlerinde dolusavaktan su bırakır; batarya LED'leri şarjda yeşil, deşarjda turuncu yanar. Cesium saati oyun saatine bağlıdır (Türkiye saati, ekinoks tarihi): güneşin konumu, gece/gündüz sınırı ve gölgeler gerçek coğrafyaya göre hesaplanır. Panelde "3D yakından bak" kamerayı eğik açıyla sahaya götürür. Sistemde "hareketi azalt" açıksa hareket durur, modeller kalır.
-- **Yakın görüntü:** Gömülü dünya dokusu yaklaşık 10 km/piksel olduğu için yakında bulanıklaşır. Türkiye ve çevresinde (25,6–45°D, 35,7–42,3°K) bunun yerine 2024–2025 yaz aylarının az bulutlu Sentinel-2 sahnelerinden üretilmiş ~300 m/piksel mozaik kullanılır. Bulutlar SCL sınıflandırmasıyla ayıklanır, denizler tek tip renge çekilir, her sahnenin geniş ölçekli rengi Blue Marble'a eşlenir (karo sınırı görünmez), Tuz Gölü gerçek Sentinel rengiyle kalır. Bina ölçeğinde netlik yalnızca Google 3D Tiles ile gelir.
-- **Gece/gündüz:** Dünyanın gece tarafında NASA şehir ışıkları görünür; Google 3D Tiles kullanılırken sahne geceleri karartılır.
+- **3D'de yakın görüntü:** 3D görünümün gömülü dünya dokusu yaklaşık 10 km/piksel olduğu için yakında bulanıklaşır. Türkiye ve çevresinde (25,6–45°D, 35,7–42,3°K) bunun yerine 2024–2025 yaz aylarının az bulutlu Sentinel-2 sahnelerinden üretilmiş ~300 m/piksel mozaik kullanılır. Bulutlar SCL sınıflandırmasıyla ayıklanır, denizler tek tip renge çekilir, her sahnenin geniş ölçekli rengi Blue Marble'a eşlenir (karo sınırı görünmez), Tuz Gölü gerçek Sentinel rengiyle kalır. Bina ölçeğinde netlik yalnızca Google 3D Tiles ile gelir.
+- **3D'de gece/gündüz:** 3D görünümde gece tarafında NASA şehir ışıkları görünür; Google 3D Tiles kullanılırken sahne geceleri karartılır.
 - **Saha kuralları:** Bir sahada en fazla 40 MW kurulur; iki saha arasında en az 20 km olmalıdır (yakına dokunmak mevcut sahayı seçer).
 
 Kayıt anahtarı `sebeke-world-v3`. Kare tabanlı eski sürümün kayıtları (`sebeke-world-v2`) bu sürümle uyumlu değildir ve yüklenmez (silinmez).
@@ -189,6 +196,7 @@ Kayıt anahtarı `sebeke-world-v3`. Kare tabanlı eski sürümün kayıtları (`
 ```bash
 pip install pillow numpy
 python3 scripts/build_geo.py                      # Natural Earth'ten src/data/*.json
+python3 scripts/build_relief.py                   # düz haritanın kabartmalı zemini (AWS Terrain Tiles, ~300 karo indirir)
 # Dünya görüntüleri: three-globe npm paketindeki NASA kopyaları
 npm pack three-globe && tar xzf three-globe-*.tgz
 cp package/example/img/earth-blue-marble.jpg public/textures/earth-day.jpg
@@ -205,5 +213,9 @@ python3 scripts/build_sentinel_mosaic.py --bluemarble public/textures/earth-day.
 - Türkiye yakın görüntüsü: Contains modified Copernicus Sentinel data 2024–2025 (Copernicus Sentinel-2 L2A, [AWS Open Data](https://registry.opendata.aws/sentinel-2-l2a-cogs/)). Copernicus verisi kaynak gösterilerek serbestçe kullanılabilir.
 - 3D motor: [three.js](https://threejs.org), MIT.
 - Ülke sınırları, şehirler, coğrafi bölgeler ve kıyı çizgisi: [Natural Earth](https://www.naturalearthdata.com), kamu malı.
-- 3D dünya motoru: [CesiumJS](https://cesium.com/platform/cesiumjs/), Apache 2.0.
+- 3D görünüm motoru: [CesiumJS](https://cesium.com/platform/cesiumjs/), Apache 2.0.
+- Düz harita motoru: [MapLibre GL JS](https://maplibre.org), BSD-3-Clause.
+- Vektör harita: [OpenFreeMap](https://openfreemap.org) (ücretsiz, anahtarsız; atıf gerekir) © [OpenMapTiles](https://www.openmaptiles.org), veriler © [OpenStreetMap](https://www.openstreetmap.org/copyright) katkıcıları (ODbL). Atıf haritanın köşesinde gösterilir.
+- Kabartma ve arazi gölgesi: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/); United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey; ETOPO1: NOAA; bölgesel kaynakların tam listesi: [joerd attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
+- Harita yazı tipi: Noto Sans ([protomaps/basemaps-assets](https://github.com/protomaps/basemaps-assets) glifleri), SIL Open Font License 1.1 (`public/fonts/OFL.txt`).
 - Google Photorealistic 3D Tiles (isteğe bağlı): Google Maps Platform şartlarına tabidir; Google logosu ve veri kaynakları ekranda gösterilir.
