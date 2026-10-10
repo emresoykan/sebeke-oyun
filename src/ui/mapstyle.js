@@ -30,7 +30,7 @@ const cityPts=fc(cities.map(([n,a3,lat,lon,pop,mz,cap])=>({type:"Feature",proper
 
 // Yedek katmanlar (yalnızca vektör katmanlar yüklenemezse görünür) ve vektöre bağlı katmanlar
 export const FALLBACK=["fb-borders","fb-country","fb-city-dot","fb-city","fb-town-dot","fb-town"];
-export const VECTOR=["land-flat","omt-water","omt-wood","omt-sand","omt-ice","omt-waterway","omt-road-major","omt-road-primary","omt-road-minor","omt-border","omt-water-name","omt-country","omt-city-dot","omt-city","omt-town"];
+export const VECTOR=["omt-water","omt-wood","omt-sand","omt-ice","omt-waterway","omt-road-major","omt-road-primary","omt-road-minor","omt-border","omt-water-name","omt-country","omt-city-dot","omt-city","omt-town"];
 
 // yerel şehirler: başkentler 4. yakınlıktan, diğerleri büyüklüğüne göre 5–6'dan itibaren
 const CITY_Z=["any",["==",["get","cap"],1],[">=",["get","pop"],1500000]];
@@ -45,7 +45,7 @@ export function buildStyle(){
   };
   if(ONLINE){
     sources.omt={type:"vector",url:"https://tiles.openfreemap.org/planet"};
-    sources.dem={type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:256,maxzoom:12,attribution:DEM_ATTR};
+    sources.dem={type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:256,maxzoom:13,attribution:DEM_ATTR};
   }
   const vis=on=>({visibility:on?"visible":"none"});
   const layers=[
@@ -56,12 +56,19 @@ export function buildStyle(){
   if(ONLINE)layers.push(
     // yakın planda kara düz renk, deniz ve göller vektörden: zemin görüntüsünün bulanık kıyısı yerine keskin kıyı.
     // Yalnızca vektör katmanları gerçekten yüklenince açılır (yoksa denizler de kara rengine boyanırdı).
-    {id:"land-flat",type:"background",minzoom:6,layout:{visibility:"none"},paint:{"background-color":"#3C6E66","background-opacity":["interpolate",["linear"],["zoom"],6,0,7.5,1]}},
-    {id:"omt-water",type:"fill",source:"omt","source-layer":"water",minzoom:5,paint:{"fill-color":"#14245C","fill-opacity":["interpolate",["linear"],["zoom"],5,0,7,1]}},
+    // yükseklik verisinden renk: yaklaştıkça deniz derinliği ve karada yükseklik ayrıntısı (zemin görüntüsüyle aynı renk skalası);
+    // zemin görüntüsü altta kalır (çöl tonu ve veri gelmezse yedek)
+    {id:"dem-color",type:"color-relief",source:"dem",minzoom:3.5,paint:{"color-relief-opacity":["interpolate",["linear"],["zoom"],3.5,0,5,0.82],
+      "color-relief-color":["interpolate",["linear"],["elevation"],-7000,"#090F2C",-3500,"#0C1438",-1000,"#111D4C",-150,"#172860",-20,"#1C3270",-0.5,"#1F3676",0,"#386E66",400,"#3C6E62",1200,"#466C60",2500,"#606E68",4500,"#96A0AC"]}},
+    // vektör kıyı ve göller yakın planda yarı saydam: keskin kıyı, derinlik tonları kaybolmaz
+    {id:"omt-water",type:"fill",source:"omt","source-layer":"water",minzoom:6,paint:{"fill-color":"#16285E","fill-opacity":["interpolate",["linear"],["zoom"],6,0,8,0.55]}},
     {id:"omt-wood",type:"fill",source:"omt","source-layer":"landcover",minzoom:7,filter:["==",["get","class"],"wood"],paint:{"fill-color":"#285A5C","fill-opacity":0.55}},
     {id:"omt-sand",type:"fill",source:"omt","source-layer":"landcover",minzoom:7,filter:["==",["get","class"],"sand"],paint:{"fill-color":"#7E806E","fill-opacity":0.6}},
     {id:"omt-ice",type:"fill",source:"omt","source-layer":"landcover",minzoom:5,filter:["==",["get","class"],"ice"],paint:{"fill-color":"#687A9A","fill-opacity":0.8}},
-    {id:"hillshade",type:"hillshade",source:"dem",minzoom:5,paint:{"hillshade-exaggeration":0.4,"hillshade-shadow-color":"#05110B","hillshade-highlight-color":"#DCEFD4","hillshade-accent-color":"#183324"}},
+    {id:"hillshade",type:"hillshade",source:"dem",minzoom:3.5,paint:{"hillshade-exaggeration":["interpolate",["linear"],["zoom"],3.5,0,5,0.45,10,0.55],"hillshade-shadow-color":"#05110B","hillshade-highlight-color":"#DCEFD4","hillshade-accent-color":"#183324"}},
+    // denizde kabartma gölgesi yarı yarıya yumuşatılır (deniz tabanı verisindeki basamaklar beyaz çizgi gibi görünmesin)
+    {id:"sea-damp",type:"color-relief",source:"dem",minzoom:3.5,paint:{"color-relief-opacity":["interpolate",["linear"],["zoom"],3.5,0,5,1],
+      "color-relief-color":["interpolate",["linear"],["elevation"],-7000,"rgba(9,15,44,0.6)",-200,"rgba(20,34,84,0.55)",-1,"rgba(28,50,112,0.5)",0,"rgba(0,0,0,0)"]}},
     {id:"omt-waterway",type:"line",source:"omt","source-layer":"waterway",minzoom:7,paint:{"line-color":"#1B2E6E","line-width":["interpolate",["linear"],["zoom"],7,0.6,12,2]}},
     {id:"omt-road-minor",type:"line",source:"omt","source-layer":"transportation",minzoom:11,filter:["in",["get","class"],["literal",["secondary","tertiary","minor"]]],
       paint:{"line-color":"#9AA8B6","line-opacity":0.7,"line-width":["interpolate",["linear"],["zoom"],11,0.6,15,2.5]}},
