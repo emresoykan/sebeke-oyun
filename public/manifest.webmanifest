@@ -1,0 +1,15 @@
+{
+  "name": "Wattlas",
+  "short_name": "Wattlas",
+  "description": "Dünya haritasında yenilenebilir enerji şirketini kur ve büyüt.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B1E52",
+  "theme_color": "#0B1E52",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
