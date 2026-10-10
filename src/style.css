@@ -268,3 +268,4 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .close3d{position:absolute;top:10px;left:10px;z-index:6;background:rgba(5,10,15,.72);color:#fff;border:1px solid rgba(255,255,255,.25)}
 .map3d-load{position:absolute;inset:0;display:none;place-items:center;color:#fff;font-size:.9rem}
 .map3d.loading .map3d-load{display:grid}
+.fpsmeter{position:absolute;top:8px;right:8px;z-index:3;background:rgba(5,10,15,.7);color:#fff;font:600 12px ui-monospace,monospace;padding:3px 8px;border-radius:6px;pointer-events:none}

@@ -116,7 +116,15 @@ export async function initMap(){
   ["rivals","sites"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);
   if(!reducedMotion.matches)map.flyTo({...end,duration:4500,curve:1.6,essential:false});
+  if(new URLSearchParams(location.search).has("fps"))fpsMeter();
   if(import.meta.env.DEV){window.__map=map;}
+}
+
+// ?fps: köşede saniyedeki kare sayısı (harita yalnızca değişince çizildiği için hareket ederken anlamlıdır)
+function fpsMeter(){
+  const el=document.createElement("div");el.className="fpsmeter";document.getElementById("mapwrap").appendChild(el);
+  let n=0,t0=performance.now();map.on("render",()=>n++);
+  setInterval(()=>{const now=performance.now();el.textContent=`${Math.round(n*1000/(now-t0))} kare/sn`;n=0;t0=now;},1000);
 }
 
 // Sahaları, rakipleri ve seçimi haritaya yansıt
