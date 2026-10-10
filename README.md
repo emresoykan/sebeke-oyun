@@ -1,6 +1,6 @@
-# sebeke-oyun
+# Wattlas
 
-Şebeke: Dünya — yenilenebilir enerji portföyü kurma oyunu. Vite + vanilla JS (ES modülleri), MapLibre GL düz dünya haritası; isteğe bağlı 3D yakın görünüm için CesiumJS ve three.js ile kurulan 3D santraller.
+Wattlas — dünya haritasında yenilenebilir enerji portföyü kurma oyunu (depo adı: `sebeke-oyun`; eski çalışma adı "Şebeke"). Vite + vanilla JS (ES modülleri), MapLibre GL düz dünya haritası; isteğe bağlı 3D yakın görünüm için CesiumJS ve three.js ile kurulan 3D santraller.
 
 ## Çalıştırma
 
