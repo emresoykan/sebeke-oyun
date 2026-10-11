@@ -2,7 +2,7 @@
 import { GOAL, REG, MARKETS } from "../config.js";
 import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
-import { netWorth } from "../sim.js";
+import { netWorth, dayNet } from "../sim.js";
 import { updateButtons } from "./panel.js";
 import { setGameClock } from "./map.js";
 import { CAL, fmtDate, seasonOf } from "../calendar.js";
@@ -18,7 +18,7 @@ export function drawChart(){
   const k=selMarket(),M=D[k],CAP=110*REG[k].mult,padT=34,padB=20,padL=8,padR=8,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
   const mw=Math.max(5,S.plants.filter(p=>S.sites[p.t].mreg===k).reduce((a,p)=>a+p.mw,0)),sc=(ph*0.55)/mw;
   for(let h=0;h<S.hour;h++){const g=M.gen[h],bx=padL+h*cw+cw*.15,bw=cw*.7;let y=bot;
-    [["s","--solar"],["w","--wind"],["h","--hydro"]].forEach(([q,c])=>{const v=g[q]*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
+    [["s","--solar"],["w","--wind"],["h","--hydro"],["j","--geo"],["o","--bio"],["m","--marine"]].forEach(([q,c])=>{const v=(g[q]||0)*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
     if(g.b>0){const v=g.b*sc;x.fillStyle=cssv("--batt");x.fillRect(bx,y-v,bw,v);}
     if(g.b<0){const v=-g.b*sc;x.strokeStyle=cssv("--batt");x.lineWidth=2;x.strokeRect(bx+1,bot-v+1,bw-2,Math.max(0,v-2));}}
   x.strokeStyle="rgba(255,255,255,.95)";x.lineWidth=2.5;x.beginPath();
@@ -36,9 +36,9 @@ export function render(){
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);
   document.getElementById("roPrice").textContent=fmtP(M.price[h]);
-  let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+Math.max(0,x.b);});
+  let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+(x.j||0)+(x.o||0)+(x.m||0)+Math.max(0,x.b);});
   document.getElementById("roGen").textContent=g.toFixed(1)+" MW";
-  const net=st.R.ges+st.R.res+st.R.off+st.R.hes-st.imb+st.bNet-st.opex-st.fee,r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
+  const net=dayNet(st),r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";
   if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>alert("Tebrikler: 5 M$ portföy değerine ulaştın. Oynamaya devam edebilirsin."),50);}
@@ -48,16 +48,20 @@ export function render(){
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
 export function renderReport(){
   const L=S.last;if(!L)return;
-  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
+  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"],["jes","JES"],["bes","BES"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
   if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur.`;
   else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
+  else if(L.E.bes>0&&L.fuel>0)note=`BES yalnızca fiyat yakıt maliyetini aştığında çalıştı: ${L.E.bes.toFixed(0)} MWh için ${fmt$(L.fuel)} yakıt yaktın. Ucuz saatlerde durması marjinal maliyet mantığıdır; fiyat düşükse çalışmamak kâr ettirir.`;
+  else if(L.E.jes>0)note=`JES hava ve saatten bağımsız, gece gündüz aynı güçle üretir; bu yüzden tahmin hatası ve dengesizlik maliyeti yoktur. Bedeli yüksek yatırım ve sondaj riskidir.`;
+  else if(L.E.mar>0)note=`Deniz enerjisinin gelgit kısmı günler öncesinden hesaplanabilir; yüksek maliyetini yenilik desteği (MWh başına +60 $) dengeler. Dalga kısmı ise havaya bağlıdır.`;
   else if(L.E.hes>0)note=`HES suyunu en pahalı saatlere sakladığı için birim başına en yüksek fiyatı yakalar. Ama su miktarı her gün değişir; kurak günlerde üretim düşer.`;
   else if(L.E.ges>0&&L.sRate<0.75)note=`Güneşin kazandığı ortalama fiyat, kurulu olduğu piyasaların ortalamasının %${Math.round(L.sRate*100)}'i. Güneşi farklı piyasalara yaymak veya batarya eklemek bu kaybı azaltır.`;
   else if(L.imb>0)note=`Tahmin sapmaları ${fmt$(L.imb)} dengesizlik maliyeti yarattı. GÖP masasında teklifini belirsizliğe göre ayarlayabilirsin.`;
   else note=`Farklı piyasalarda kurulum yapmak, tek bir piyasanın fiyat düşüşüne karşı portföyünü korur.`;
   document.getElementById("report").innerHTML=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>Gün ${L.dayNo}</span><span>Net: <b class="${L.net<0?"neg":"pos"}">${fmt$(L.net)}</b></span></div>
   <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Piyasa değeri</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
+  ${L.fuel>0?`<tr><td>BES yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
   <tr><td>Batarya arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>
   <tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
   ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}

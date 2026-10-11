@@ -15,7 +15,7 @@ import { checkMissions } from "./missions.js";
 import { CAL, seasonOf } from "./calendar.js";
 import { applyDesk } from "./market.js";
 
-const RENEW=["ges","res","off","hes"];
+const RENEW=["ges","res","off","hes","jes","bes","mar"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
 const has=k=>S.plants.some(p=>p.k===k);
 // oyuncunun en çok kurulu gücü olan piyasa
@@ -107,7 +107,7 @@ export const EVENTS=[
     text:m=>`${mName(m)} piyasasında yenilenebilir üretimi desteklemek için kısa süreli bir prim programı açıldı: başvuranlar 7 gün boyunca ürettikleri her MWh için ek prim alacak.`,
     learn:"Destek mekanizmaları (alım garantisi, prim, fark sözleşmesi) gelir belirsizliğini azaltır. Başvuru maliyeti ve destek süresi getiriye karşı tartılmalıdır.",
     opts:m=>{const b=Math.round(8*REG[m].mult);return [
-      {l:"Başvur (5 b$)",c:5000,e:`7 gün GES, RES ve HES üretimine +${b} $/MWh.`,run:()=>{pay(5000);mod({t:"bonus",m,k:RENEW,v:b,d:7,label:`Destek primi: +${b} $/MWh`});return "Başvurun kabul edildi.";}},
+      {l:"Başvur (5 b$)",c:5000,e:`7 gün tüm yenilenebilir üretimine +${b} $/MWh.`,run:()=>{pay(5000);mod({t:"bonus",m,k:RENEW,v:b,d:7,label:`Destek primi: +${b} $/MWh`});return "Başvurun kabul edildi.";}},
       {l:"Başvurma",e:"Değişiklik yok.",run:()=>"Programa katılmadın."}];}},
 
   {id:"trafo",tag:"Operasyon",title:"Trafo arızası",ok:()=>S.plants.length>0,

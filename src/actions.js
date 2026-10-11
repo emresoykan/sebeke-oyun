@@ -3,7 +3,8 @@ import { BLOCK, SITE_LIMIT, REG, TECH } from "./config.js";
 import { describe, placeName } from "./world.js";
 import { S, save, addLog } from "./state.js";
 import { landCost, permitFee, permitDays } from "./rules.js";
-import { siteMW, newDayHydro, awardAch } from "./sim.js";
+import { siteMW, newDayHydro, planBio, awardAch } from "./sim.js";
+import { locked } from "./rules.js";
 import { capexOf, eqName, TIERS } from "./equipment.js";
 import { checkMissions } from "./missions.js";
 import { sfx } from "./ui/fx.js";
@@ -20,10 +21,16 @@ export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);refresh();}
 export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();}
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer
-export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT)return;S.money-=c;
+export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT||locked(k))return;S.money-=c;
+  const o=S.sites[id];
+  // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
+  if(k==="jes"&&o.well==null){o.well=+(0.55+Math.random()*0.55).toFixed(2);
+    const r=o.well>=0.95?"beklenenden iyi":o.well>=0.8?"beklendiği gibi":o.well>=0.68?"beklenenden zayıf":"hayal kırıklığı";
+    addLog(`${placeName(o)}: jeotermal sondaj tamamlandı, rezervuar ${r} (beklenenin %${Math.round(o.well*100)}'i). Sahadaki tüm JES blokları bu verimle üretir.`);}
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
   if(k==="hes")newDayHydro(p);
+  if(k==="bes")planBio(p,S.hour);
   sfx("build");
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")}).`);
   refresh();}

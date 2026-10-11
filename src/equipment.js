@@ -1,7 +1,7 @@
 // --- Ekipman katalogu ---
 // Her teknoloji için üç kademe. Markalar ve modeller kurgusaldır; değerler oyun dengesi için temsilidir.
-// capex/opex: teknolojinin temel maliyetine çarpan; perf: üretime (GES/RES), suyun elektriğe dönüşümüne (HES)
-// çarpan; avail: bir günün arızasız geçme olasılığı; rte: bataryada şarj-deşarj verimi.
+// capex/opex: teknolojinin temel maliyetine çarpan; perf: üretime (GES/RES/deniz), suyun elektriğe dönüşümüne (HES),
+// rezervuar ısısının dönüşümüne (JES) veya yakıt verimine (BES) çarpan; avail: bir günün arızasız geçme olasılığı; rte: bataryada şarj-deşarj verimi.
 // Denge: ekonomi kademesi aynı parayla daha çok MW kurdurur ama az üretir ve sık arızalanır; premium
 // pahalıdır ama 40 MW'lık saha sınırında MW başına en çok üretimi verir.
 import { TECH } from "./config.js";
@@ -36,6 +36,23 @@ export const EQUIP={
     eco:{brand:"Voltix",model:"LFP-10",spec:"LFP hücre, verim %82",capex:0.85,perf:1,rte:0.82,avail:0.96,opex:1.15},
     std:{brand:"Ampera",model:"LFP-10",spec:"LFP hücre, verim %88",capex:1.00,perf:1,rte:0.88,avail:0.98,opex:1.00},
     pre:{brand:"Kolos",model:"LFP-10 Pro",spec:"LFP hücre, verim %92, sıvı soğutma",capex:1.20,perf:1,rte:0.92,avail:0.99,opex:0.90}
+  },
+  // JES: perf rezervuar ısısının elektriğe dönüşümü
+  jes:{
+    eco:{brand:"Pyros",model:"SF-10",spec:"Tek flaş buhar türbini, açık devre",capex:0.85,perf:0.90,avail:0.95,opex:1.15},
+    std:{brand:"Hephaist",model:"ORC-12",spec:"Organik Rankine çevrimi, reenjeksiyonlu kapalı devre",capex:1.00,perf:1.00,avail:0.975,opex:1.00},
+    pre:{brand:"Vulkana",model:"DF-15",spec:"Çift flaş + ORC kombine çevrim, gaz salımı düşük",capex:1.18,perf:1.08,avail:0.99,opex:0.92}
+  },
+  // BES: perf yakıt verimi (daha verimli santral aynı elektrik için daha az yakıt yakar)
+  bes:{
+    eco:{brand:"Agrova",model:"BG-1",spec:"Biyogaz motoru, elektrik verimi %36",capex:0.85,perf:0.90,avail:0.95,opex:1.15},
+    std:{brand:"Biomera",model:"BK-5",spec:"Biyokütle kazanı ve buhar türbini, verim %40",capex:1.00,perf:1.00,avail:0.975,opex:1.00},
+    pre:{brand:"Verdea",model:"CHP-8",spec:"Kojenerasyon: atık ısı da satılır, verim %45",capex:1.20,perf:1.12,avail:0.985,opex:0.95}
+  },
+  mar:{
+    eco:{brand:"Maris",model:"TS-1",spec:"Deniz tabanına sabit gelgit türbini",capex:0.85,perf:0.88,avail:0.93,opex:1.20},
+    std:{brand:"Talassa",model:"FT-2",spec:"Yüzer çift rotorlu gelgit türbini ve dalga dönüştürücü",capex:1.00,perf:1.00,avail:0.96,opex:1.00},
+    pre:{brand:"Okeanis",model:"FT-3X",spec:"Yüzer gelgit dizisi, uzaktan bakım, dalga sönümleyici",capex:1.20,perf:1.10,avail:0.98,opex:0.90}
   }
 };
 

@@ -6,6 +6,7 @@
 // fiyatından kapanır: eksik üretim için PTF'nin %35 fazlası ödenir, fazla üretim PTF'nin %30 altından satılır.
 // (Gerçek piyasada dengesizlik fiyatı PTF ile SMF'den türetilir; oran oyun dengesi için temsilîdir.)
 import { S, D } from "./state.js";
+import { fillRes } from "./world.js";
 import { clamp, gauss, shape } from "./utils.js";
 import { eqOf } from "./equipment.js";
 import { factor, salePrice } from "./mods.js";
@@ -15,7 +16,7 @@ import { CAL, noonAmp } from "./calendar.js";
 import { spec } from "./profile.js";
 
 export const K_SHORT=0.35, K_SURP=0.30;
-export const RENEW=["ges","res","off"];
+export const RENEW=["ges","res","off","mar"];
 export const FC_FEE=4; // premium tahmin servisi: yenilenebilir MW başına günlük ücret ($)
 export const deskDefaults=()=>({ratio:1,fc:"std",batt:"arb",auto:false});
 
@@ -25,11 +26,20 @@ export function production(p,h){
   const t=S.sites[p.t],q=eqOf(p),of=factor("out",t.mreg,p.k,h),w=siteWx(t,h);
   if(p.k==="ges")return {e:p.mw*t.solar*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*q.perf*of*(t.snowDays>0?0.25:1),w};
   if(p.k==="res"||p.k==="off")return {e:p.mw*clamp(powerCurve(w.hub)*q.perf*of,0,1),w,v:w.hub};
+  if(p.k==="mar"){const m=marine(t,h,w);return {e:p.mw*clamp((m.tide+m.wave)*q.perf*of,0,1),w,tide:m.tide,wave:m.wave};}
   return {e:0,w};
 }
+// Deniz enerjisi: gelgit akıntısı günde iki kez güçlenip durulur (12,42 saatlik döngü, kıyıya göre faz farkı); hesaplanabilir
+// olduğu için tahmini kolaydır. Dalga dönüştürücü rüzgârla büyüyen dalgadan üretir ve havaya bağlıdır.
+export function marine(t,h,w){
+  fillRes(t);const hr=S.dayNo*24+h,ph=(t.lon/360)*12.42;
+  const tide=0.6*t.tide*Math.abs(Math.sin(Math.PI*(hr+ph)/6.21)),wave=0.25*clamp((w.hub-4)/14,0,1)**1.4;
+  return {tide,wave};
+}
 // Saatlik tahmin hatası belirsizliği (σ, oran): rüzgârda güç eğrisinin dik bölgesi ve fırtına, güneşte parçalı bulut
-function sigma(p,w){
+function sigma(p,w,h){
   if(p.k==="ges")return 0.05+0.55*w.c*(1-w.c);
+  if(p.k==="mar"){const m=marine(S.sites[p.t],h,w);return 0.04+0.3*m.wave/Math.max(0.05,m.tide+m.wave);}
   const v=w.hub;return 0.12+(v>4.5&&v<11.5?0.16:0.05)+0.25*w.storm;
 }
 
@@ -45,7 +55,7 @@ export function dayAhead(){
     if(!RENEW.includes(p.k))return;
     // hatanın şekli (ilişkili gürültü) gün başında bir kez çekilir; tahmin servisi yalnızca genliğini değiştirir
     p.fz=[];let z=0;for(let h=0;h<24;h++){z=0.75*z+0.66*gauss();p.fz.push(z);}
-    p.sg=[];for(let h=0;h<24;h++)p.sg.push(sigma(p,production(p,h).w)*(0.75+0.5*h/23));
+    p.sg=[];for(let h=0;h<24;h++)p.sg.push(sigma(p,production(p,h).w,h)*(0.75+0.5*h/23));
   });
   applyDesk();
 }

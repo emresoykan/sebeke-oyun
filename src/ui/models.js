@@ -159,7 +159,7 @@ function buildSite(id,o,ps){
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges));
   if(by.hes)groups.push(hydro(parts));
   if(by.batt)groups.push(bess(by.batt,parts));
-  if(!o.sea&&(by.res||by.ges||by.batt))groups.push(substation());
+  if(!o.sea&&(by.res||by.ges||by.batt||by.jes||by.bes))groups.push(substation());
   // grupları soldan sağa diz, sahayı merkeze al
   const bb=groups.map(gr=>new THREE.Box3().setFromObject(gr)),gap=35,total=bb.reduce((a,b)=>a+b.max.x-b.min.x,0)+gap*(groups.length-1);
   let x=-total/2;groups.forEach((gr,i)=>{const w=bb[i].max.x-bb[i].min.x;gr.position.x=x-bb[i].min.x;x+=w+gap;root.add(gr);});

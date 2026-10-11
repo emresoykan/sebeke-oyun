@@ -1,6 +1,6 @@
 :root{
   --bg:#EEF2F3; --surface:#FFFFFF; --ink:#1D2B36; --muted:#5B6B77; --line:#D3DCE0;
-  --solar:#E59E00; --wind:#2F7FC1; --hydro:#7A5CC2; --batt:#1F9D74; --neg:#C2364A; --pos:#1F9D74; --warn:#D9A400;
+  --solar:#E59E00; --wind:#2F7FC1; --hydro:#7A5CC2; --batt:#1F9D74; --geo:#C8553D; --bio:#7A9A2E; --marine:#1A9BA8; --neg:#C2364A; --pos:#1F9D74; --warn:#D9A400;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -8,12 +8,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
-    --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C;
+    --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C;
   }
 }
 :root[data-theme="dark"]{
   --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
-  --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C;
+  --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -271,7 +271,8 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .map3d.loading .map3d-load{display:grid}
 .fpsmeter{position:absolute;top:8px;right:8px;z-index:3;background:rgba(5,10,15,.7);color:#fff;font:600 12px ui-monospace,monospace;padding:3px 8px;border-radius:6px;pointer-events:none}
 /* Apple Haritalar (mapkit.js) üstündeki oyun işaretleri */
-.mk-mark{position:relative;box-sizing:border-box;cursor:pointer}
+.mk-anchor{position:relative;width:0;height:0;overflow:visible}
+.mk-mark{position:absolute;left:0;top:0;transform:translate(-50%,-50%);box-sizing:border-box;cursor:pointer}
 .mk-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;white-space:nowrap;pointer-events:none;
   font:600 12px "Noto Sans",system-ui,sans-serif;color:#fff;text-shadow:0 0 3px #0B1626,0 0 2px #0B1626,0 1px 2px #0B1626}
 .mk-lbl:empty{display:none}
