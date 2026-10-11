@@ -42,6 +42,7 @@ function materials(){
     river:std({map:ripple,roughness:.12,metalness:.2}), foam:std({map:foam,roughness:.45,transparent:true,opacity:.95}),
     chips:std({color:0x8A6A43,roughness:1}), membrane:std({color:0x5E7F3A,roughness:.55,metalness:.05}),
     steam:std({color:0xFFFFFF,emissive:0x8A8F96,roughness:1,transparent:true,opacity:.6}), smoke:std({color:0x9AA0A6,roughness:1,transparent:true,opacity:.45}),
+    glint:new THREE.MeshBasicMaterial({color:0xFFFFFF,transparent:true,opacity:.5,depthWrite:false}),
     beacon:new THREE.MeshBasicMaterial({color:0xFF2236}),
     ledG:new THREE.MeshBasicMaterial({color:0x3CC495}), ledA:new THREE.MeshBasicMaterial({color:0xF2A93B}),
     ledR:new THREE.MeshBasicMaterial({color:0xF06A7D}), ledO:new THREE.MeshBasicMaterial({color:0x39424A})
@@ -106,6 +107,13 @@ function solarFarm(mw,lat,parts,tier="std"){
       for(let k=0;k<perHalf;k++)for(const dz of [-1.6,1.6]){const hh=1.9-dz*Math.sin(tilt);
         legs.setMatrixAt(li++,m.compose(new THREE.Vector3(cx-half/2+k*legStep,hh/2,z+dz),q0,new THREE.Vector3(1,hh,1)));}}}
   g.add(pad(L+14,D+12,M.gravel),pad(7,D+12,M.road,.08),panels,legs);
+  // güneş parıltısı: sıralar 12 banda ayrılır, üretim varken bantlar sırayla yanarak panellerin üstünden kayar
+  const K=12,gg=new THREE.PlaneGeometry(half,4.2);gg.rotateX(-Math.PI/2);
+  const lift=new THREE.Vector3(0,.09,0).applyQuaternion(q);
+  for(let k=0;k<K;k++){const r0=Math.floor(k*rows/K),r1=Math.floor((k+1)*rows/K);if(r1<=r0)continue;
+    const im=new THREE.InstancedMesh(gg,M.glint,(r1-r0)*2);let j=0;
+    for(let i=r0;i<r1;i++){const z=(i-(rows-1)/2)*pitch;for(const cx of [-(half/2+4),half/2+4])im.setMatrixAt(j++,m.compose(new THREE.Vector3(cx,1.9,z).add(lift),q,one));}
+    im.name=`glint${parts.glints.length}`;g.add(im);parts.glints.push(im.name);}
   const nInv=Math.max(1,Math.round(mw/10));
   for(let b=0;b<nInv;b++){const z=(b-(nInv-1)/2)*(D/nInv);g.add(box(3,2.6,6,M.grey,0,1.3,z));
     parts.inv.push(ledSet(g,new THREE.BoxGeometry(.1,.5,.5),[1.56,2,z],{run:M.ledG,curt:M.ledR,off:M.ledO},`inv${b}`));}
@@ -117,6 +125,7 @@ function bess(mw,parts){
   const g=new THREE.Group(),n=Math.min(24,Math.max(3,Math.ceil(mw/5)*3)),cols=Math.min(6,n),rows=Math.ceil(n/cols);
   for(let i=0;i<n;i++){const c=i%cols,r=Math.floor(i/cols),x=(c-(cols-1)/2)*15,z=(r-(rows-1)/2)*6;
     g.add(box(12.2,2.9,2.45,M.container,x,1.75,z),box(1.1,2.3,2.2,M.dark,x+6.7,1.45,z));
+    const fan=new THREE.Group();fan.position.set(x+6.7,2.68,z);fan.add(box(1.9,.08,.3,M.frame),box(.3,.08,1.9,M.frame));fan.name=`fan${parts.fans.length}`;g.add(fan);parts.fans.push({name:fan.name,a:Math.random()*3});
     parts.leds.push(ledSet(g,new THREE.BoxGeometry(10,.22,.05),[x,2.6,z+1.25],{chg:M.ledG,dis:M.ledA,off:M.ledO},`led${i}`));}
   g.add(pad(cols*15+6,rows*6+10,M.concrete,.07),box(4,3,3,M.grey,-(cols*15)/2-4,1.5,0));
   return g;
@@ -139,6 +148,10 @@ function hydro(parts){
   river.rotation.x=-Math.PI/2;river.position.set(0,.25,30+85);river.receiveShadow=true;g.add(river);
   g.add(box(26,13,15,M.concrete,34,6.5,38),box(26,1,15,M.dark,34,13.5,38));
   parts.flows.push("chute");
+  // dolusavak dibinde su sıçraması (çalışırken)
+  const sp=new THREE.Group();sp.name="spray";
+  [[-5,3,34,3.4],[0,4,35,4.2],[5,3,34,3.4],[-2.5,6,37,3],[2.5,6,37,3]].forEach(([x,y,z,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),M.steam);m.position.set(x,y,z);sp.add(m);});
+  g.add(sp);parts.drifts.push({name:"spray",ph:0,amp:1.2,sp:3.2,k:"hes"});
   return g;
 }
 
@@ -150,7 +163,7 @@ function geothermal(mw,parts){
   for(let i=0;i<nt;i++){const x=-26+i*20,z=-34,t=new THREE.Mesh(new THREE.CylinderGeometry(6.2,8,20,28,1,true),M.concrete);t.position.set(x,10,z);t.castShadow=true;g.add(t);
     const st=new THREE.Group();st.name=`steam${parts.steams.length}`;
     [[0,25,0,6],[1.5,31,1,7.5],[-1,37,-1,8.5],[2,43,.5,9]].forEach(([dx,y,dz,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),M.steam);m.position.set(x+dx,y,z+dz);st.add(m);});
-    g.add(st);parts.steams.push(st.name);}
+    g.add(st);parts.steams.push(st.name);parts.drifts.push({name:st.name,ph:i*1.7,amp:1.8,sp:.6});}
   // kuyu başları (vana ağacı) ve santrale giden yalıtımlı borular (ayaklar üstünde)
   for(let i=0;i<nw;i++){const a=(i/nw)*Math.PI*1.2+0.3,x=Math.cos(a)*62,z=24+Math.sin(a)*32;
     g.add(pad(10,10,M.concrete,.07),box(1.6,3.2,1.6,M.yellow,x,1.6,z),box(3.2,.8,.8,M.grey,x,2.8,z));
@@ -168,10 +181,12 @@ function biomass(mw,parts){
   g.add(box(3.4,1.2,3.4,M.beacon,-14,46.5,-6));
   const sm=new THREE.Group();sm.name=`smoke${parts.smokes.length}`;
   [[0,52,0,3],[1.5,57,.5,4],[3.5,62,1,5],[6,67,1.5,6]].forEach(([dx,y,dz,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),M.smoke);m.position.set(-14+dx,y,-6+dz);sm.add(m);});
-  g.add(sm);parts.smokes.push(sm.name);
+  g.add(sm);parts.smokes.push(sm.name);parts.drifts.push({name:sm.name,ph:0,amp:1.4,sp:.5});
   // yakıt sahası: talaş yığınları ve kazana çıkan eğik konveyör
   [[-40,22,9],[-55,8,11],[-38,-8,8]].forEach(([x,z,r])=>{const c=new THREE.Mesh(new THREE.ConeGeometry(r,r*0.8,20),M.chips);c.position.set(x,r*0.4,z);c.castShadow=c.receiveShadow=true;g.add(c);});
   const cv=box(34,1,2.4,M.frame,-24,10,10);cv.rotation.z=0.5;g.add(cv);
+  const ch2=new THREE.Group();ch2.position.set(-24,10.9,10);ch2.rotation.z=0.5;ch2.name=`chips${parts.belts.length}`;
+  for(let k=-2;k<=2;k++)ch2.add(box(1.6,.8,1.6,M.chips,k*6.8,0,0));g.add(ch2);parts.belts.push(ch2.name);
   // biyogaz çürütücüler: beton silindir üstünde gaz kubbesi
   for(let i=0;i<nd;i++){const x=10+i*20,z=32;
     const tk=new THREE.Mesh(new THREE.CylinderGeometry(8,8,6,28),M.concrete);tk.position.set(x,3,z);tk.castShadow=true;g.add(tk);
@@ -214,7 +229,7 @@ function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return
 const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
 function buildSite(id,o,ps){
   const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
-  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[]},groups=[];
+  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[],glints:[],fans:[],drifts:[],belts:[]},groups=[];
   if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id),TURBINE_SCALE[top.res]));
   if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id),TURBINE_SCALE[top.off]));
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges));
@@ -273,6 +288,18 @@ function animate(s,st,dt){
   const b=st.batt,bs=!b?"off":b.chg?"chg":b.dis?"dis":"off",pulse=(b&&(b.chg||b.dis))?Math.sin(performance.now()/260)>-0.4:true;
   s.parts.leds.forEach(l=>{for(const k in l)show(m,l[k],k===bs&&pulse);});
   const g=st.ges,gs=!g||g.f<0.03?"off":g.curt?"curt":"run";s.parts.inv.forEach(l=>{for(const k in l)show(m,l[k],k===gs);});
+  const now=performance.now()/1000,tr=(n,x,y,z)=>{Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromTranslation(new Cesium.Cartesian3(x,y,z),rotM),rotM);n.matrix=rotM;};
+  // GES: üretim varken parıltı bandı panellerin üstünden kayar (kar, kısıntı ve gece hariç)
+  if(s.parts.glints.length){const on=g&&!g.down&&g.f>=0.08&&!g.curt&&!g.snow,K=s.parts.glints.length,pos=spin?(now*1.6)%(K+4)-2:-9;
+    s.parts.glints.forEach((n,k)=>show(m,n,on&&Math.abs(k-pos)<0.7));}
+  // batarya: şarj veya deşarjda soğutma fanları döner
+  if(s.parts.fans.length){const on=b&&(b.chg||b.dis);for(const f of s.parts.fans){if(on&&spin)f.a+=dt*9;
+    const n=m.getNode(f.name);if(n){Cesium.Matrix3.fromRotationY(f.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}}
+  // buhar, duman ve su sıçraması hafifçe süzülür; BES konveyöründe yakıt ilerler
+  if(spin){for(const d of s.parts.drifts){const n=m.getNode(d.name);if(n)tr(n,Math.sin(now*d.sp*0.7+d.ph)*d.amp*0.6,Math.abs(Math.sin(now*d.sp+d.ph))*d.amp,0);}
+    if(st.bes&&st.bes.run)for(const b of s.parts.belts){const n=m.getNode(b);if(n)tr(n,(now*3.4)%6.8,0,0);}}
+  s.parts.belts.forEach(b=>show(m,b,!!(st.bes&&st.bes.run)));
+  show(m,"spray",!!(st.hes&&st.hes.run));
   // JES buharı ve BES dumanı yalnızca çalışırken
   s.parts.steams.forEach(n=>show(m,n,!!(st.jes&&!st.jes.down&&st.jes.f>0)));
   s.parts.smokes.forEach(n=>show(m,n,!!(st.bes&&st.bes.run)));

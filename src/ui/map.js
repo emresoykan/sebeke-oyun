@@ -15,6 +15,7 @@ import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
 import { rivalSites, RIVALS } from "../rivals.js";
 import { gfx, onGfx, LEVELS } from "./quality.js";
+import { plantStatus, isLive } from "../plantstatus.js";
 import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
 import { initWeatherLayer } from "./wxflat.js";
 
@@ -70,12 +71,22 @@ function addGameLayers(){
     paint:{"icon-opacity":["case",["get","build"],0.5,1]}});
   map.addLayer({id:"rival-labels",type:"symbol",source:"rivals",minzoom:4,layout:{"text-field":["get","t"],"text-font":FONT.m,"text-size":11,"text-offset":[0,1.2],"text-anchor":"top","text-optional":true},
     paint:{"text-color":["get","c"],...lbl}});
+  // üretim yapan sahanın çevresinde teknoloji renginde genişleyip sönen halka
+  map.addLayer({id:"site-pulse",type:"circle",source:"sites",filter:["==",["get","on"],1],paint:{"circle-radius":9,"circle-color":"rgba(0,0,0,0)",
+    "circle-stroke-color":["get","col"],"circle-stroke-width":3,"circle-stroke-opacity":0,"circle-blur":0.15}});
   map.addLayer({id:"sites",type:"circle",source:"sites",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,5,8,8],"circle-color":["get","col"],"circle-opacity":["get","op"],
     "circle-stroke-color":["get","st"],"circle-stroke-width":2.5}});
   map.addLayer({id:"site-labels",type:"symbol",source:"sites",minzoom:3,filter:["!=",["get","t"],""],layout:{"text-field":["get","t"],"text-font":FONT.m,"text-size":12,"text-offset":[0,1.1],"text-anchor":"top","text-allow-overlap":true},
     paint:{"text-color":"#FFFFFF",...lbl}});
   map.addLayer({id:"sel-outer",type:"circle",source:"sel",paint:{"circle-radius":13,"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#000000","circle-stroke-width":3.5}});
   map.addLayer({id:"sel-inner",type:"circle",source:"sel",paint:{"circle-radius":12.5,"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#FFFFFF","circle-stroke-width":1.6}});
+}
+
+// Nabız: ~25 kare/sn; sekme gizliyken veya hareket azaltma açıkken durur
+function pulseLoop(){
+  let last=0;const step=t=>{requestAnimationFrame(step);if(document.hidden||reducedMotion.matches||!map||t-last<40)return;last=t;
+    const ph=(t%2200)/2200;map.setPaintProperty("site-pulse","circle-radius",10+22*ph);map.setPaintProperty("site-pulse","circle-stroke-opacity",0.95*(1-ph)**1.5);};
+  requestAnimationFrame(step);
 }
 
 // Vektör katmanları yüklenemezse (ağ, engelleme) yerel ülke adları, şehirler ve sınırlar gösterilir
@@ -104,8 +115,9 @@ function addNight(){
 export function setGameClock(hour){
   if(globeOpen&&globe)globe.setGlobeClock(hour);
   if(!ready)return;const h=Math.min(hour,23);
-  if(mk){mk.setClock(h);return;}
-  if(h!==lastHour){lastHour=h;drawNight(h);}
+  if(h===lastHour)return;lastHour=h;
+  if(mk)mk.setClock(h);else drawNight(h);
+  drawMap(); // saatlik üretim durumu (canlı nabız)
 }
 
 // Seçim (iki harita da kullanır): rakip işareti, kendi sahan veya haritada bir nokta (yakında sahan varsa o seçilir)
@@ -160,7 +172,7 @@ async function initFlat(){
     new MutationObserver(close).observe(att,{attributes:true,attributeFilter:["class","open"]});close();}
   // vektör kaynağı birkaç saniyede gelmezse yerel adlarla devam et
   if(ONLINE)setTimeout(()=>{if(!vectorOk)useFallback(true);},8000);
-  addNight();addGameLayers();initWeatherLayer(map);
+  addNight();addGameLayers();initWeatherLayer(map);pulseLoop();
   map.on("click",onClick);
   ["rivals","sites"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);
@@ -183,7 +195,7 @@ export function drawMap(){
   if(mk){mk.draw();return;}
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:""});})));
+    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on:mw&&isLive(plantStatus(id))?1:0});})));
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
 }
