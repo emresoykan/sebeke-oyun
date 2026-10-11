@@ -13,6 +13,7 @@ import { CAL } from "../calendar.js";
 import { siteMW } from "../sim.js";
 import { rivalSites } from "../rivals.js";
 import { PROTECTED } from "../data/protected.js";
+import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
@@ -144,7 +145,8 @@ export function draw(){
     if(!m){m=marker("mk-site",18,()=>hooks.selectSite(id));sites.set(id,m);map.addAnnotation(m.a);}
     const top=S.plants.filter(p=>p.t===id).sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     place(m,o.lat,o.lon);
-    m.root.style.background=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
+    const col=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.background=col;m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
+    m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}

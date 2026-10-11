@@ -42,3 +42,9 @@ export function statusText(st){
   if(st.batt)parts.push(`Batarya: ${pct(st.batt.soc)} dolu`+(st.batt.chg?", şarj oluyor":st.batt.dis?", deşarj ediyor":", beklemede"));
   return parts.join(" • ");
 }
+
+// Sahada o saatte üretim (veya batarya hareketi) var mı: haritadaki "canlı" nabzı için
+export function isLive(st){
+  const f=x=>x&&!x.down&&x.f>=0.03;
+  return !!((f(st.ges)&&!st.ges.curt)||f(st.res)||f(st.off)||f(st.jes)||f(st.mar)||(st.hes&&st.hes.run)||(st.bes&&st.bes.run)||(st.batt&&(st.batt.chg||st.batt.dis)));
+}

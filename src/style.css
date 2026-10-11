@@ -287,3 +287,6 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .mk-map:not(.mk-z3) .mk-site .mk-lbl{display:none}
 .mk-map.mk-z4 .mk-rival .mk-lbl:not(:empty){display:block}
 .mapnote{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;background:rgba(10,15,25,.88);color:#fff;font:600 12.5px system-ui,sans-serif;padding:8px 10px;border-radius:8px;pointer-events:none}
+.mk-site.on::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:2.2px solid var(--c);animation:mkpulse 2.2s ease-out infinite;pointer-events:none}
+@keyframes mkpulse{from{transform:scale(1);opacity:.8}to{transform:scale(2.6);opacity:0}}
+@media (prefers-reduced-motion: reduce){.mk-site.on::after{animation:none;opacity:.5}}
