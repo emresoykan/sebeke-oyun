@@ -82,6 +82,34 @@ function addGameLayers(){
   map.addLayer({id:"sel-inner",type:"circle",source:"sel",paint:{"circle-radius":12.5,"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#FFFFFF","circle-stroke-width":1.6}});
 }
 
+// Yakınlaşınca tesisin kendisi: 3D modelin gerçek ölçekli kuşbakışı görüntüsü sahanın üstüne yerleşir (siteimage.js;
+// three.js yalnızca ilk yakınlaşmada yüklenir). Santral listesi değişince görüntü yenilenir.
+const FAC_Z=11;const facs=new Map();let facBusy=false,facAgain=false,facMod=null,facRaf=0;
+async function syncFacilities(){
+  if(!map||mk||map.getZoom()<FAC_Z-0.5)return;
+  if(facBusy){facAgain=true;return;}facBusy=true;
+  try{const F=facMod=await import("./siteimage.js");
+    for(const id of Object.keys(S.sites)){
+      const sig=F.siteSig(id),cur=facs.get(id),src="fac-"+id;
+      if(cur&&cur.sig===sig)continue;facs.set(id,{sig});
+      if(!sig){if(map.getLayer(src))map.removeLayer(src);if(map.getSource(src))map.removeSource(src);continue;}
+      const img=await F.siteImage(id);if(!img||facs.get(id).sig!==sig||!map)continue;
+      facs.get(id).img=img;const coordinates=F.cornersOf(S.sites[id],img,facK(S.sites[id],img));
+      if(map.getSource(src))map.getSource(src).updateImage({url:img.url,coordinates});
+      else{map.addSource(src,{type:"image",url:img.url,coordinates});
+        map.addLayer({id:src,type:"raster",source:src,minzoom:FAC_Z-0.5,paint:{"raster-fade-duration":0,"raster-opacity":["interpolate",["linear"],["zoom"],FAC_Z-0.5,0,FAC_Z+1,1]}},"site-pulse");}
+    }
+  }catch(e){console.warn("Tesis görüntüleri yüklenemedi:",e);}
+  facBusy=false;if(facAgain){facAgain=false;syncFacilities();}
+}
+
+// uzaktan tesis en az belirli piksel boyutunda; yaklaştıkça gerçek ölçeğe iner (yakınlaştırırken karede bir güncellenir)
+function facK(o,img){const mpp=40075016*Math.cos(o.lat*Math.PI/180)/(512*2**map.getZoom());return facMod.facScale(img,1/mpp);}
+function rescaleFacilities(){
+  if(!facMod||facRaf)return;facRaf=requestAnimationFrame(()=>{facRaf=0;
+    for(const [id,f] of facs){const src=map.getSource("fac-"+id),o=S.sites[id];if(src&&f.img&&o)src.setCoordinates(facMod.cornersOf(o,f.img,facK(o,f.img)));}});
+}
+
 // Nabız: ~25 kare/sn; sekme gizliyken veya hareket azaltma açıkken durur
 function pulseLoop(){
   let last=0;const step=t=>{requestAnimationFrame(step);if(document.hidden||reducedMotion.matches||!map||t-last<40)return;last=t;
@@ -172,7 +200,7 @@ async function initFlat(){
     new MutationObserver(close).observe(att,{attributes:true,attributeFilter:["class","open"]});close();}
   // vektör kaynağı birkaç saniyede gelmezse yerel adlarla devam et
   if(ONLINE)setTimeout(()=>{if(!vectorOk)useFallback(true);},8000);
-  addNight();addGameLayers();initWeatherLayer(map);pulseLoop();
+  addNight();addGameLayers();initWeatherLayer(map);pulseLoop();map.on("zoomend",syncFacilities);map.on("zoom",rescaleFacilities);
   map.on("click",onClick);
   ["rivals","sites"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);
@@ -198,6 +226,7 @@ export function drawMap(){
     return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on:mw&&isLive(plantStatus(id))?1:0});})));
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
+  syncFacilities();
 }
 
 // --- 3D pencere ---
