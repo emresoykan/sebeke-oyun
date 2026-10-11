@@ -1,7 +1,8 @@
 // --- Panel ---
-import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N } from "../config.js";
+import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
 import { S, selSite } from "../state.js";
-import { allowed, landCost, permitFee, permitProb, oddsTxt, ministry } from "../rules.js";
+import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry } from "../rules.js";
+import { fillRes } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build } from "../actions.js";
@@ -34,7 +35,10 @@ function buildHtml(t){
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
       <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW • ${fmt$(c)}</button></div>`;}).join("")+`</div>`;
-  return h+`<div class="eqnote">Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
+  const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
+    bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
+    mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
+  return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
 export function renderPanel(){
@@ -46,8 +50,10 @@ export function renderPanel(){
   if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}
   title=t.sea?`${t.country} • Sığ deniz`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
   html+=`<h3>${title}</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
-  html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span>`:
-    `<span>Güneş</span><span class="dots">${dots(t.solar)}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`)+`</div>`;
+  fillRes(t);
+  html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
+    `<span>Güneş</span><span class="dots">${dots(t.solar)}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
+    `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`)+`</div>`;
   html+=`<div id="wxBox">${wxHtml(t)}</div>`;
   const p=permitProb(t),rv=o?null:rivalNear(t.lat,t.lon);
   if(rv){const {r,s:x}=rv,d=km(t.lat,t.lon,x.lat,x.lon);
@@ -74,4 +80,4 @@ export function renderPanel(){
     else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }
-export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&siteMW(S.sel.id)+BLOCK>SITE_LIMIT)d=true;b.disabled=d;});}
+export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>SITE_LIMIT||locked(b.dataset.k)))d=true;b.disabled=d;});}

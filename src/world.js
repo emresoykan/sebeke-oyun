@@ -35,6 +35,26 @@ function nearestCountry(lon,lat,maxKm){const m=degM(maxKm,lat);let best=null,bd=
   C.forEach(c=>{if(!inBB(c.bb,lon,lat,m))return;c.polys.forEach(p=>{const d=segKm(lat,lon,p[0]);if(d<bd){bd=d;best=c;}});});return bd<=maxKm?best:null;}
 export function nearestCity(lat,lon){let best=null,bd=Infinity;for(const c of cities){const d=km(lat,lon,c[2],c[3]);if(d<bd){bd=d;best=c;}}return{n:best[0],a3:best[1],km:bd};}
 
+// Jeotermal kuşaklar (levha sınırları ve volkanik bölgeler, kaba): [enlem, boylam, yarıçap km, kaynak gücü]
+const GEO_ZONES=[[38.0,28.4,190,1.0],[39.6,26.2,70,0.6],[38.7,30.5,90,0.5],[64.9,-18.7,260,1.0],[43.2,10.9,70,0.9],[40.8,14.1,50,0.6],
+  [-0.8,36.3,260,0.95],[8.6,39.6,280,0.7],[-7.3,107.8,420,0.9],[1.5,99.3,420,0.8],[11.5,124.3,520,0.9],[-38.6,176.1,160,1.0],
+  [38.8,-122.8,150,0.9],[33.0,-115.6,120,0.8],[39.6,-118.4,260,0.7],[19.8,-100.7,160,0.7],[13.4,-88.6,320,0.75],[10.6,-85.3,150,0.6],
+  [39.0,140.8,420,0.7],[53.1,158.0,220,0.6],[-22.3,-68.2,320,0.5],[-1.0,-78.5,220,0.5],[36.7,24.4,70,0.5],[44.6,-110.6,150,0.6]];
+// Güçlü gelgit kıyıları: [enlem, boylam, yarıçap km, gelgit gücü]; diğer sığ denizlerde zayıf (iç denizlerde neredeyse yok)
+const TIDE_ZONES=[[45.3,-64.6,260,1.0],[51.3,-3.4,200,0.9],[58.7,-3.1,180,0.95],[48.7,-2.0,220,0.9],[37.2,126.4,260,0.8],[-16.0,124.0,420,0.85],
+  [61.0,-150.5,250,0.8],[21.3,72.4,220,0.75],[-50.5,-68.8,320,0.75],[30.2,122.2,260,0.6],[65.0,36.0,260,0.55],[53.2,8.3,220,0.45],[-27.0,153.3,200,0.3]];
+const zoneAt=(Z,lat,lon)=>Z.reduce((b,[a,o,r,v])=>{const d=km(lat,lon,a,o);return d<r?Math.max(b,v*(1-0.5*d/r)):b;},0);
+export const geoAt=(lat,lon)=>+zoneAt(GEO_ZONES,lat,lon).toFixed(2);
+export const tideAt=(lat,lon)=>{const v=zoneAt(TIDE_ZONES,lat,lon);return +Math.max(v,(Math.abs(lat)>25&&Math.abs(lat)<62?0.2:0.12)).toFixed(2);};
+// Biyokütle hammaddesi: ova (tarım atığı) ve orman (orman atığı) bol, dağlık orta, çölde yok
+const BIO={pl:0.8,f:0.9,m:0.45,d:0.1,p:0,i:0};
+// Eski kayıtlardaki sahalarda yeni kaynak alanları yok: konumdan tamamlanır
+export function fillRes(t){
+  if(t.sea){if(t.shallow&&t.tide==null)t.tide=tideAt(t.lat,t.lon);}
+  else{if(t.geo==null)t.geo=geoAt(t.lat,t.lon);if(t.bio==null)t.bio=BIO[t.ter]??0;}
+  return t;
+}
+
 // Bir noktanın oyun özellikleri (eski kare nesnesiyle aynı alanlar + ülke/şehir bilgisi)
 export function describe(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
@@ -48,10 +68,11 @@ export function describe(lat,lon){
     t.solar=Math.max(0.15,Math.min(1,Math.min(1,Math.max(0.2,1.05-Math.abs(lat)/75))+(t.ter==="d"?0.15:0)-(t.ter==="f"?0.15:0)));
     t.wind=Math.max(0.15,Math.min(0.95,0.35+(Math.abs(lat)>=40?0.25:0)+(coastNear?0.12:0)+(t.ter==="m"?0.08:0)-(t.ter==="f"?0.1:0)));
     t.hydro=t.ter==="m"?0.8:0;
+    t.geo=t.ter==="i"?0:geoAt(lat,lon);t.bio=BIO[t.ter]??0;
   }else{
     t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=0.7+(Math.abs(lat)>=40?0.15:0);t.solar=0;t.hydro=0;}
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=0.7+(Math.abs(lat)>=40?0.15:0);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
   }
   const ct=nearestCity(lat,lon);t.city=ct.n;t.cityKm=Math.round(ct.km);
   return t;

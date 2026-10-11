@@ -23,6 +23,17 @@ export const TECH={
   res:{n:"RES",long:"Rüzgâr karada (RES)",capex:140000,opex:250,c:"--wind"},
   off:{n:"Offshore",long:"Rüzgâr denizde (offshore RES)",capex:260000,opex:500,c:"--wind"},
   hes:{n:"HES",long:"Hidroelektrik (HES)",capex:180000,opex:200,c:"--hydro"},
-  batt:{n:"Batarya",long:"Batarya 5 MW / 10 MWh",capex:12000,opex:50,c:"--batt"}
+  batt:{n:"Batarya",long:"Batarya 5 MW / 10 MWh",capex:12000,opex:50,c:"--batt"},
+  jes:{n:"JES",long:"Jeotermal (JES)",capex:320000,opex:1000,c:"--geo"},
+  bes:{n:"BES",long:"Biyokütle ve biyogaz (BES)",capex:150000,opex:400,c:"--bio"},
+  mar:{n:"Deniz",long:"Deniz enerjisi (gelgit ve dalga)",capex:420000,opex:900,c:"--marine"}
 };
+// Üretim yapan teknolojiler (rapor ve günlük toplamlar için)
+export const PROD=["ges","res","off","hes","jes","bes","mar"];
+// JES: rezervuar sürekli üretir (kapasite faktörü ~%90); ilk sondajda rezervuarın verimi belli olur (%55–110)
+export const GEO_CF=0.92;
+// BES: yakıt (tarım ve orman atığı, hayvan gübresi) maliyeti, $/MWh elektrik; yerel hammadde bolluğu düşürür
+export const BIO_FUEL=34;
+// Deniz enerjisi: gelişmekte olan teknoloji; 25 MW kurulu güçten sonra açılır ve üretimine yenilik desteği ödenir
+export const MAR_UNLOCK=25, MAR_PREMIUM=60;
 export const TER_N={pl:"Ova",f:"Orman",m:"Dağlık",d:"Çöl",p:"Korunan alan",i:"Buz örtüsü"};

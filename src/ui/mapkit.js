@@ -50,10 +50,11 @@ function fail(err){if(failed)return;failed=true;destroy();hooks&&hooks.fail(err)
 
 const div=(cls,parent)=>{const d=document.createElement("div");d.className=cls;if(parent)parent.appendChild(d);return d;};
 const coord=(lat,lon)=>new mk.Coordinate(lat,lon);
-// İşaret: kök öğe noktanın kendisi (ortası koordinata gelir), etiket altında taşar
+// İşaret: MapKit'e sıfır boyutlu bir çapa verilir, nokta bu çapaya ortalanır; böylece MapKit'in çapa noktası
+// (alt orta veya merkez) ne olursa olsun nokta tam koordinatın üstünde durur. Etiket noktanın altında taşar.
 function marker(cls,size,onSelect){
-  const root=div("mk-mark "+cls),lab=div("mk-lbl",root);
-  const a=new mk.Annotation(coord(0,0),()=>root,{calloutEnabled:false,anchorOffset:new DOMPoint(0,size/2),size:{width:size,height:size},
+  const anchor=div("mk-anchor"),root=div("mk-mark "+cls,anchor),lab=div("mk-lbl",root);
+  const a=new mk.Annotation(coord(0,0),()=>anchor,{calloutEnabled:false,
     displayPriority:mk.Annotation.DisplayPriority.Required,collisionMode:mk.Annotation.CollisionMode.None});
   if(onSelect)a.addEventListener("select",()=>{tapAt=performance.now();setTimeout(()=>{a.selected=false;},0);onSelect();});
   else a.enabled=false;
