@@ -40,6 +40,8 @@ function materials(){
     container:std({map:ribs,roughness:.5,metalness:.15}), dam:std({color:0xCDC7BA,roughness:.9}), earth:std({color:0x7A7450,roughness:1}),
     water:std({color:0x1C5A82,roughness:.05,metalness:.3,transparent:true,opacity:.94}),
     river:std({map:ripple,roughness:.12,metalness:.2}), foam:std({map:foam,roughness:.45,transparent:true,opacity:.95}),
+    chips:std({color:0x8A6A43,roughness:1}), membrane:std({color:0x5E7F3A,roughness:.55,metalness:.05}),
+    steam:std({color:0xFFFFFF,emissive:0x8A8F96,roughness:1,transparent:true,opacity:.6}), smoke:std({color:0x9AA0A6,roughness:1,transparent:true,opacity:.45}),
     beacon:new THREE.MeshBasicMaterial({color:0xFF2236}),
     ledG:new THREE.MeshBasicMaterial({color:0x3CC495}), ledA:new THREE.MeshBasicMaterial({color:0xF2A93B}),
     ledR:new THREE.MeshBasicMaterial({color:0xF06A7D}), ledO:new THREE.MeshBasicMaterial({color:0x39424A})
@@ -140,6 +142,65 @@ function hydro(parts){
   return g;
 }
 
+// ---- JES: kuyu başları, yükseltilmiş buhar boruları, santral binası ve buhar çıkaran soğutma kuleleri ----
+function geothermal(mw,parts){
+  const g=new THREE.Group(),nw=Math.min(6,1+Math.ceil(mw/5)),nt=mw>10?3:2;
+  g.add(pad(150,120,M.gravel,.05),box(34,13,18,M.concrete,0,6.5,0),box(34,1.2,18,M.dark,0,13.6,0));
+  // soğutma kuleleri: hafif daralan beton gövde; üstte buhar bulutu (çalışırken görünür)
+  for(let i=0;i<nt;i++){const x=-26+i*20,z=-34,t=new THREE.Mesh(new THREE.CylinderGeometry(6.2,8,20,28,1,true),M.concrete);t.position.set(x,10,z);t.castShadow=true;g.add(t);
+    const st=new THREE.Group();st.name=`steam${parts.steams.length}`;
+    [[0,25,0,6],[1.5,31,1,7.5],[-1,37,-1,8.5],[2,43,.5,9]].forEach(([dx,y,dz,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),M.steam);m.position.set(x+dx,y,z+dz);st.add(m);});
+    g.add(st);parts.steams.push(st.name);}
+  // kuyu başları (vana ağacı) ve santrale giden yalıtımlı borular (ayaklar üstünde)
+  for(let i=0;i<nw;i++){const a=(i/nw)*Math.PI*1.2+0.3,x=Math.cos(a)*62,z=24+Math.sin(a)*32;
+    g.add(pad(10,10,M.concrete,.07),box(1.6,3.2,1.6,M.yellow,x,1.6,z),box(3.2,.8,.8,M.grey,x,2.8,z));
+    const len=Math.hypot(x,z-9),pipe=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,len,10),M.frame);
+    pipe.rotation.z=Math.PI/2;pipe.rotation.y=-Math.atan2(z-9,x);pipe.position.set(x/2,2.6,(z+9)/2);pipe.castShadow=true;g.add(pipe);
+    for(let k=1;k<Math.floor(len/9);k++){const f=k*9/len;g.add(box(.4,2.4,.4,M.dark,x*(1-f),1.2,9+(z-9)*(1-f)));}}
+  return g;
+}
+
+// ---- BES: kazan ve türbin binası, baca (çalışırken duman), talaş yığınları, biyogaz kubbeleri, konveyör ----
+function biomass(mw,parts){
+  const g=new THREE.Group(),nd=mw>10?3:2;
+  g.add(pad(130,90,M.concrete,.05),box(22,26,18,M.concrete,0,13,0),box(22,1,18,M.dark,0,26.5,0),box(30,12,16,M.grey,26,6,0));
+  const ch=new THREE.Mesh(new THREE.CylinderGeometry(1.4,2,48,16),M.white);ch.position.set(-14,24,-6);ch.castShadow=true;g.add(ch);
+  g.add(box(3.4,1.2,3.4,M.beacon,-14,46.5,-6));
+  const sm=new THREE.Group();sm.name=`smoke${parts.smokes.length}`;
+  [[0,52,0,3],[1.5,57,.5,4],[3.5,62,1,5],[6,67,1.5,6]].forEach(([dx,y,dz,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),M.smoke);m.position.set(-14+dx,y,-6+dz);sm.add(m);});
+  g.add(sm);parts.smokes.push(sm.name);
+  // yakıt sahası: talaş yığınları ve kazana çıkan eğik konveyör
+  [[-40,22,9],[-55,8,11],[-38,-8,8]].forEach(([x,z,r])=>{const c=new THREE.Mesh(new THREE.ConeGeometry(r,r*0.8,20),M.chips);c.position.set(x,r*0.4,z);c.castShadow=c.receiveShadow=true;g.add(c);});
+  const cv=box(34,1,2.4,M.frame,-24,10,10);cv.rotation.z=0.5;g.add(cv);
+  // biyogaz çürütücüler: beton silindir üstünde gaz kubbesi
+  for(let i=0;i<nd;i++){const x=10+i*20,z=32;
+    const tk=new THREE.Mesh(new THREE.CylinderGeometry(8,8,6,28),M.concrete);tk.position.set(x,3,z);tk.castShadow=true;g.add(tk);
+    const dm=new THREE.Mesh(new THREE.SphereGeometry(8,28,14,0,Math.PI*2,0,Math.PI/2),M.membrane);dm.position.set(x,6,z);dm.castShadow=true;g.add(dm);}
+  return g;
+}
+
+// ---- Deniz: yüzer gelgit türbini platformları (dönen çift rotor) ve dalga şamandıraları (inip kalkar) ----
+function marine(mw,parts){
+  const g=new THREE.Group(),np=Math.min(4,Math.max(1,Math.ceil(mw/5))),nb=6;
+  for(let i=0;i<np;i++){const x=(i-(np-1)/2)*70,pl=new THREE.Group();pl.position.set(x,0,0);
+    pl.add(box(44,2.6,3.2,M.yellow,0,1.1,-5),box(44,2.6,3.2,M.yellow,0,1.1,5),box(10,3,13,M.grey,0,3.2,0),box(4,4,4,M.white,0,6.2,0));
+    const ring=new THREE.Mesh(new THREE.RingGeometry(9,24,32),M.foam);ring.rotation.x=-Math.PI/2;ring.scale.z=0.45;ring.position.y=.3;pl.add(ring);
+    // akıntı yönünde (x ekseni) dönen iki rotor; kollar suya iner
+    for(const z of [-11,11]){pl.add(box(1,7,1,M.dark,0,-1,z*0.7));
+      const rot=new THREE.Group();rot.position.set(-3,-3.5,z);rot.name=`tide${parts.tides.length}`;
+      const hub=new THREE.Mesh(new THREE.SphereGeometry(1.4,14,10),M.yellow);hub.scale.set(2,1,1);rot.add(hub);
+      for(let b=0;b<3;b++){const bl=box(.4,8,1.1,M.white,0,4.2,0);const arm=new THREE.Group();arm.add(bl);arm.rotation.x=b*2*Math.PI/3;rot.add(arm);}
+      pl.add(rot);parts.tides.push({name:rot.name,a:Math.random()*Math.PI,w:0});}
+    const bc=new THREE.Mesh(new THREE.SphereGeometry(.8,10,8),M.beacon);bc.position.set(0,8.6,0);bc.name=`beacon_m${i}`;pl.add(bc);parts.beacons.push(bc.name);
+    g.add(pl);}
+  // dalga dönüştürücü şamandıralar
+  for(let i=0;i<nb;i++){const b=new THREE.Group(),x=(i-(nb-1)/2)*28,z=48+(i%2)*14;b.position.set(x,0,z);b.name=`buoy${parts.buoys.length}`;
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(3,3.4,3,20),M.yellow);c.position.y=1;c.castShadow=true;b.add(c);
+    b.add(box(1.4,2.4,1.4,M.dark,0,3.6,0));const top=new THREE.Mesh(new THREE.SphereGeometry(.6,8,6),M.beacon);top.position.y=5.1;b.add(top);
+    g.add(b);parts.buoys.push({name:b.name,ph:i*1.3});}
+  return g;
+}
+
 // ---- trafo merkezi: çit içinde iki trafo ve iki gergi direği ----
 function substation(){
   const g=new THREE.Group();g.add(pad(32,24,M.gravel,.05),box(5,4,3.5,M.dark,-6,2,0),box(5,4,3.5,M.dark,4,2,0));
@@ -153,11 +214,14 @@ function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return
 const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
 function buildSite(id,o,ps){
   const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
-  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[]},groups=[];
+  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[]},groups=[];
   if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id),TURBINE_SCALE[top.res]));
   if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id),TURBINE_SCALE[top.off]));
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges));
   if(by.hes)groups.push(hydro(parts));
+  if(by.jes)groups.push(geothermal(by.jes,parts));
+  if(by.bes)groups.push(biomass(by.bes,parts));
+  if(by.mar)groups.push(marine(by.mar,parts));
   if(by.batt)groups.push(bess(by.batt,parts));
   if(!o.sea&&(by.res||by.ges||by.batt||by.jes||by.bes))groups.push(substation());
   // grupları soldan sağa diz, sahayı merkeze al
@@ -209,6 +273,16 @@ function animate(s,st,dt){
   const b=st.batt,bs=!b?"off":b.chg?"chg":b.dis?"dis":"off",pulse=(b&&(b.chg||b.dis))?Math.sin(performance.now()/260)>-0.4:true;
   s.parts.leds.forEach(l=>{for(const k in l)show(m,l[k],k===bs&&pulse);});
   const g=st.ges,gs=!g||g.f<0.03?"off":g.curt?"curt":"run";s.parts.inv.forEach(l=>{for(const k in l)show(m,l[k],k===gs);});
+  // JES buharı ve BES dumanı yalnızca çalışırken
+  s.parts.steams.forEach(n=>show(m,n,!!(st.jes&&!st.jes.down&&st.jes.f>0)));
+  s.parts.smokes.forEach(n=>show(m,n,!!(st.bes&&st.bes.run)));
+  // gelgit rotorları akıntıyla döner; şamandıralar dalgayla inip kalkar
+  const mr=st.mar,tgt=mr&&!mr.down&&mr.f>=0.03?0.4+1.6*mr.f:0;
+  for(const r of s.parts.tides){r.w+=(tgt-r.w)*Math.min(1,dt*0.5);if(spin)r.a+=r.w*dt;
+    const n=m.getNode(r.name);if(n){Cesium.Matrix3.fromRotationX(r.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
+  if(s.parts.buoys.length){const amp=spin?0.6+2.4*Math.min(1,((st.wx&&st.wx.hub)||4)/16):0,t=performance.now()/1000;
+    for(const b of s.parts.buoys){const n=m.getNode(b.name);if(!n)continue;
+      Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromTranslation(new Cesium.Cartesian3(0,amp*Math.sin(t*1.1+b.ph),0),rotM),rotM);n.matrix=rotM;}}
 }
 
 export function initModels(sc){
