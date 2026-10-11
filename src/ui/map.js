@@ -39,6 +39,11 @@ const fc=features=>({type:"FeatureCollection",features});
 const pt=(lon,lat,properties)=>({type:"Feature",properties,geometry:{type:"Point",coordinates:[lon,lat]}});
 // harita yakınlığı → yaklaşık kamera yüksekliği (m); ses ve hava katmanı bunu kullanır
 export const zoomToH=z=>2.6e7/2**z;
+// Apple haritası açılamazsa nedeni haritanın üstünde birkaç saniye gösterilir (ör. belirteç reddi)
+function mapNote(msg){
+  const w=document.getElementById("mapwrap");if(!w)return;const d=document.createElement("div");d.className="mapnote";d.textContent=msg;
+  w.appendChild(d);setTimeout(()=>d.remove(),9000);
+}
 // Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita zorlanabilir
 const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&new URLSearchParams(location.search).get("map")!=="maplibre";
 let mk=null;
@@ -127,9 +132,9 @@ export async function initMap(){
   if(MAPKIT){
     try{
       const m=await import("./mapkit.js");
-      await m.initMapKit(el,{selectPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mk=null;ready=false;el.replaceChildren();initFlat();}});
+      await m.initMapKit(el,{selectPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mapNote("Apple Haritalar kapandı ("+e.message+"); düz harita kullanılıyor.");mk=null;ready=false;el.replaceChildren();initFlat();}});
       mk=m;ready=true;drawMap();setGameClock(S.hour);return;
-    }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();}
+    }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();mapNote("Apple Haritalar açılamadı ("+e.message+"); düz harita kullanılıyor.");}
   }
   await initFlat();
 }
