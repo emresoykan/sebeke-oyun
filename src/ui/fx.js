@@ -13,8 +13,13 @@ const mobile=matchMedia("(max-width:899.98px)");
 function place(el){
   const mw=document.getElementById("mapwrap");if(!mw)return;const r=mw.getBoundingClientRect();if(!r.width)return;
   const w=Math.min(mobile.matches?r.width-72:340,420),left=mobile.matches?r.left+(r.width-w)/2+28:r.right-w-12;
-  // mobilde rehber kartı haritanın üstündeyse balonlar onun altına iner (üst üste binmesin)
-  const g=mobile.matches&&mw.querySelector(".guide:not([hidden])"),top=g?g.getBoundingClientRect().bottom+6:r.top+10;
+  // haritanın üstündeki kartların (mobilde rehber, açık arama kutusu ve sonuçları) altına inilir; yer kalmazsa
+  // haritanın görünen alt kenarına yerleşir
+  let top=r.top+10;
+  const over=[mobile.matches&&mw.querySelector(".guide:not([hidden])"),mw.querySelector(".mapsearch:not([hidden])")].filter(Boolean);
+  over.forEach(o=>{if(!mobile.matches&&o.classList.contains("mapsearch")&&o.getBoundingClientRect().right<left)return;top=Math.max(top,o.getBoundingClientRect().bottom+6);});
+  const side=document.getElementById("side"),bot=Math.min(r.bottom,mobile.matches&&side?side.getBoundingClientRect().top:r.bottom);
+  if(top>bot-70)top=Math.max(r.top+10,bot-70-(mobile.matches?0:60));
   Object.assign(el.style,{top:Math.max(8,top)+"px",left:left+"px",width:w+"px",bottom:"auto",transform:"none"});
 }
 function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);}

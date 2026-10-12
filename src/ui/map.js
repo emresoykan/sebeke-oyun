@@ -187,10 +187,11 @@ function ensureVisible(delay=320){
 }
 function selectRival(lat,lon){S.sel={id:null,lat,lon};afterSelect();}
 function selectSite(id){const o=S.sites[id];if(!o)return;S.sel={id,lat:o.lat,lon:o.lon};afterSelect();}
-function tapPoint(lat,lon){
+function tapPoint(lat,lon,kbd=false){
   if(S.sel.id&&!armed&&siteAt(lat,lon)!==S.sel.id){
-    if(mobile.matches&&sheetState()!=="peek"){armed=true;collapseSheet();return;}
-    if(!mobile.matches){armed=true;clearTimeout(armT);armT=setTimeout(()=>{armed=false;},4000);hint(lat,lon,"Sahan seçili. Bu noktayı seçmek için tekrar tıkla.");return;}
+    if(!kbd&&mobile.matches&&sheetState()!=="peek"){armed=true;collapseSheet();return;}
+    if(kbd||!mobile.matches){armed=true;clearTimeout(armT);armT=setTimeout(()=>{armed=false;},4000);
+      hint(lat,lon,kbd?"Sahan seçili. Bu noktayı seçmek için tekrar Enter'a bas.":"Sahan seçili. Bu noktayı seçmek için tekrar tıkla.");return;}
   }
   selectPoint(lat,lon);
 }
@@ -259,23 +260,29 @@ let annT=0;
 function announce(){clearTimeout(annT);annT=setTimeout(()=>{const c=mapCenter(),el=document.getElementById("mapStatus");if(!c||!el)return;
   const t=describe(c.lat,c.lon),where=t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
   el.textContent=`İmleç: ${where}. Seçmek için Enter.`;},500);}
+// Klavye modu yalnızca haritaya klavyeyle (Tab) gelinince açılır; fareyle tıklayınca kapanır. Böylece fareyle oynayan
+// birinin boşluk tuşu oyunu duraklatmaya devam eder. Seçim yalnızca Enter ile yapılır (boşluk her zaman duraklatır).
+let kbdTipT=0;
+function kbdTip(wrap){wrap.classList.add("kbdtip");clearTimeout(kbdTipT);kbdTipT=setTimeout(()=>wrap.classList.remove("kbdtip"),5000);}
 function initMapKeys(){
   const el=document.getElementById("map"),wrap=document.getElementById("mapwrap");if(!el)return;
   el.addEventListener("keydown",e=>{
     if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest("input,textarea,select,button"))return;
+    if(!wrap.classList.contains("kbd"))return;
     const r=el.getBoundingClientRect(),k=e.shiftKey?0.5:0.2;let pan=true;
     switch(e.key){
       case "ArrowLeft":panPx(-r.width*k,0);break;case "ArrowRight":panPx(r.width*k,0);break;
       case "ArrowUp":panPx(0,-r.height*k);break;case "ArrowDown":panPx(0,r.height*k);break;
       case "+":case "=":zoomBy(1);break;case "-":case "_":zoomBy(-1);break;
-      case "Enter":case " ":{pan=false;const c=mapCenter();if(c){armed=false;selectPoint(c.lat,c.lon);}break;}
+      case "Enter":{pan=false;const c=mapCenter();if(c)tapPoint(c.lat,c.lon,true);break;}
       default:return;
     }
     // yakalama aşamasında durdurulur: harita kütüphanesinin kendi tuş işleyicisi ve genel kısayollar (boşluk = duraklat) çalışmaz
-    e.preventDefault();e.stopPropagation();wrap.classList.add("kbd");if(pan)announce();
+    e.preventDefault();e.stopPropagation();if(pan)announce();
   },true);
-  wrap.addEventListener("pointerdown",()=>wrap.classList.remove("kbd"));
-  el.addEventListener("focus",()=>{if(el.matches(":focus-visible"))announce();});
+  wrap.addEventListener("pointerdown",()=>{wrap.classList.remove("kbd","kbdtip");});
+  el.addEventListener("focus",()=>{if(el.matches(":focus-visible")){wrap.classList.add("kbd");kbdTip(wrap);announce();}});
+  el.addEventListener("blur",()=>wrap.classList.remove("kbd","kbdtip"));
 }
 export async function initMap(){
   initMapButtons();initMapKeys();initPotButton();initSearch(goTo);renderMySites(focusSite);

@@ -22,9 +22,10 @@ export function searchPlaces(q,max=8){
   if(m){const lat=+m[1],lon=+m[2];if(Math.abs(lat)<=85&&Math.abs(lon)<=180)return [{n:`${lat}, ${lon}`,sub:"Koordinat",lat,lon,zoom:9,sel:true}];}
   const f=fold(q.trim());if(f.length<2)return [];
   const out=[];
-  // sıra: tam eşleşme, baştan eşleşme, kelime başı, içinde; eşitlikte ülkeler kısa addan uzuna, şehirler nüfusa göre
-  for(const e of index()){const i=e.f.indexOf(f);if(i<0)continue;const sc=e.f===f?0:i===0?1:e.f[i-1]===" "||e.f[i-1]==="-"?2:3;out.push([sc,e.o?1000+e.o:e.f.length,e]);}
-  return out.sort((a,b)=>a[0]-b[0]||a[1]-b[1]).slice(0,max).map(x=>x[2]);
+  // sıra: tam eşleşme, baştan eşleşme, kelime başı, içinde; eşitlikte kısa ad önce ("kon" → Konya, Konya Ovası'ndan önce),
+  // sonra şehirler nüfusa göre
+  for(const e of index()){const i=e.f.indexOf(f);if(i<0)continue;const sc=e.f===f?0:i===0?1:e.f[i-1]===" "||e.f[i-1]==="-"?2:3;out.push([sc,e.f.length,e.o,e]);}
+  return out.sort((a,b)=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2]).slice(0,max).map(x=>x[3]);
 }
 
 export function initSearch(go){
