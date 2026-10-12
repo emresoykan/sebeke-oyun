@@ -5,8 +5,8 @@
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import { TECH, SITE_MIN_KM } from "../config.js";
-import { km } from "../world.js";
+import { TECH, SITE_MIN_KM, TER_N } from "../config.js";
+import { km, describe } from "../world.js";
 import { S } from "../state.js";
 import { cssv } from "../utils.js";
 import { CAL } from "../calendar.js";
@@ -248,8 +248,37 @@ function initMapButtons(){
 const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.med?2:3);
 function applyGfx(L){if(!map)return;map.setPixelRatio(flatRatio(L));if(map.getLayer("hillshade"))map.setLayoutProperty("hillshade","visibility",L.shadows?"visible":"none");}
 
+// --- Klavyeyle gezinme: harita odaktayken ortada nişangâh; oklar kaydırır, +/− yakınlaştırır, Enter/boşluk ortadaki
+// noktayı seçer. İmlecin yeri (ülke, arazi, en yakın şehir) ekran okuyucuya kısa bir cümleyle bildirilir.
+function mapCenter(){
+  if(mk){const c=mk.camInfo();return c&&{lat:c.lat,lon:((c.lon+540)%360)-180};}
+  if(!map)return null;const c=map.getCenter();return {lat:c.lat,lon:((c.lng+540)%360)-180};
+}
+function panPx(dx,dy){if(mk)mk.panBy(dy,dx);else if(map)map.panBy([dx,dy],{duration:reducedMotion.matches?0:200});}
+let annT=0;
+function announce(){clearTimeout(annT);annT=setTimeout(()=>{const c=mapCenter(),el=document.getElementById("mapStatus");if(!c||!el)return;
+  const t=describe(c.lat,c.lon),where=t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
+  el.textContent=`İmleç: ${where}. Seçmek için Enter.`;},500);}
+function initMapKeys(){
+  const el=document.getElementById("map"),wrap=document.getElementById("mapwrap");if(!el)return;
+  el.addEventListener("keydown",e=>{
+    if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest("input,textarea,select,button"))return;
+    const r=el.getBoundingClientRect(),k=e.shiftKey?0.5:0.2;let pan=true;
+    switch(e.key){
+      case "ArrowLeft":panPx(-r.width*k,0);break;case "ArrowRight":panPx(r.width*k,0);break;
+      case "ArrowUp":panPx(0,-r.height*k);break;case "ArrowDown":panPx(0,r.height*k);break;
+      case "+":case "=":zoomBy(1);break;case "-":case "_":zoomBy(-1);break;
+      case "Enter":case " ":{pan=false;const c=mapCenter();if(c){armed=false;selectPoint(c.lat,c.lon);}break;}
+      default:return;
+    }
+    // yakalama aşamasında durdurulur: harita kütüphanesinin kendi tuş işleyicisi ve genel kısayollar (boşluk = duraklat) çalışmaz
+    e.preventDefault();e.stopPropagation();wrap.classList.add("kbd");if(pan)announce();
+  },true);
+  wrap.addEventListener("pointerdown",()=>wrap.classList.remove("kbd"));
+  el.addEventListener("focus",()=>{if(el.matches(":focus-visible"))announce();});
+}
 export async function initMap(){
-  initMapButtons();initPotButton();initSearch(goTo);renderMySites(focusSite);
+  initMapButtons();initMapKeys();initPotButton();initSearch(goTo);renderMySites(focusSite);
   const el=document.getElementById("map");
   if(MAPKIT){
     try{
@@ -266,6 +295,8 @@ async function initFlat(){
     minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,touchPitch:false,maxPitch:0,clickTolerance:8,
     canvasContextAttributes:{antialias:gfx().msaa>1}});
   map.touchZoomRotate.disableRotation();
+  // klavye: MapLibre'nin kendi ok tuşu kullanımı kapalı, ortak klavye denetimi (initMapKeys) kullanılır
+  map.keyboard.disable();map.getCanvas().setAttribute("tabindex","-1");
   // arazi verisi hiç gelmiyorsa (ör. önizleme) yakınlaşma sınırlanır: büyütülmüş bulanık görüntü gösterilmez
   let demOk=false,demErr=0;
   map.on("error",e=>{if(e.sourceId==="omt"&&!vectorOk)useFallback(true);
