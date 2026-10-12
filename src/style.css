@@ -321,9 +321,10 @@ header{align-items:center}
 .kbdcross::before{left:50%;top:-10px;bottom:-10px;width:2px;transform:translateX(-50%)}
 .kbdcross::after{top:50%;left:-10px;right:-10px;height:2px;transform:translateY(-50%)}
 .kbdhint{left:50%;top:12px;transform:translateX(-50%);max-width:calc(100% - 24px);padding:6px 12px;border-radius:999px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#map:focus-visible~.kbdcross,#map:focus-visible~.kbdhint,.mapwrap.kbd:focus-within .kbdcross,.mapwrap.kbd:focus-within .kbdhint{display:block}
+/* nişangâh klavye modunda sürekli, ipucu yalnızca ilk 5 saniye (bildirimlerle aynı anda uzun süre görünmesin) */
+.mapwrap.kbd .kbdcross,.mapwrap.kbd.kbdtip .kbdhint{display:block}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.mapsearch{position:absolute;z-index:5;top:10px;left:64px;width:min(340px,calc(100% - 76px));background:rgba(18,26,34,.94);border:1px solid rgba(255,255,255,.18);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+.mapsearch{position:absolute;z-index:5;top:10px;left:64px;width:min(340px,calc(100% - 76px));background:#121A22;border:1px solid rgba(255,255,255,.18);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
 .mapsearch[hidden]{display:none}
 .mapsearch input{width:100%;min-height:44px;border:0;border-bottom:1px solid rgba(255,255,255,.14);background:transparent;color:#fff;font:inherit;font-size:16px;padding:10px 12px;outline:none}
 .mapsearch input::placeholder{color:#9AA8B4}
@@ -429,7 +430,7 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .mission.open::after{content:"▴"}
   header>div:first-child{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;min-width:0}
   header>div:first-child>.sub{order:2;flex-basis:100%}
-  .pchip{order:1;margin-top:0;padding:3px}
+  .pchip{order:1;margin-top:0;padding:3px;min-width:44px;min-height:44px;justify-content:center}
   .pchip>span:not(.avatar){display:none}
   .cash b{white-space:nowrap}
   .ticker{margin:0 0 6px}

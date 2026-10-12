@@ -8,7 +8,8 @@ const when=t=>t?new Date(t).toLocaleString("tr-TR",{day:"numeric",month:"short",
 
 function render(){
   const el=document.getElementById("cloudBox");if(!el)return;
-  if(!cloudAvailable()){el.innerHTML=`<h4>Bulut kayıt</h4><p class="kbd">Bu yayında bulut kayıt kapalı (Firebase yapılandırılmamış). Kaydı dosya olarak indirip yükleyebilirsin.</p>`;return;}
+  // sunucu bu yayında tanımlı değilse bölüm hiç görünmez (oyuncuya teknik ayrıntı gösterilmez)
+  el.hidden=!cloudAvailable();if(el.hidden){el.innerHTML="";return;}
   const st=CL.status==="syncing"?"Kaydediliyor…":CL.status==="error"?`Hata: ${CL.err}`:`Son bulut kaydı: ${when(CL.last)}${CL.lastDay?` (Gün ${CL.lastDay})`:""}`;
   el.innerHTML=CL.code?`<h4>Bulut kayıt <span class="cl-on">açık</span></h4>
     <p class="kbd" role="status">${st}</p>
