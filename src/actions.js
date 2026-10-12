@@ -41,7 +41,7 @@ export function undoLast(){
 export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon))return;S.money-=c;
   const id="s"+(S.nextId++);S.sites[id]={...t,permit:"none"};S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
-export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();}
+export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();window.dispatchEvent(new CustomEvent("sebeke:permit"));}
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer
 export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT||locked(k))return;S.money-=c;
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
@@ -56,4 +56,4 @@ export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id
   sfx("build");
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")}).`);
   if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c});
-  refresh();}
+  refresh();window.dispatchEvent(new CustomEvent("sebeke:build"));}
