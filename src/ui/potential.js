@@ -15,6 +15,8 @@ let worker=null, busy=false, broken=false;
 const stack=[];
 
 export const potMode=()=>mode;
+// hesap kuyruğunda bekleyen karo sayısı (Apple katmanı yenilemeyi buna göre seyreltir)
+export const potPending=()=>stack.length+(busy?1:0);
 export function onPotChange(f){listeners.add(f);}
 export function onPotTile(f){tileListeners.add(f);}
 

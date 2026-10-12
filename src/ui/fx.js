@@ -13,7 +13,9 @@ const mobile=matchMedia("(max-width:899.98px)");
 function place(el){
   const mw=document.getElementById("mapwrap");if(!mw)return;const r=mw.getBoundingClientRect();if(!r.width)return;
   const w=Math.min(mobile.matches?r.width-72:340,420),left=mobile.matches?r.left+(r.width-w)/2+28:r.right-w-12;
-  Object.assign(el.style,{top:Math.max(8,r.top+10)+"px",left:left+"px",width:w+"px",bottom:"auto",transform:"none"});
+  // mobilde rehber kartı haritanın üstündeyse balonlar onun altına iner (üst üste binmesin)
+  const g=mobile.matches&&mw.querySelector(".guide:not([hidden])"),top=g?g.getBoundingClientRect().bottom+6:r.top+10;
+  Object.assign(el.style,{top:Math.max(8,top)+"px",left:left+"px",width:w+"px",bottom:"auto",transform:"none"});
 }
 function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);}
   if(el.showPopover){try{if(el.matches(":popover-open"))el.hidePopover();el.showPopover();}catch(e){}}place(el);return el;}

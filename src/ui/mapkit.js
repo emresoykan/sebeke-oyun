@@ -163,7 +163,10 @@ export async function initMapKit(el,h){
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
   const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1});let potT=0;
   P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;pot.reload();});
-  P.onPotTile(()=>{if(!map||P.potMode()==="off")return;clearTimeout(potT);potT=setTimeout(()=>map&&pot.reload(),250);});
+  // yenileme seyrek: hesap sürerken en fazla 1,2 sn'de bir, kuyruk bitince bir kez daha (her karoda yenilemek kasabilir)
+  let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)pot.reload();};
+  P.onPotTile(()=>{if(!map||P.potMode()==="off"||potT)return;
+    potT=setTimeout(reloadPot,P.potPending()===0?150:Math.max(150,1200-(performance.now()-potLast)));});
   map.addTileOverlays([night,pot,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});

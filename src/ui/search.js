@@ -1,14 +1,18 @@
-// --- Yer arama: şehir, ülke veya "enlem, boylam" ---
+// --- Yer arama: şehir, ülke, bölge, milli park veya "enlem, boylam" ---
 // Çevrimdışı çalışır: oyunun kendi şehir (Natural Earth) ve ülke listesinde arar. Türkçe karakterler eşleştirmede
 // yok sayılır ("elazig" → Elâzığ). Şehir seçilince harita oraya gider ve nokta seçilir (panelde kaynak puanları);
 // ülke seçilince yalnızca harita gider.
 import { cityList, countryList } from "../world.js";
+import { REGIONS } from "../data/regions.js";
+import { PROTECTED } from "../data/protected.js";
 
 const fold=s=>s.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ı/g,"i");
 let IDX=null;
 function index(){
   if(IDX)return IDX;const cs=countryList(),nm=Object.fromEntries(cs.map(c=>[c.a3,c.n]));
   IDX=[...cs.map(c=>({n:c.n,sub:"Ülke",lat:c.lat,lon:c.lon,zoom:Math.max(2.5,Math.min(7,Math.log2(360/Math.max(c.span,1))+0.4)),sel:false,f:fold(c.n),o:0})),
+    ...REGIONS.map(([n,lat,lon,zoom])=>({n,sub:"Bölge",lat,lon,zoom,sel:zoom>=9,f:fold(n),o:0})),
+    ...PROTECTED.map(([n,lat,lon])=>({n,sub:"Milli park",lat,lon,zoom:8.5,sel:false,f:fold(n),o:0})),
     ...cityList().map((c,i)=>({n:c[0],sub:nm[c[1]]||c[1],lat:c[2],lon:c[3],zoom:8,sel:true,f:fold(c[0]),o:1+i}))];
   return IDX;
 }
@@ -30,7 +34,7 @@ export function initSearch(go){
   const draw=()=>{ul.innerHTML=res.map((r,i)=>`<li role="option" id="sr${i}" aria-selected="${i===act}"><button data-i="${i}"><b></b><small></small></button></li>`).join("");
     ul.querySelectorAll("li").forEach((li,i)=>{li.querySelector("b").textContent=res[i].n;li.querySelector("small").textContent=res[i].sub;li.querySelector("button").onclick=()=>pick(i);});
     inp.setAttribute("aria-activedescendant",act>=0?`sr${act}`:"");
-    if(inp.value.trim().length>=2&&!res.length)ul.innerHTML=`<li class="none">Sonuç yok. Şehir, ülke ya da "38.5, 32.4" gibi koordinat yaz.</li>`;};
+    if(inp.value.trim().length>=2&&!res.length)ul.innerHTML=`<li class="none">Sonuç yok. Şehir, ülke, bölge ya da "38.5, 32.4" gibi koordinat yaz.</li>`;};
   const pick=i=>{const r=res[i];if(!r)return;open(false);go(r);};
   btn.onclick=()=>open(box.hidden);
   inp.oninput=()=>{res=searchPlaces(inp.value);act=res.length?0:-1;draw();};
