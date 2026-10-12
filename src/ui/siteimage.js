@@ -6,14 +6,17 @@ import * as THREE from "three";
 import { S } from "../state.js";
 import { tierOf } from "../equipment.js";
 import { buildSite } from "./sitemodel.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 const TILT=28*Math.PI/180, MAX_PX=1400, MIN_RES=0.3;
 const cache=new Map(); // saha id -> {sig, p}
-let R=null;
+let R=null,ENV=null;
 
 export const siteSig=id=>S.plants.filter(p=>p.t===id).map(p=>p.k+tierOf(p)+p.mw).sort().join(",");
 
-// {url, east:[min,max], north:[min,max]} (metre) veya santral yoksa null
+// {url, lods, east:[min,max], north:[min,max]} (metre) veya santral yoksa null
+// lods: aynı görüntünün yarıya yarıya küçültülmüş kopyaları (büyükten küçüğe). Harita küçük çizerken büyük görüntüyü
+// doğrudan küçültürse panel sıraları titreşen çizgilere (moiré) dönüşür; ekrandaki boyuta en yakın kopya kullanılır.
 export function siteImage(id){
   const sig=siteSig(id);if(!sig)return Promise.resolve(null);
   const c=cache.get(id);if(c&&c.sig===sig)return c.p;
@@ -41,14 +44,27 @@ function render(id){
   const sun=new THREE.DirectionalLight(0xFFFFFF,2.1);sun.position.set(ctr.x-0.5*size.x-200,600,ctr.z-300);sun.target.position.copy(ctr);
   sun.castShadow=true;const sc=sun.shadow.camera,r=Math.max(size.x,size.z)*0.75+60;Object.assign(sc,{left:-r,right:r,top:r,bottom:-r,near:10,far:3000});
   sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-0.0006;root.add(sun,sun.target);
-  if(!R){R=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});R.setClearColor(0x000000,0);R.shadowMap.enabled=true;R.outputColorSpace=THREE.SRGBColorSpace;}
-  R.setPixelRatio(1);R.setSize(W,H,false);R.render(root,cam);
-  const url=R.domElement.toDataURL("image/png");
+  if(!R){R=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});R.setClearColor(0x000000,0);R.shadowMap.enabled=true;R.outputColorSpace=THREE.SRGBColorSpace;
+    // metal yüzeyler (paneller) yansıtacak bir gökyüzü bulamazsa simsiyah görünür: yumuşak bir ortam ışığı verilir
+    const pm=new THREE.PMREMGenerator(R);ENV=pm.fromScene(new RoomEnvironment(),0.04).texture;pm.dispose();}
+  const scene=new THREE.Scene();scene.environment=ENV;scene.environmentIntensity=0.35;scene.add(root);
+  R.setPixelRatio(1);R.setSize(W,H,false);R.render(scene,cam);
+  const lods=mips(R.domElement),url=lods[0].url;
   root.traverse(n=>{if(n.geometry)n.geometry.dispose();});
   // saha koordinatının (orijin) kameradaki yeri: görüntü sınırları ona göre metreye çevrilir; kuzey ekseni eğimle kısalır
   const org=new THREE.Vector3(0,0,0).applyMatrix4(inv),c=Math.cos(TILT);
-  return {url,east:[x0-org.x,x1-org.x],north:[(y0-org.y)/c,(y1-org.y)/c]};
+  return {url,lods,east:[x0-org.x,x1-org.x],north:[(y0-org.y)/c,(y1-org.y)/c]};
 }
+// Yarıya küçültme zinciri: her adım dört pikselin ortalamasını alır (kutu süzgeci), en küçüğü ~48 piksel
+function mips(src){
+  const out=[];let c=document.createElement("canvas");c.width=src.width;c.height=src.height;c.getContext("2d").drawImage(src,0,0);
+  for(;;){out.push({w:c.width,url:c.toDataURL("image/png")});if(c.width<96)break;
+    const n=document.createElement("canvas");n.width=Math.max(1,c.width>>1);n.height=Math.max(1,c.height>>1);
+    const g=n.getContext("2d");g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";g.drawImage(c,0,0,n.width,n.height);c=n;}
+  return out;
+}
+// Ekranda px (cihaz pikseli) genişlikte çizilecekse kullanılacak kopya: en az o kadar geniş olan en küçük kopya
+export function lodFor(img,px){let u=img.lods[0].url;for(const l of img.lods){if(l.w>=px)u=l.url;else break;}return u;}
 
 // Metre sınırlarını coğrafi köşelere çevir (MapLibre görüntü kaynağı sırası: KB, KD, GD, GB)
 // k: büyütme (uzaktan bakınca tesis en az belirli piksel boyutunda görünsün diye)

@@ -95,9 +95,9 @@ async function syncFacilities(){
       if(cur&&cur.sig===sig)continue;facs.set(id,{sig});
       if(!sig){if(map.getLayer(src))map.removeLayer(src);if(map.getSource(src))map.removeSource(src);continue;}
       const img=await F.siteImage(id);if(!img||facs.get(id).sig!==sig||!map)continue;
-      facs.get(id).img=img;const coordinates=F.cornersOf(S.sites[id],img,facK(S.sites[id],img));
-      if(map.getSource(src))map.getSource(src).updateImage({url:img.url,coordinates});
-      else{map.addSource(src,{type:"image",url:img.url,coordinates});
+      const f=facs.get(id),k=facK(S.sites[id],img),coordinates=F.cornersOf(S.sites[id],img,k);f.img=img;f.url=F.lodFor(img,facPx(S.sites[id],img,k));
+      if(map.getSource(src))map.getSource(src).updateImage({url:f.url,coordinates});
+      else{map.addSource(src,{type:"image",url:f.url,coordinates});
         map.addLayer({id:src,type:"raster",source:src,minzoom:FAC_Z-0.5,paint:{"raster-fade-duration":0,"raster-opacity":["interpolate",["linear"],["zoom"],FAC_Z-0.5,0,FAC_Z+1,1]}},"site-pulse");}
     }
   }catch(e){console.warn("Tesis görüntüleri yüklenemedi:",e);}
@@ -105,10 +105,15 @@ async function syncFacilities(){
 }
 
 // uzaktan tesis en az belirli piksel boyutunda; yaklaştıkça gerçek ölçeğe iner (yakınlaştırırken karede bir güncellenir)
-function facK(o,img){const mpp=40075016*Math.cos(o.lat*Math.PI/180)/(512*2**map.getZoom());return facMod.facScale(img,1/mpp);}
+const facMpp=o=>40075016*Math.cos(o.lat*Math.PI/180)/(512*2**map.getZoom());
+function facK(o,img){return facMod.facScale(img,1/facMpp(o));}
+// görüntünün ekrandaki genişliği (cihaz pikseli): uygun küçültülmüş kopyayı seçmek için
+const facPx=(o,img,k)=>(img.east[1]-img.east[0])*k/facMpp(o)*map.getPixelRatio();
 function rescaleFacilities(){
   if(!facMod||facRaf)return;facRaf=requestAnimationFrame(()=>{facRaf=0;
-    for(const [id,f] of facs){const src=map.getSource("fac-"+id),o=S.sites[id];if(src&&f.img&&o)src.setCoordinates(facMod.cornersOf(o,f.img,facK(o,f.img)));}});
+    for(const [id,f] of facs){const src=map.getSource("fac-"+id),o=S.sites[id];if(!src||!f.img||!o)continue;
+      const k=facK(o,f.img),coordinates=facMod.cornersOf(o,f.img,k),url=facMod.lodFor(f.img,facPx(o,f.img,k));
+      if(url!==f.url){f.url=url;src.updateImage({url,coordinates});}else src.setCoordinates(coordinates);}});
 }
 
 // Nabız: ~25 kare/sn; sekme gizliyken, hareket azaltma açıkken veya üreten saha yokken durur (pil)
@@ -223,7 +228,7 @@ export async function initMap(){
 async function initFlat(){
   const mobile=innerWidth<600,end={center:[S.sel.lon,S.sel.lat-1],zoom:mobile?3.6:4.6};
   map=new maplibregl.Map({container:"map",style:buildStyle(),center:reducedMotion.matches?end.center:[S.sel.lon-70,S.sel.lat-10],zoom:reducedMotion.matches?end.zoom:0.9,
-    minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,clickTolerance:8,
+    minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,touchPitch:false,maxPitch:0,clickTolerance:8,
     canvasContextAttributes:{antialias:gfx().msaa>1}});
   map.touchZoomRotate.disableRotation();
   // arazi verisi hiç gelmiyorsa (ör. önizleme) yakınlaşma sınırlanır: büyütülmüş bulanık görüntü gösterilmez
