@@ -125,23 +125,25 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 
 ## Enerji kaynakları
 
+Oyunda biyokütle santrali "Biyokütle" diye yazılır, "BES" kısaltması kullanılmaz: batarya depolama sistemi (BESS) ile karışmasın diye. Kayıtlardaki iç kodlar değişmedi (`bes`, `batt`).
+
 | Teknoloji | Nerede | Nasıl üretir | Öğrettiği |
 |---|---|---|---|
 | GES (güneş) | Karada | Güneş yüksekliği ve buluta göre, gündüz | Kanibalizasyon: öğle fiyatı düşer |
 | RES (rüzgâr), offshore | Karada; sığ denizde | Göbek yüksekliğindeki rüzgârla güç eğrisi | Tahmin hatası, kesme hızı |
 | HES (hidro) | Dağlık bölge | Suyu en pahalı saatlere saklar | Esneklik, kuraklık riski |
 | JES (jeotermal) | Jeotermal kuşaklar (Batı Anadolu, İzlanda, Toskana, Doğu Afrika Riftı, Endonezya, Filipinler, Yeni Zelanda, Kaliforniya, Japonya …) | Gece gündüz sabit (~%90 kapasite) | Baz yük, tahmin hatası yok; yüksek yatırım ve **sondaj riski**: ilk blokta rezervuar beklenenin %55–110'u çıkar |
-| BES (biyokütle/biyogaz) | Ova, orman, dağlık (hammaddesi olan kara) | Yakıt yakar; yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır | **Marjinal maliyet** kararı; yakıt gideri raporda ayrı satır |
+| Biyokütle (biyokütle/biyogaz santrali) | Ova, orman, dağlık (hammaddesi olan kara) | Yakıt yakar; yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır | **Marjinal maliyet** kararı; yakıt gideri raporda ayrı satır |
 | Deniz (gelgit + dalga) | Sığ deniz; güçlü gelgit kıyıları (Fundy, Manş, İskoçya, Kore, KB Avustralya …) | Gelgit günde iki kez güçlenir (12,42 saatlik döngü, önceden hesaplanır), dalga rüzgâra bağlı | Gelişmekte olan teknoloji: 25 MW kurulu güçten sonra açılır, üretime MWh başına +60 $ **yenilik desteği**; Türkiye denizlerinde gelgit zayıftır |
-| Batarya | Karada | Arbitraj veya dengeleme | Depolama |
+| Batarya (BESS, depolama) | Karada | Arbitraj veya dengeleme | Depolama |
 
-Ölçüm (aynı tohum, 5 günlük ortalama, 5 MW blok başına, standart ekipman): JES (Denizli) kapasite faktörü 0,88–0,96, geri dönüş ~55–60 gün (zayıf rezervuarda ~110 gün); BES (Konya) KF ~0,78, yakıt sonrası geri dönüş ~70–80 gün; deniz (Fundy) KF ~0,42, destekle ~90 gün; aynı dönemde GES ~57–71 gün. Değerler oyun dengesi için temsilîdir.
+Ölçüm (aynı tohum, 5 günlük ortalama, 5 MW blok başına, standart ekipman): JES (Denizli) kapasite faktörü 0,88–0,96, geri dönüş ~55–60 gün (zayıf rezervuarda ~110 gün); Biyokütle (Konya) KF ~0,78, yakıt sonrası geri dönüş ~70–80 gün; deniz (Fundy) KF ~0,42, destekle ~90 gün; aynı dönemde GES ~57–71 gün. Değerler oyun dengesi için temsilîdir.
 
 ## Haritada tesis görünümü ve canlılık
 
 - Yakınlaşınca (düz haritada ~11. yakınlıktan, Apple haritasında benzer mesafeden) saha noktasının arkasında tesisin kendisi görünür: sahanın 3D modeli (`src/ui/sitemodel.js`) tarayıcıda güneyden hafif eğik bakan bir kamerayla gerçek ölçekli, saydam bir görüntüye çizilir (`src/ui/siteimage.js`) ve sahanın koordinatına yerleştirilir. Uzaktayken en az ~80 piksel genişlikte gösterilir, yaklaştıkça gerçek boyutuna iner. three.js yalnızca ilk yakınlaşmada yüklenir; santral listesi değişince görüntü yenilenir.
 - O saatte üretim yapan sahanın çevresinde teknoloji renginde bir nabız halkası atar.
-- 3D görünümde rotorlar, GES parıltısı, batarya fanları, HES su sıçraması, JES buharı, BES dumanı ve konveyörü, gelgit rotorları ve dalga şamandıraları üretim durumuna göre hareket eder. Hareket azaltma ayarında durur.
+- 3D görünümde rotorlar, GES parıltısı, batarya fanları, HES su sıçraması, JES buharı, biyokütle santralinin dumanı ve konveyörü, gelgit rotorları ve dalga şamandıraları üretim durumuna göre hareket eder. Hareket azaltma ayarında durur.
 
 ## Mevsimler
 

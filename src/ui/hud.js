@@ -72,11 +72,11 @@ export function showLose(){
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
 export function renderReport(){
   const L=S.last;if(!L)return;
-  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"],["jes","JES"],["bes","BES"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
+  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
   if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur.`;
   else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
-  else if(L.E.bes>0&&L.fuel>0)note=`BES yalnızca fiyat yakıt maliyetini aştığında çalıştı: ${L.E.bes.toFixed(0)} MWh için ${fmt$(L.fuel)} yakıt yaktın. Ucuz saatlerde durması marjinal maliyet mantığıdır; fiyat düşükse çalışmamak kâr ettirir.`;
+  else if(L.E.bes>0&&L.fuel>0)note=`Biyokütle santrali yalnızca fiyat yakıt maliyetini aştığında çalıştı: ${L.E.bes.toFixed(0)} MWh için ${fmt$(L.fuel)} yakıt yaktın. Ucuz saatlerde durması marjinal maliyet mantığıdır; fiyat düşükse çalışmamak kâr ettirir.`;
   else if(L.E.jes>0)note=`JES hava ve saatten bağımsız, gece gündüz aynı güçle üretir; bu yüzden tahmin hatası ve dengesizlik maliyeti yoktur. Bedeli yüksek yatırım ve sondaj riskidir.`;
   else if(L.E.mar>0)note=`Deniz enerjisinin gelgit kısmı günler öncesinden hesaplanabilir; yüksek maliyetini yenilik desteği (MWh başına +60 $) dengeler. Dalga kısmı ise havaya bağlıdır.`;
   else if(L.E.hes>0)note=`HES suyunu en pahalı saatlere sakladığı için birim başına en yüksek fiyatı yakalar. Ama su miktarı her gün değişir; kurak günlerde üretim düşer.`;
@@ -85,8 +85,8 @@ export function renderReport(){
   else note=`Farklı piyasalarda kurulum yapmak, tek bir piyasanın fiyat düşüşüne karşı portföyünü korur.`;
   document.getElementById("report").innerHTML=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>Gün ${L.dayNo}</span><span>Net: <b class="${L.net<0?"neg":"pos"}">${fmt$(L.net)}</b></span></div>
   <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Piyasa değeri</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
-  ${L.fuel>0?`<tr><td>BES yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
-  <tr><td>Batarya arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>
+  ${L.fuel>0?`<tr><td>Biyokütle yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
+  <tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>
   <tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
   ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}
   ${L.fee>0?`<tr><td>Tahmin servisi</td><td></td><td class="neg">−${fmt$(L.fee)}</td><td></td></tr>`:""}
