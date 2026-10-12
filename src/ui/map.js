@@ -16,6 +16,7 @@ import { renderPanel } from "./panel.js";
 import { rivalSites, RIVALS } from "../rivals.js";
 import { gfx, onGfx, LEVELS } from "./quality.js";
 import { plantStatus, isLive } from "../plantstatus.js";
+import { openSheet, collapseSheet, renderMySites, sheetState } from "./sheet.js";
 import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
 import { initWeatherLayer } from "./wxflat.js";
 
@@ -110,9 +111,10 @@ function rescaleFacilities(){
     for(const [id,f] of facs){const src=map.getSource("fac-"+id),o=S.sites[id];if(src&&f.img&&o)src.setCoordinates(facMod.cornersOf(o,f.img,facK(o,f.img)));}});
 }
 
-// Nabız: ~25 kare/sn; sekme gizliyken veya hareket azaltma açıkken durur
+// Nabız: ~25 kare/sn; sekme gizliyken, hareket azaltma açıkken veya üreten saha yokken durur (pil)
+let anyLive=false;
 function pulseLoop(){
-  let last=0;const step=t=>{requestAnimationFrame(step);if(document.hidden||reducedMotion.matches||!map||t-last<40)return;last=t;
+  let last=0;const step=t=>{requestAnimationFrame(step);if(document.hidden||reducedMotion.matches||!map||mk||!anyLive||t-last<40)return;last=t;
     const ph=(t%2200)/2200;map.setPaintProperty("site-pulse","circle-radius",10+22*ph);map.setPaintProperty("site-pulse","circle-stroke-opacity",0.95*(1-ph)**1.5);};
   requestAnimationFrame(step);
 }
@@ -149,30 +151,70 @@ export function setGameClock(hour){
 }
 
 // Seçim (iki harita da kullanır): rakip işareti, kendi sahan veya haritada bir nokta (yakında sahan varsa o seçilir)
-const afterSelect=()=>{renderPanel();drawMap();render();};
+// Mobilde kendi sahan açıkken boş bir yere dokunmak önce paneli küçültür; ikinci dokunuş yeni noktayı seçer
+// (yanlışlıkla seçim kaybını önler). Seçim yapılınca panel açılır (masaüstünde yan sütun başa kayar).
+let armed=false;
+const mobile=matchMedia("(max-width:899.98px)");
+const afterSelect=()=>{armed=false;renderPanel();drawMap();render();openSheet("saha");ensureVisible();};
+// Mobilde kart açılınca seçili nokta kartın altında kalırsa harita kaydırılır (kart animasyonu bitince)
+function pagePoint(lat,lon){
+  if(mk)return mk.pagePoint(lat,lon);if(!map)return null;
+  const r=map.getContainer().getBoundingClientRect(),q=map.project([lon,lat]);return {x:r.left+q.x,y:r.top+q.y};
+}
+function ensureVisible(delay=320){
+  if(!mobile.matches)return;
+  setTimeout(()=>{const p=pagePoint(S.sel.lat,S.sel.lon),mw=document.getElementById("mapwrap").getBoundingClientRect();if(!p)return;
+    const bot=Math.min(mw.bottom,document.getElementById("side").getBoundingClientRect().top);
+    if(p.y<mw.top+40||p.y>bot-40){const dy=p.y-(mw.top+bot)/2;if(mk)mk.panBy(dy);else if(map)map.panBy([0,dy],{duration:reducedMotion.matches?0:400});}},delay);
+}
 function selectRival(lat,lon){S.sel={id:null,lat,lon};afterSelect();}
 function selectSite(id){const o=S.sites[id];if(!o)return;S.sel={id,lat:o.lat,lon:o.lon};afterSelect();}
+function tapPoint(lat,lon){
+  if(mobile.matches&&S.sel.id&&!armed&&sheetState()!=="peek"){armed=true;collapseSheet();return;}
+  selectPoint(lat,lon);
+}
 function selectPoint(lat,lon){
   let id=null,bd=SITE_MIN_KM;
   Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
   S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};afterSelect();
 }
+// dokunma alanı işaretin çevresinde ~44 px: en yakın işaret seçilir
 function onClick(e){
-  const f=map.queryRenderedFeatures(e.point,{layers:["rivals","sites"]})[0];
+  const {x,y}=e.point,fs=map.queryRenderedFeatures([[x-16,y-16],[x+16,y+16]],{layers:["rivals","sites"]});
+  const d=f=>{const p=map.project(f.geometry.coordinates);return (p.x-x)**2+(p.y-y)**2;},f=fs.sort((a,b)=>d(a)-d(b))[0];
   if(f&&f.layer.id==="rivals"){const [lon,lat]=f.geometry.coordinates;selectRival(lat,lon);}
   else if(f&&f.layer.id==="sites"&&S.sites[f.properties.id])selectSite(f.properties.id);
-  else{const {lat,lng}=e.lngLat.wrap();selectPoint(lat,lng);}
+  else{const {lat,lng}=e.lngLat.wrap();tapPoint(lat,lng);}
+}
+
+// Bir sahaya git: seç ve haritayı oraya götür ("Sahalarım" ve ◎ düğmesi)
+export function focusSite(id){
+  const o=S.sites[id];if(!o)return;selectSite(id);
+  if(mk)mk.focus(o.lon,o.lat);else if(map)map.flyTo({center:[o.lon,o.lat],zoom:Math.max(map.getZoom(),8),duration:reducedMotion.matches?0:1200,essential:true});
+  ensureVisible(reducedMotion.matches?320:1300);
+}
+function zoomBy(d){if(mk)mk.zoomBy(d);else if(map)map.easeTo({zoom:map.getZoom()+d,duration:reducedMotion.matches?0:300});}
+// Harita düğmeleri: yakınlaştır/uzaklaştır, sıradaki saham, lejant, tam ekran (masaüstü)
+function initMapButtons(){
+  const $=id=>document.getElementById(id);
+  $("zoomIn").onclick=()=>zoomBy(1);$("zoomOut").onclick=()=>zoomBy(-1);
+  $("nextSite").onclick=()=>{const ids=Object.keys(S.sites);if(!ids.length){openSheet("saha");return;}
+    const i=ids.indexOf(S.sel.id);focusSite(ids[(i+1)%ids.length]);};
+  const lg=$("mapLegend"),lb=$("legendBtn");lb.onclick=()=>{lg.hidden=!lg.hidden;lb.setAttribute("aria-expanded",String(!lg.hidden));};
+  const fs=$("fsBtn");if(document.fullscreenEnabled&&!mobile.matches){fs.hidden=false;
+    fs.onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});}
 }
 
 const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.med?2:3);
 function applyGfx(L){if(!map)return;map.setPixelRatio(flatRatio(L));if(map.getLayer("hillshade"))map.setLayoutProperty("hillshade","visibility",L.shadows?"visible":"none");}
 
 export async function initMap(){
+  initMapButtons();renderMySites(focusSite);
   const el=document.getElementById("map");
   if(MAPKIT){
     try{
       const m=await import("./mapkit.js");
-      await m.initMapKit(el,{selectPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mapNote("Apple Haritalar kapandı ("+e.message+"); düz harita kullanılıyor.");mk=null;ready=false;el.replaceChildren();initFlat();}});
+      await m.initMapKit(el,{selectPoint:tapPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mapNote("Apple Haritalar kapandı ("+e.message+"); düz harita kullanılıyor.");mk=null;ready=false;el.replaceChildren();initFlat();}});
       mk=m;ready=true;drawMap();setGameClock(S.hour);return;
     }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();mapNote("Apple Haritalar açılamadı ("+e.message+"); düz harita kullanılıyor.");}
   }
@@ -181,7 +223,7 @@ export async function initMap(){
 async function initFlat(){
   const mobile=innerWidth<600,end={center:[S.sel.lon,S.sel.lat-1],zoom:mobile?3.6:4.6};
   map=new maplibregl.Map({container:"map",style:buildStyle(),center:reducedMotion.matches?end.center:[S.sel.lon-70,S.sel.lat-10],zoom:reducedMotion.matches?end.zoom:0.9,
-    minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,
+    minZoom:0.6,maxZoom:16,renderWorldCopies:true,attributionControl:{compact:true},pixelRatio:flatRatio(gfx()),dragRotate:false,pitchWithRotate:false,clickTolerance:8,
     canvasContextAttributes:{antialias:gfx().msaa>1}});
   map.touchZoomRotate.disableRotation();
   // arazi verisi hiç gelmiyorsa (ör. önizleme) yakınlaşma sınırlanır: büyütülmüş bulanık görüntü gösterilmez
@@ -219,11 +261,15 @@ function fpsMeter(){
 // Sahaları, rakipleri ve seçimi haritaya yansıt
 export function drawMap(){
   if(globeOpen&&globe)globe.drawGlobe();
+  renderMySites(focusSite);
   if(!ready)return;
   if(mk){mk.draw();return;}
+  let live=false;
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on:mw&&isLive(plantStatus(id))?1:0});})));
+    const on=mw&&isLive(plantStatus(id))?1:0;if(on)live=true;
+    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on});})));
+  anyLive=live;
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
   syncFacilities();
