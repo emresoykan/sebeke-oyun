@@ -16,17 +16,38 @@ import { initAmbient } from "./ui/ambient.js";
 import { initGfxToggle } from "./ui/quality.js";
 import { initLeague } from "./league.js";
 import { initLeagueUI } from "./ui/league.js";
+import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
 
 let timer=null, speed=1, paused=false, held=false; // held: olay kartı açıkken oyun bekler
 
-function loop(){clearInterval(timer);clock.ms=500/speed;clock.paused=paused||held;clock.at=performance.now();if(!paused&&!held)timer=setInterval(tick,500/speed);}
+// Zaman ilk arazi alınana kadar işlemez: oyuncu haritayı incelerken gün ilerlemez
+const waiting=()=>!Object.keys(S.sites).length;
+function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(tick,500/speed);}
+window.addEventListener("sebeke:land",loop);
 window.addEventListener("sebeke:hold",()=>{held=true;loop();});
 window.addEventListener("sebeke:release",()=>{held=false;loop();});
 initSound(document.getElementById("soundBtn"));initAmbient();initGfxToggle(document.getElementById("gfxBtn"));initLeagueUI(document.getElementById("leagueBtn"));initWeatherToggle(document.getElementById("wxBtn"));initMap3DUI();
-document.getElementById("pauseBtn").onclick=e=>{paused=!paused;e.target.textContent=paused?"Devam et":"Duraklat";loop();};
-document.getElementById("speedBtn").onclick=e=>{speed=speed===1?3:speed===3?8:1;e.target.textContent="Hız: "+speed+"x";loop();};
+const pauseBtn=document.getElementById("pauseBtn"),speedBtn=document.getElementById("speedBtn");
+const ICON={pause:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>',
+  play:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L4.9 1.7a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>'};
+function setPaused(v){paused=v;pauseBtn.innerHTML=paused?ICON.play:ICON.pause;pauseBtn.setAttribute("aria-pressed",String(paused));pauseBtn.setAttribute("aria-label",paused?"Devam et":"Duraklat");loop();}
+function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribute("aria-label",`Oyun hızı: ${speed}x`);loop();}
+pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
+speedBtn.onclick=()=>setSpeed(speed===1?3:speed===3?8:1);
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
-document.getElementById("resetBtn").onclick=()=>{if(confirm("Tüm ilerleme silinsin mi?")){setS(fresh());save();newDay();location.reload();}};
+async function reset(){if(await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
+document.getElementById("resetBtn").onclick=reset;
+window.addEventListener("sebeke:reset",reset);
+// Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||document.querySelector("dialog[open]")||e.target.closest("input,textarea,select,button,[contenteditable]"))return;
+  if(e.key===" "){e.preventDefault();setPaused(!paused);}
+  else if(e.key==="1"||e.key==="3"||e.key==="8")setSpeed(+e.key);
+  else if(e.key==="Escape"&&!document.body.classList.contains("view3d"))collapseSheet();
+});
+// mobilde görev açıklaması dokununca açılır/kapanır
+const mis=document.getElementById("mission");mis.onclick=()=>mis.setAttribute("aria-expanded",String(mis.classList.toggle("open")));
+initSheet({onTab:t=>{if(t==="piyasa")drawChart();}});
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar

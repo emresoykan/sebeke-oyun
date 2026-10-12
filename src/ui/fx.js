@@ -13,7 +13,7 @@ function box(){let el=document.getElementById("toasts");if(!el){el=document.crea
 export function toast(title,sub="",kind=""){
   const el=document.createElement("div");el.className=`toast ${kind}`;
   el.innerHTML=`<b></b>${sub?"<span></span>":""}`;el.querySelector("b").textContent=title;if(sub)el.querySelector("span").textContent=sub;
-  const b=box();b.appendChild(el);while(b.children.length>4)b.firstChild.remove();
+  const b=box();b.appendChild(el);while(b.children.length>2)b.firstChild.remove();
   setTimeout(()=>{el.classList.add("out");setTimeout(()=>el.remove(),400);},kind==="win"?4200:3200);
   return el;
 }
@@ -30,7 +30,9 @@ export function celebrate(title,sub){
 // Gün sonu: kazanç balonu ve nakit göstergesinde renkli vuruş
 export function dayFx(L){
   if(!L)return;
-  const pos=L.net>=0;toast(`Gün ${L.dayNo} kapandı`,`Net ${pos?"+":""}${fmt$(L.net)}`,pos?"pos":"neg");
+  const pos=L.net>=0;
+  // henüz gelir/gider yokken her gün "Net +0 $" balonu çıkmasın
+  if(Math.abs(L.net)>=1)toast(`Gün ${L.dayNo} kapandı`,`Net ${pos?"+":""}${fmt$(L.net)}`,pos?"pos":"neg");
   const c=document.getElementById("cash");if(c){c.classList.remove("flash-pos","flash-neg");void c.offsetWidth;c.classList.add(pos?"flash-pos":"flash-neg");}
   if(pos&&L.net>0)sfx("coin");
 }

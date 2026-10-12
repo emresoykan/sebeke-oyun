@@ -41,9 +41,21 @@ export function render(){
   const net=dayNet(st),r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";
-  if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>alert("Tebrikler: 5 M$ portföy değerine ulaştın. Oynamaya devam edebilirsin."),50);}
+  if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>showWin(nw),50);}
   document.getElementById("deskBtn").disabled=!(hasRenew()||S.plants.some(p=>p.k==="batt"));
   updateButtons();drawChart();setGameClock(S.hour);
+}
+// Kazanma ekranı: hedefe ulaşınca özet; oyuncu devam edebilir ya da yeni oyuna başlayabilir
+function showWin(nw){
+  const d=document.getElementById("winDlg");if(!d||d.open)return;
+  const mw=S.plants.reduce((a,p)=>a+p.mw,0),cell=(k,v)=>`<div><small>${k}</small><b>${v}</b></div>`;
+  d.innerHTML=`<h3>Tebrikler, hedefe ulaştın</h3><p>Portföy değerin ${fmt$(nw)} oldu. Oynamaya devam edebilir ya da yeni bir oyuna başlayabilirsin.</p>
+    <div class="winstats">${cell("Süre",`${S.dayNo} gün`)}${cell("Kurulu güç",`${mw} MW`)}${cell("Toplam üretim",`${Math.round(S.stats.mwh).toLocaleString("tr-TR")} MWh`)}${cell("Toplam net kazanç",fmt$(S.stats.net))}${cell("Saha",Object.keys(S.sites).length)}${cell("Rozet",S.ach.length)}</div>
+    <div class="dlgbtns"><button data-v="new">Yeni oyun</button><button data-v="go" class="pri">Devam et</button></div>`;
+  d.querySelector('[data-v="go"]').onclick=()=>d.close();
+  d.querySelector('[data-v="new"]').onclick=()=>{d.close();window.dispatchEvent(new CustomEvent("sebeke:reset"));};
+  window.dispatchEvent(new CustomEvent("sebeke:hold"));d.addEventListener("close",()=>window.dispatchEvent(new CustomEvent("sebeke:release")),{once:true});
+  d.showModal();d.querySelector('[data-v="go"]').focus();
 }
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
 export function renderReport(){

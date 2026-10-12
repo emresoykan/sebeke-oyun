@@ -58,6 +58,8 @@ function marker(cls,size,onSelect){
   const a=new mk.Annotation(coord(0,0),()=>anchor,{calloutEnabled:false,
     displayPriority:mk.Annotation.DisplayPriority.Required,collisionMode:mk.Annotation.CollisionMode.None});
   const m0={a,root,lab,anchor,key:""};
+  // parmakla dokunmak için nokta çevresinde görünmez 44 piksellik alan
+  if(onSelect)div("mk-hit",root);
   if(onSelect)a.addEventListener("select",()=>{tapAt=performance.now();setTimeout(()=>{a.selected=false;},0);onSelect();});
   else a.enabled=false;
   return m0;
@@ -135,14 +137,14 @@ export async function initMapKit(el,h){
   const T=mk.Map.MapTypes;let type=T.Hybrid;
   try{const v=localStorage.getItem(PREF);if(v&&Object.values(T).includes(v))type=v;}catch(e){}
   const mobile=innerWidth<600,end=zoomToH(mobile?3.6:4.6);
-  map=new mk.Map(el,{mapType:type,colorScheme:mk.Map.ColorSchemes.Dark,showsMapTypeControl:true,showsZoomControl:true,
+  map=new mk.Map(el,{mapType:type,colorScheme:mk.Map.ColorSchemes.Dark,showsMapTypeControl:true,showsZoomControl:false,
     showsCompass:mk.FeatureVisibility.Hidden,showsScale:mk.FeatureVisibility.Hidden,isRotationEnabled:false,showsPointsOfInterest:false,
     center:coord(S.sel.lat-1,S.sel.lon)});
   map.cameraDistance=reduced.matches?end:1.4e7;
   box=el;el.classList.add("mk-map");
   map.addEventListener("map-type-change",()=>{try{localStorage.setItem(PREF,map.mapType);}catch(e){}});
   // haritaya dokunma: işarete dokunulduysa ("select") nokta seçimi yapılmaz
-  map.addEventListener("single-tap",e=>{const p=e.pointOnPage;if(!p)return;
+  map.addEventListener("single-tap",e=>{stopIntro();const p=e.pointOnPage;if(!p)return;
     setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;const c=map.convertPointOnPageToCoordinate(p);
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
@@ -159,9 +161,20 @@ export async function initMapKit(el,h){
   map.addTileOverlays([night,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
-  updateWeather(true);setInterval(()=>updateWeather(false),400);onRegion();
-  if(!reduced.matches)setTimeout(()=>map&&map.setCameraDistanceAnimated(end,true),400);
+  updateWeather(true);wxTimer=setInterval(()=>{if(!document.hidden)updateWeather(false);},400);onRegion();
+  // açılış: uzaydan Türkiye'ye yaklaşma; oyuncu haritaya dokunursa iptal edilir, dokunuş seçimle çakışmaz
+  if(!reduced.matches){introEnd=end;introT=setTimeout(()=>{introT=0;map&&map.setCameraDistanceAnimated(end,true);},400);
+    el.addEventListener("pointerdown",stopIntro,{once:true});}
   if(import.meta.env.DEV)window.__mk=map;
+}
+
+let introT=0,introEnd=0,wxTimer=0;
+// açılış animasyonu başlamadan dokunulursa doğrudan son yakınlığa geçilir
+function stopIntro(){if(introT){clearTimeout(introT);introT=0;if(map)map.cameraDistance=introEnd;}}
+// + / - düğmeleri: kamera uzaklığı yarıya iner / iki katına çıkar
+export function zoomBy(d){
+  if(!map)return;stopIntro();
+  map.setCameraDistanceAnimated(Math.min(4e7,Math.max(150,map.cameraDistance/2**d)),!reduced.matches);
 }
 
 export function draw(){
@@ -200,7 +213,14 @@ export function focus(lon,lat){
   if(!map)return;map.setCenterAnimated(coord(lat,lon),!reduced.matches);
   if(map.cameraDistance>zoomToH(9))map.setCameraDistanceAnimated(zoomToH(9),!reduced.matches);
 }
+export function pagePoint(lat,lon){if(!map)return null;const p=map.convertCoordinateToPointOnPage(coord(lat,lon));return {x:p.x,y:p.y};}
+// haritayı dikey olarak dy piksel kaydır (pozitif: içerik yukarı çıkar)
+export function panBy(dy){
+  if(!map)return;const r=box.getBoundingClientRect(),c=map.convertPointOnPageToCoordinate(new DOMPoint(r.left+r.width/2,r.top+r.height/2+dy));
+  map.setCenterAnimated(c,!reduced.matches);
+}
 export function destroy(){
+  stopIntro();clearInterval(wxTimer);
   if(map){try{map.destroy();}catch(e){}}
   if(box)box.classList.remove("mk-map","mk-z3","mk-z4");
   map=null;sites.clear();rivals.clear();storms=[];
