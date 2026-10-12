@@ -310,6 +310,16 @@ header{align-items:center}
 .mapwrap .maplegend[hidden]{display:none}
 .maphint{position:absolute;z-index:4;width:256px;padding:8px 10px;border-radius:10px;background:rgba(18,26,34,.92);color:#E5ECF0;font-size:.8rem;line-height:1.35;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
 .maphint[hidden]{display:none}
+.guide{position:absolute;z-index:4;left:64px;bottom:12px;width:min(340px,calc(100% - 76px));padding:10px 12px;border-radius:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--solar);box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.86rem}
+.guide[hidden]{display:none}
+/* kart haritaya dokunmayı engellemez; yalnızca düğmeleri tıklanır */
+.guide{pointer-events:none}
+.guide button{pointer-events:auto}
+.guide .gtop{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.guide .gskip{min-height:32px;padding:2px 8px;font-size:.74rem;font-weight:600;text-transform:none;letter-spacing:0;border:0;background:transparent;color:var(--muted);text-decoration:underline}
+.guide b{display:block;font-size:.98rem;margin:2px 0 4px}
+.guide p{margin:0 0 6px;line-height:1.4;color:var(--muted)}
+.guide .pri{margin-top:2px}
 .side{background:var(--bg)}
 .grip{display:none}
 .tabs{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
@@ -320,6 +330,9 @@ header{align-items:center}
 .mysites{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
 .mysites::-webkit-scrollbar{display:none}
 .mysites[hidden],.mods[hidden]{display:none}
+.undo{display:flex;align-items:center;gap:10px;margin:10px 0 2px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));font-size:.84rem}
+.undo span{flex:1}
+.undo button{flex:0 0 auto;font-weight:700}
 .mysites button{flex:0 0 auto;font-size:.82rem;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .mysites button i{width:10px;height:10px;border-radius:50%;background:var(--c,#fff);border:2px solid var(--line)}
 .mysites button[aria-current="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
@@ -393,6 +406,9 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .tabp{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .side[data-state="peek"] .tabp{visibility:hidden}
   .readouts{grid-template-columns:repeat(2,1fr)}
+  .guide{top:10px;bottom:auto;right:10px;width:auto;padding:8px 10px;font-size:.8rem}
+  .guide b{font-size:.9rem;margin:0 0 2px}
+  .guide p{margin:0 0 4px}
   .toast{padding:7px 12px}
   .toast b{font-size:.86rem}
   .toast span{font-size:.76rem}

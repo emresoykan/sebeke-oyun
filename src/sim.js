@@ -1,10 +1,10 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
-import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM } from "./config.js";
+import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS } from "./config.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
 import { permitProb, rejectWhy, landCost } from "./rules.js";
-import { rnd, clamp, shape } from "./utils.js";
-import { render, renderReport } from "./ui/hud.js";
+import { rnd, clamp, shape, fmt$ } from "./utils.js";
+import { render, renderReport, showLose } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
 import { eqOf, eqName } from "./equipment.js";
@@ -129,8 +129,16 @@ export function endDay(){
     p.wet=0.75*(p.wet??0.35)+0.25*Math.min(1.4,(p.wetAcc||0)/24*3+m);p.wetAcc=0;});
   Object.values(S.sites).forEach(o=>{if(o.snowDays>0)o.snowDays--;});
   rollOutages();ageMods();
-  S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();save();renderReport();renderPanel();drawMap();
-  dayFx(S.last);maybeEvent();openDesk();leagueDay();
+  S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();
+  // iflas: gün sonu nakit (görev ve rozet ödüllerinden sonra) art arda BANKRUPT_DAYS gün eksi kalırsa şirket batar
+  let warn=0;
+  if(S.money<0){S.debt=(S.debt||0)+1;if(S.debt>=BANKRUPT_DAYS)S.over=true;else{warn=BANKRUPT_DAYS-S.debt;
+    addLog(`Nakit eksi (${fmt$(S.money)}). ${warn} gün içinde artıya dönmezse şirket iflas eder.`);}}
+  else S.debt=0;
+  save();renderReport();renderPanel();drawMap();render();
+  if(S.over){showLose();return;}
+  dayFx(S.last);if(warn)toast("Nakit eksi",`${warn} gün içinde düzelmezse iflas`,"neg");
+  maybeEvent();openDesk();leagueDay();
 }
 
 // Arızalar: her santral her gün ekipmanının arızasız gün olasılığına göre bozulabilir; 1-2 gün üretmez.
