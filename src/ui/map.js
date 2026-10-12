@@ -156,9 +156,10 @@ export function setGameClock(hour){
 }
 
 // Seçim (iki harita da kullanır): rakip işareti, kendi sahan veya haritada bir nokta (yakında sahan varsa o seçilir)
-// Mobilde kendi sahan açıkken boş bir yere dokunmak önce paneli küçültür; ikinci dokunuş yeni noktayı seçer
-// (yanlışlıkla seçim kaybını önler). Seçim yapılınca panel açılır (masaüstünde yan sütun başa kayar).
-let armed=false;
+// Kendi sahan seçiliyken boş bir yere ilk dokunuş seçimi değiştirmez (yanlışlıkla seçim kaybını önler):
+// mobilde açık kartı küçültür, masaüstünde "tekrar tıkla" ipucu gösterir; ikinci dokunuş yeni noktayı seçer.
+// Seçim yapılınca panel açılır (masaüstünde yan sütun başa kayar).
+let armed=false,armT=0;
 const mobile=matchMedia("(max-width:899.98px)");
 const afterSelect=()=>{armed=false;renderPanel();drawMap();render();openSheet("saha");ensureVisible();};
 // Mobilde kart açılınca seçili nokta kartın altında kalırsa harita kaydırılır (kart animasyonu bitince)
@@ -175,12 +176,28 @@ function ensureVisible(delay=320){
 function selectRival(lat,lon){S.sel={id:null,lat,lon};afterSelect();}
 function selectSite(id){const o=S.sites[id];if(!o)return;S.sel={id,lat:o.lat,lon:o.lon};afterSelect();}
 function tapPoint(lat,lon){
-  if(mobile.matches&&S.sel.id&&!armed&&sheetState()!=="peek"){armed=true;collapseSheet();return;}
+  if(S.sel.id&&!armed&&siteAt(lat,lon)!==S.sel.id){
+    if(mobile.matches&&sheetState()!=="peek"){armed=true;collapseSheet();return;}
+    if(!mobile.matches){armed=true;clearTimeout(armT);armT=setTimeout(()=>{armed=false;},4000);hint(lat,lon,"Sahan seçili. Bu noktayı seçmek için tekrar tıkla.");return;}
+  }
   selectPoint(lat,lon);
 }
-function selectPoint(lat,lon){
+function siteAt(lat,lon){
   let id=null,bd=SITE_MIN_KM;
   Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
+  return id;
+}
+// Tıklanan yerin yanında kısa süreli ipucu
+function hint(lat,lon,text){
+  const mw=document.getElementById("mapwrap"),p=pagePoint(lat,lon);if(!mw||!p)return;
+  let el=mw.querySelector(".maphint");if(!el){el=document.createElement("div");el.className="maphint";el.setAttribute("role","status");mw.appendChild(el);}
+  const r=mw.getBoundingClientRect();el.textContent=text;
+  Object.assign(el.style,{left:Math.min(Math.max(8,p.x-r.left+12),r.width-268)+"px",top:Math.min(Math.max(8,p.y-r.top+12),r.height-80)+"px"});
+  el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},3200);
+}
+function selectPoint(lat,lon){
+  const id=siteAt(lat,lon);
+  const mh=document.querySelector(".maphint");if(mh)mh.hidden=true;
   S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};afterSelect();
 }
 // dokunma alanı işaretin çevresinde ~44 px: en yakın işaret seçilir

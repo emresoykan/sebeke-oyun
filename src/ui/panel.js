@@ -45,6 +45,11 @@ export function renderPanel(){
   const t=selSite(),id=S.sel.id,o=id?S.sites[id]:null,el=document.getElementById("panel");
   const latS=coord(t.lat,"K","G"),lonS=coord(t.lon,"D","B");
   let title,html="";
+  // mobilde kapalı kartın tutamağında görünen kısa özet
+  const ps=document.getElementById("peekSum");
+  if(ps)ps.textContent=t.sea&&!t.shallow?"Açık deniz":t.reg==="X"?"Antarktika":t.reg==="G"?"Grönland buz örtüsü":
+    o?`${o.city} • ${siteMW(id)?siteMW(id)+" MW":"santral yok"} • ${{ok:"izinli",pending:"izin bekliyor",rejected:"izin reddedildi"}[o.permit]||"izin yok"}`:
+    `${t.sea?"Sığ deniz":TER_N[t.ter]} • ${near(t)} • ${fmt$(landCost(t))}`;
   if(t.sea&&!t.shallow){el.innerHTML=`<h3>Açık deniz</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)}</div><div class="status bad">Derin deniz: sabit tabanlı türbin kurulamaz. Kıyıya en fazla 200 km mesafedeki sığ sulara bak.</div>`;return;}
   if(t.reg==="X"){el.innerHTML=`<h3>Antarktika</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Antarktika Antlaşması gereği ticari enerji tesisi kurulamaz. Arazi satışa kapalı.</div>`;return;}
   if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}

@@ -40,8 +40,9 @@ document.getElementById("resetBtn").onclick=reset;
 window.addEventListener("sebeke:reset",reset);
 // Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür
 document.addEventListener("keydown",e=>{
-  if(e.ctrlKey||e.metaKey||e.altKey||document.querySelector("dialog[open]")||e.target.closest("input,textarea,select,button,[contenteditable]"))return;
-  if(e.key===" "){e.preventDefault();setPaused(!paused);}
+  if(e.ctrlKey||e.metaKey||e.altKey||document.querySelector("dialog[open]")||e.target.closest("input,textarea,select,[contenteditable]"))return;
+  // odak bir düğmedeyken boşluk o düğmeye basar (tarayıcı davranışı); diğer kısayollar yine çalışır
+  if(e.key===" "){if(e.target.closest("button,a"))return;e.preventDefault();setPaused(!paused);}
   else if(e.key==="1"||e.key==="3"||e.key==="8")setSpeed(+e.key);
   else if(e.key==="Escape"&&!document.body.classList.contains("view3d"))collapseSheet();
 });
