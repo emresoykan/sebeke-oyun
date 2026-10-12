@@ -5,7 +5,7 @@ import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, min
 import { fillRes } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
-import { buyLand, applyPermit, build } from "../actions.js";
+import { buyLand, applyPermit, build, undoFor, undoLast } from "../actions.js";
 import { plantStatus, statusText } from "../plantstatus.js";
 import { flyToSite, orbitSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
@@ -55,6 +55,8 @@ export function renderPanel(){
   if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}
   title=t.sea?`${t.country} • Sığ deniz`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
   html+=`<h3>${title}</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
+  const u=o&&undoFor(id);
+  if(u)html+=`<div class="undo" role="status"><span>${u.kind==="land"?(t.sea?"Deniz alanı kiralandı":"Arazi alındı"):`+${BLOCK} MW ${TECH[u.k].n} kuruldu`} (${fmt$(u.c)}). Yanlışlıkla mı? Birkaç saniye içinde tam iadeyle geri alabilirsin.</span><button data-a="undo">Geri al</button></div>`;
   fillRes(t);
   html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
     `<span>Güneş</span><span class="dots">${dots(t.solar)}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
@@ -81,7 +83,7 @@ export function renderPanel(){
     html+=buildHtml(t);
   }
   el.innerHTML=html;
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="permit")applyPermit(S.sel.id);
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id);
     else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }

@@ -62,6 +62,8 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/plantstatus.js` | Sahadaki santrallerin o saatteki çalışma durumu (3D modeller ve panel ortak kullanır) |
 | `src/ui/panel.js` | Seçili nokta/saha paneli, ekipman kartları ve buton durumları |
 | `src/ui/sheet.js` | Panel düzeni: sekmeler (Saha, Piyasa, Rapor, Ayarlar), mobilde alttan açılan kart, "Sahalarım" listesi, onay penceresi |
+| `src/ui/savefile.js` | Kayıt dosyası: oyunu ve profili JSON olarak indirme, doğrulayarak geri yükleme |
+| `src/ui/guide.js` | İlk oyun rehberi: üç adım (yer seç, araziyi al, izin ve santral) |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
@@ -103,6 +105,10 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Zaman:** Saat ilk arazi alınana kadar işlemez. Başlıktaki düğmeler duraklatır ve hızı 1x/3x/8x arasında değiştirir.
 - **Klavye:** Boşluk duraklat/devam, 1/3/8 hız, Esc mobil kartı küçültür (3D görünüm açıksa onu kapatır). Kısayollar bir düğmeye tıkladıktan sonra da çalışır; odak bir düğmedeyken boşluk o düğmeye basar.
 - **Bildirim balonları:** Haritanın üst kenarında çıkar (masaüstünde sağ üst, mobilde ortada); başlığı, nakdi, görev kartını ve paneli kapatmaz. Ekranda masaüstünde en fazla iki, mobilde bir balon kalır.
+- **Rehber:** İlk oyunda haritanın üstünde üç adımlı kısa bir rehber çıkar (yer seç → araziyi al → izin ve santral); oyuncu adımı yaptıkça ilerler, "Rehberi geç" ile kapanır, Ayarlar'dan yeniden açılır. Kart haritaya dokunmayı engellemez.
+- **Geri alma:** Son satın alma (arazi/deniz alanı veya +5 MW blok) 10 saniye içinde panelden tam iadeyle geri alınabilir. Arazide izin başvurusu yapıldıysa ya da santral kurulduysa, JES'te ilk blok (sondaj sonucu öğrenildiği için) geri alınamaz. O satın almayla tamamlanan görev ve rozet ödülleri geri alınmaz.
+- **Kayıt dosyası:** Ayarlar'da "Kaydı indir" oyunu ve profili bir JSON dosyasına yazar; "Kayıt yükle" dosyayı doğrular, onay ister ve mevcut ilerlemenin yerine koyar.
+- **İflas:** Gün sonu nakit (görev ve rozet ödüllerinden sonra) art arda 7 gün eksi kalırsa şirket iflas eder; her eksi günde kalan süre bildirilir. İflas ekranında kayıt yüklenebilir ya da yeni oyuna başlanır.
 - **Hedef:** Portföy değeri 5 M$'a ulaşınca özet ekranı (süre, kurulu güç, toplam üretim ve net kazanç, saha ve rozet sayısı) açılır; oyuncu devam edebilir veya yeni oyuna başlayabilir. "Yeniden başla" onay penceresi ister.
 
 ## Görevler, olay kartları ve geri bildirim

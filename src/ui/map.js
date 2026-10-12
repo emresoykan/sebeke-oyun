@@ -161,7 +161,7 @@ export function setGameClock(hour){
 // Seçim yapılınca panel açılır (masaüstünde yan sütun başa kayar).
 let armed=false,armT=0;
 const mobile=matchMedia("(max-width:899.98px)");
-const afterSelect=()=>{armed=false;renderPanel();drawMap();render();openSheet("saha");ensureVisible();};
+const afterSelect=()=>{armed=false;renderPanel();drawMap();render();openSheet("saha");ensureVisible();window.dispatchEvent(new CustomEvent("sebeke:select"));};
 // Mobilde kart açılınca seçili nokta kartın altında kalırsa harita kaydırılır (kart animasyonu bitince)
 function pagePoint(lat,lon){
   if(mk)return mk.pagePoint(lat,lon);if(!map)return null;

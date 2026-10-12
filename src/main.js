@@ -17,6 +17,9 @@ import { initGfxToggle } from "./ui/quality.js";
 import { initLeague } from "./league.js";
 import { initLeagueUI } from "./ui/league.js";
 import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
+import { initSaveFile } from "./ui/savefile.js";
+import { initGuide, restartGuide } from "./ui/guide.js";
+import { showLose } from "./ui/hud.js";
 
 let timer=null, speed=1, paused=false, held=false; // held: olay kartı açıkken oyun bekler
 
@@ -35,8 +38,12 @@ function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribut
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
 speedBtn.onclick=()=>setSpeed(speed===1?3:speed===3?8:1);
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
-async function reset(){if(await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
+// iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
+async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
+  if(force||await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
 document.getElementById("resetBtn").onclick=reset;
+initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));
+document.getElementById("guideBtn").onclick=()=>{restartGuide();collapseSheet();};
 window.addEventListener("sebeke:reset",reset);
 // Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür
 document.addEventListener("keydown",e=>{
@@ -52,4 +59,4 @@ initSheet({onTab:t=>{if(t==="piyasa")drawChart();}});
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{loop();openDesk();initLeague();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk();initLeague();});
