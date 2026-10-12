@@ -224,9 +224,9 @@ export function focus(lon,lat){
 }
 export function flyTo(lat,lon,h){if(!map)return;stopIntro();map.setCenterAnimated(coord(lat,lon),!reduced.matches);map.setCameraDistanceAnimated(h,!reduced.matches);}
 export function pagePoint(lat,lon){if(!map)return null;const p=map.convertCoordinateToPointOnPage(coord(lat,lon));return {x:p.x,y:p.y};}
-// haritayı dikey olarak dy piksel kaydır (pozitif: içerik yukarı çıkar)
-export function panBy(dy){
-  if(!map)return;const r=box.getBoundingClientRect(),c=map.convertPointOnPageToCoordinate(new DOMPoint(r.left+r.width/2,r.top+r.height/2+dy));
+// haritayı dx, dy piksel kaydır (pozitif dy: içerik yukarı çıkar; pozitif dx: içerik sola kayar)
+export function panBy(dy,dx=0){
+  if(!map)return;const r=box.getBoundingClientRect(),c=map.convertPointOnPageToCoordinate(new DOMPoint(r.left+r.width/2+dx,r.top+r.height/2+dy));
   map.setCenterAnimated(c,!reduced.matches);
 }
 export function destroy(){
