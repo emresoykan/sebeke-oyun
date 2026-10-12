@@ -15,6 +15,7 @@ import { rivalSites } from "../rivals.js";
 import { PROTECTED } from "../data/protected.js";
 import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
+import * as P from "./potential.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -159,7 +160,11 @@ export async function initMapKit(el,h){
   map.addAnnotations(parkLabels);
   night=new mk.TileOverlay(nightTile,{opacity:1});
   clouds=new mk.TileOverlay(cloudTile,{maximumZ:7,opacity:0});
-  map.addTileOverlays([night,clouds]);
+  // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
+  const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1});let potT=0;
+  P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;pot.reload();});
+  P.onPotTile(()=>{if(!map||P.potMode()==="off")return;clearTimeout(potT);potT=setTimeout(()=>map&&pot.reload(),250);});
+  map.addTileOverlays([night,pot,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
   updateWeather(true);wxTimer=setInterval(()=>{if(!document.hidden)updateWeather(false);},400);onRegion();
@@ -214,6 +219,7 @@ export function focus(lon,lat){
   if(!map)return;map.setCenterAnimated(coord(lat,lon),!reduced.matches);
   if(map.cameraDistance>zoomToH(9))map.setCameraDistanceAnimated(zoomToH(9),!reduced.matches);
 }
+export function flyTo(lat,lon,h){if(!map)return;stopIntro();map.setCenterAnimated(coord(lat,lon),!reduced.matches);map.setCameraDistanceAnimated(h,!reduced.matches);}
 export function pagePoint(lat,lon){if(!map)return null;const p=map.convertCoordinateToPointOnPage(coord(lat,lon));return {x:p.x,y:p.y};}
 // haritayı dikey olarak dy piksel kaydır (pozitif: içerik yukarı çıkar)
 export function panBy(dy){

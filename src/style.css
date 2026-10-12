@@ -305,11 +305,29 @@ header{align-items:center}
 .mapwrap{height:min(62vh,540px)}
 .mapbtns{position:absolute;top:10px;left:10px;z-index:3;display:flex;flex-direction:column;gap:6px}
 .mapbtns button{width:44px;height:44px;padding:0;border-radius:12px;font-size:1.25rem;line-height:1;background:rgba(18,26,34,.82);color:#fff;border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.mapbtns button[aria-expanded="true"]{background:#fff;color:#111}
+.mapbtns button[aria-expanded="true"],.mapbtns button[aria-pressed="true"]{background:#fff;color:#111}
+.mapbtns svg{display:block;margin:auto}
 .mapwrap .maplegend{position:absolute;left:64px;top:10px;z-index:3;max-width:min(320px,calc(100% - 80px));margin:0;padding:10px 12px;border-radius:12px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.78rem}
 .mapwrap .maplegend[hidden]{display:none}
 .maphint{position:absolute;z-index:4;width:256px;padding:8px 10px;border-radius:10px;background:rgba(18,26,34,.92);color:#E5ECF0;font-size:.8rem;line-height:1.35;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
 .maphint[hidden]{display:none}
+.mapsearch{position:absolute;z-index:5;top:10px;left:64px;width:min(340px,calc(100% - 76px));background:rgba(18,26,34,.94);border:1px solid rgba(255,255,255,.18);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+.mapsearch[hidden]{display:none}
+.mapsearch input{width:100%;min-height:44px;border:0;border-bottom:1px solid rgba(255,255,255,.14);background:transparent;color:#fff;font:inherit;font-size:16px;padding:10px 12px;outline:none}
+.mapsearch input::placeholder{color:#9AA8B4}
+.mapsearch ul{list-style:none;margin:0;padding:4px;max-height:min(320px,50vh);overflow:auto}
+.mapsearch ul:empty{display:none}
+.mapsearch li button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;min-height:40px;border:0;background:transparent;color:#E5ECF0;text-align:left;padding:6px 10px;border-radius:8px;font-weight:600}
+.mapsearch li[aria-selected="true"] button,.mapsearch li button:hover{background:rgba(255,255,255,.12)}
+.mapsearch li small{color:#9AA8B4;font-weight:400;font-size:.78rem;white-space:nowrap}
+.mapsearch li.none{color:#9AA8B4;font-size:.82rem;padding:8px 10px}
+.potlegend{position:absolute;z-index:3;right:12px;bottom:36px;width:min(250px,calc(100% - 88px));padding:8px 10px;border-radius:12px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.76rem;pointer-events:none}
+.potlegend[hidden]{display:none}
+.potlegend b{display:block;font-size:.82rem;margin-bottom:4px}
+.pl-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:4px}
+.pl-scale span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.5rem;letter-spacing:-.5px;color:#C9D3DB}
+.pl-scale i{display:block;width:100%;height:12px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.potlegend small{display:block;color:#9AA8B4;line-height:1.3}
 .guide{position:absolute;z-index:4;left:64px;bottom:12px;width:min(340px,calc(100% - 76px));padding:10px 12px;border-radius:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--solar);box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.86rem}
 .guide[hidden]{display:none}
 /* kart haritaya dokunmayı engellemez; yalnızca düğmeleri tıklanır */
