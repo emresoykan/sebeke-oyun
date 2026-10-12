@@ -50,7 +50,8 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/rivals.js` | Kurgusal rakip şirketler: saha seçimi, yatırım bütçesi, inşaat, piyasaya etkisi, portföy değeri |
 | `src/news.js`, `src/ui/ticker.js` | Haber bandı: rakip hamleleri, hava uyarıları, fiyat rekorları, olaylar, mevsim |
 | `src/league.js`, `src/net/fb.js`, `src/ui/league.js` | Arkadaş ligi: sıralama, eşik duyuruları, Firebase bağlantısı (yalnızca lige katılınca yüklenir), lig penceresi |
-| `firebase/firestore.rules` | Lig veritabanının güvenlik kuralları |
+| `firebase/firestore.rules` | Lig ve bulut kayıt veritabanının güvenlik kuralları |
+| `src/cloud.js`, `src/ui/cloud.js` | Bulut kayıt: kurtarma kodu, otomatik eşitleme, kodla yükleme; Ayarlar'daki bölüm |
 | `src/mods.js` | Olaylardan gelen geçici etkiler (fiyat, üretim, sabit fiyat, prim, maliyet, arıza riski) |
 | `src/ui/mission.js`, `src/ui/eventcard.js`, `src/ui/fx.js` | Görev çubuğu, olay kartı penceresi, bildirim balonları, kutlama ve ses |
 | `src/ui/profile.js` | Başlıktaki profil rozeti, ilk açılışta şirket kurma formu, profil penceresi |
@@ -214,6 +215,20 @@ Oyuncular bir davet koduyla aynı lige katılır ("🏆 Lig" düğmesi). Sırala
 6. GitHub depo → Settings → Secrets and variables → Actions → New repository secret: ad `FIREBASE_CONFIG`, değer kopyaladığınız `{ ... }` nesnesi. Sonraki yayında "🏆 Lig" düğmesi görünür.
 
 Firebase web yapılandırması gizli anahtar değildir (tarayıcıya gömülür, erişimi güvenlik kuralları korur); yine de depoya yazılmaz, secret olarak verilir. Yerel test: `npx firebase emulators:start --only auth,firestore --project demo-sebeke` ve geliştirme sunucusunda `?fbemu=127.0.0.1`.
+
+## Bulut kayıt
+
+Ayarlar → "Bulut kaydı aç". Lig ile aynı Firebase projesini kullanır (anonim giriş, ücretsiz Spark planı); `FIREBASE_CONFIG` yoksa bölüm "kapalı" yazar.
+
+- **Kurtarma kodu:** Açınca 16 karakterlik rastgele bir kod üretilir (`ABCD-EFGH-JKLM-NPQR`, karışan O/0/I/1 harfleri yok, ~80 bit). Kayıt `saves/{KOD}` belgesinde durur; kodu bilen okur, yazar ve siler, kayıt listesi okunamaz. Kod bir şifre gibi saklanmalı; Ayarlar'da gizli gösterilir, "Göster" ve "Kopyala" ile alınır.
+- **Saklanan veri:** Oyun durumu (tek JSON metni, en fazla 800 KB) ve profil (şirket adı, oyuncu adı, renk, uzmanlık; en fazla 4 KB). Başka bir şey gönderilmez.
+- **Eşitleme:** Açıkken oyun günü bittikçe en fazla 90 saniyede bir ve oyun değiştiyse, ayrıca sekme gizlenirken yazılır; "Şimdi kaydet" elle yazar. Sunucu bir kaydı en fazla 20 saniyede bir günceller. Oyuncu başına saatte en fazla ~40 yazma; Spark planının günlük ücretsiz kotası (Firebase'in sayfasına göre 20.000 yazma, 50.000 okuma) küçük bir oyuncu grubu için yeterlidir.
+- **Yükleme:** Buluttan yükleme yalnızca oyuncu kodu girip onaylayınca olur, yerel ilerleme sessizce ezilmez. Yüklenen cihaz aynı kodla eşitlemeye devam eder.
+- **Kapatma:** "Kapat" bu cihazda eşitlemeyi durdurur (buluttaki kopya kodla erişilebilir kalır); "Buluttan sil" kopyayı da siler.
+- **Sınır:** Anonim girişte hesap yoktur; kod kaybolursa buluttaki kayda ulaşılamaz. Aynı kodu iki cihazda aynı anda oynamak son yazanın kazanmasıyla sonuçlanır.
+- **Kurallar** (`firebase/firestore.rules`, `saves` bölümü): kod biçimi, alan listesi, tip ve boyut sınırları, sunucu zamanı ve 20 sn güncelleme aralığı denetlenir. Emülatörde 19 senaryoyla test edildi (lig kurallarının 29 senaryosu da geçiyor).
+
+**Kurulum:** Lig için yapılan kurulum yeterli; yalnızca güncel `firebase/firestore.rules` içeriği Firebase konsolunda Firestore → Rules sekmesine yapıştırılıp **Publish** edilmeli (yoksa sunucu bulut kaydı reddeder ve oyunda "Sunucu isteği reddetti" yazar).
 
 ## Harita
 
