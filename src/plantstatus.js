@@ -28,7 +28,7 @@ export function plantStatus(id){
   return out;
 }
 
-const DOWN={res:"RES",off:"Offshore",ges:"GES",hes:"HES",jes:"JES",bes:"BES",mar:"Deniz",batt:"Batarya"};
+const DOWN={res:"RES",off:"Offshore",ges:"GES",hes:"HES",jes:"JES",bes:"Biyokütle",mar:"Deniz",batt:"Batarya"};
 export function statusText(st){
   const pct=f=>"%"+Math.round(f*100),parts=[];
   for(const k in DOWN)if(st[k]&&st[k].down){parts.push(`${DOWN[k]}: arızalı, onarılıyor`);delete st[k];}
@@ -37,7 +37,7 @@ export function statusText(st){
   if(st.ges)parts.push(st.ges.snow&&st.ges.f>0.005?`GES: paneller karla kaplı, ${pct(st.ges.f)} kapasite`:st.ges.curt?"GES: fiyat sıfır, üretim kısıldı":st.ges.f<0.03?"GES: gece, üretim yok":`GES: ${pct(st.ges.f)} kapasiteyle üretiyor`);
   if(st.hes)parts.push(st.hes.run?"HES: türbinler çalışıyor":"HES: su biriktiriyor");
   if(st.jes)parts.push(`JES: ${pct(st.jes.f)} kapasiteyle sürekli üretiyor`);
-  if(st.bes)parts.push(st.bes.run?"BES: fiyat yakıt maliyetinin üstünde, çalışıyor":"BES: fiyat düşük, yakıt yakmıyor");
+  if(st.bes)parts.push(st.bes.run?"Biyokütle: fiyat yakıt maliyetinin üstünde, çalışıyor":"Biyokütle: fiyat düşük, yakıt yakmıyor");
   if(st.mar)parts.push(st.mar.f<0.03?"Deniz: gelgit dönüyor, akıntı durgun":`Deniz: ${pct(st.mar.f)} kapasite (${st.mar.tide?"gelgit akıntısı":"dalga"})`);
   if(st.batt)parts.push(`Batarya: ${pct(st.batt.soc)} dolu`+(st.batt.chg?", şarj oluyor":st.batt.dis?", deşarj ediyor":", beklemede"));
   return parts.join(" • ");
