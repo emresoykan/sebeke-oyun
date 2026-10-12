@@ -57,11 +57,36 @@ function marker(cls,size,onSelect){
   const anchor=div("mk-anchor"),root=div("mk-mark "+cls,anchor),lab=div("mk-lbl",root);
   const a=new mk.Annotation(coord(0,0),()=>anchor,{calloutEnabled:false,
     displayPriority:mk.Annotation.DisplayPriority.Required,collisionMode:mk.Annotation.CollisionMode.None});
+  const m0={a,root,lab,anchor,key:""};
   if(onSelect)a.addEventListener("select",()=>{tapAt=performance.now();setTimeout(()=>{a.selected=false;},0);onSelect();});
   else a.enabled=false;
-  return {a,root,lab,key:""};
+  return m0;
 }
-function place(m,lat,lon){const k=lat+","+lon;if(m.key!==k){m.key=k;m.a.coordinate=coord(lat,lon);}}
+function place(m,lat,lon){const k=lat+","+lon;if(m.key!==k){m.key=k;m.lat=lat;m.lon=lon;m.a.coordinate=coord(lat,lon);}}
+
+// --- Yakınlaşınca tesisin kendisi (siteimage.js): işaretin arkasına gerçek ölçekli kuşbakışı görüntü ---
+// three.js ilk yakınlaşmada yüklenir; boyut her harita hareketinde (yakınlaştırırken her karede) metre/piksele göre ayarlanır.
+const FAC_H=zoomToH(11);let F=null,Fload=null,facRaf=0;
+function facPpm(m){const kx=111320*Math.cos(m.lat*RAD),a=map.convertCoordinateToPointOnPage(coord(m.lat,m.lon)),b=map.convertCoordinateToPointOnPage(coord(m.lat,m.lon+1000/kx));return (b.x-a.x)/1000;}
+function sizeFac(m){
+  if(!m.fac||!m.img||!map)return;
+  const ppm=facPpm(m),k=F.facScale(m.img,ppm)*ppm,[e0,e1]=m.img.east,[n0,n1]=m.img.north,w=(e1-e0)*k,vis=map.cameraDistance<FAC_H&&w<9000;
+  m.fac.style.display=vis?"":"none";m.root.classList.toggle("fac",vis);if(!vis)return;
+  Object.assign(m.fac.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
+}
+function ensureFac(id,m){
+  if(!F)return;const sig=F.siteSig(id);if(m.facSig===sig)return;m.facSig=sig;
+  F.siteImage(id).then(img=>{if(m.facSig!==sig||!map)return;
+    if(!img){if(m.fac){m.fac.remove();m.fac=null;}m.root.classList.remove("fac");return;}
+    if(!m.fac){m.fac=document.createElement("img");m.fac.className="mk-fac";m.fac.alt="";m.anchor.insertBefore(m.fac,m.anchor.firstChild);}
+    m.fac.src=img.url;m.img=img;sizeFac(m);});
+}
+function syncFac(){
+  if(!map||map.cameraDistance>FAC_H*1.3)return sites.forEach(sizeFac);
+  if(!F){Fload=Fload||import("./siteimage.js").then(x=>{F=x;sites.forEach((m,id)=>ensureFac(id,m));});return;}
+  sites.forEach((m,id)=>{ensureFac(id,m);sizeFac(m);});
+}
+function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{sites.forEach(sizeFac);facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
 
 // --- Gece tarafı: karo başına güneş yüksekliğinden karanlık (map.js'teki düz harita ile aynı eşikler) ---
 function nightTile(x,y,z){
@@ -121,6 +146,8 @@ export async function initMapKit(el,h){
     setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;const c=map.convertPointOnPageToCoordinate(p);
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
+  map.addEventListener("region-change-start",()=>{if(F)facLoop();});
+  map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
   map.addOverlays(PROTECTED.map(([n,lat,lon,r])=>new mk.CircleOverlay(coord(lat,lon),r*1000,{style:ps,enabled:false})));
@@ -150,6 +177,7 @@ export function draw(){
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}
+  syncFac();
   const rs=new Set();
   rivalSites().forEach(({r,s})=>{
     const k=`${r.id}:${s.lat}:${s.lon}`;rs.add(k);let m=rivals.get(k);

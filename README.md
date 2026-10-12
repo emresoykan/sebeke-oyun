@@ -113,6 +113,12 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 
 Ölçüm (aynı tohum, 5 günlük ortalama, 5 MW blok başına, standart ekipman): JES (Denizli) kapasite faktörü 0,88–0,96, geri dönüş ~55–60 gün (zayıf rezervuarda ~110 gün); BES (Konya) KF ~0,78, yakıt sonrası geri dönüş ~70–80 gün; deniz (Fundy) KF ~0,42, destekle ~90 gün; aynı dönemde GES ~57–71 gün. Değerler oyun dengesi için temsilîdir.
 
+## Haritada tesis görünümü ve canlılık
+
+- Yakınlaşınca (düz haritada ~11. yakınlıktan, Apple haritasında benzer mesafeden) saha noktasının arkasında tesisin kendisi görünür: sahanın 3D modeli (`src/ui/sitemodel.js`) tarayıcıda güneyden hafif eğik bakan bir kamerayla gerçek ölçekli, saydam bir görüntüye çizilir (`src/ui/siteimage.js`) ve sahanın koordinatına yerleştirilir. Uzaktayken en az ~80 piksel genişlikte gösterilir, yaklaştıkça gerçek boyutuna iner. three.js yalnızca ilk yakınlaşmada yüklenir; santral listesi değişince görüntü yenilenir.
+- O saatte üretim yapan sahanın çevresinde teknoloji renginde bir nabız halkası atar.
+- 3D görünümde rotorlar, GES parıltısı, batarya fanları, HES su sıçraması, JES buharı, BES dumanı ve konveyörü, gelgit rotorları ve dalga şamandıraları üretim durumuna göre hareket eder. Hareket azaltma ayarında durur.
+
 ## Mevsimler
 
 Oyun 20 Mart 2026'da başlar; her oyun günü takvimi 3 gün ilerletir (bir yıl = 120 oyun günü). Başlıkta tarih ve mevsim görünür; mevsim değişince bildirim gelir.
