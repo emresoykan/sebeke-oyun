@@ -75,13 +75,14 @@ function sizeFac(m){
   const ppm=facPpm(m),k=F.facScale(m.img,ppm)*ppm,[e0,e1]=m.img.east,[n0,n1]=m.img.north,w=(e1-e0)*k,vis=map.cameraDistance<FAC_H&&w<9000;
   m.fac.style.display=vis?"":"none";m.root.classList.toggle("fac",vis);if(!vis)return;
   Object.assign(m.fac.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
+  const url=F.lodFor(m.img,w*(window.devicePixelRatio||1));if(m.facUrl!==url){m.facUrl=url;m.fac.src=url;}
 }
 function ensureFac(id,m){
   if(!F)return;const sig=F.siteSig(id);if(m.facSig===sig)return;m.facSig=sig;
   F.siteImage(id).then(img=>{if(m.facSig!==sig||!map)return;
     if(!img){if(m.fac){m.fac.remove();m.fac=null;}m.root.classList.remove("fac");return;}
     if(!m.fac){m.fac=document.createElement("img");m.fac.className="mk-fac";m.fac.alt="";m.anchor.insertBefore(m.fac,m.anchor.firstChild);}
-    m.fac.src=img.url;m.img=img;sizeFac(m);});
+    m.img=img;m.facUrl=null;sizeFac(m);});
 }
 function syncFac(){
   if(!map||map.cameraDistance>FAC_H*1.3)return sites.forEach(sizeFac);
