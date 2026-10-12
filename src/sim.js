@@ -138,7 +138,7 @@ export function endDay(){
   save();renderReport();renderPanel();drawMap();render();
   if(S.over){showLose();return;}
   dayFx(S.last);if(warn)toast("Nakit eksi",`${warn} gün içinde düzelmezse iflas`,"neg");
-  maybeEvent();openDesk();leagueDay();
+  maybeEvent();openDesk();leagueDay();window.dispatchEvent(new CustomEvent("sebeke:dayend"));
 }
 
 // Arızalar: her santral her gün ekipmanının arızasız gün olasılığına göre bozulabilir; 1-2 gün üretmez.

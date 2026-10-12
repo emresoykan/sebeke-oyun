@@ -1,5 +1,5 @@
-// --- Firebase bağlantısı (arkadaş ligi) ---
-// SDK yalnızca oyuncu bir lige katıldığında yüklenir (ayrı parça), böylece lig kullanmayanlar için sayfa ağırlaşmaz.
+// --- Firebase bağlantısı (arkadaş ligi ve bulut kayıt) ---
+// SDK yalnızca oyuncu bir lige katıldığında ya da bulut kaydı açtığında yüklenir (ayrı parça), böylece kullanmayanlar için sayfa ağırlaşmaz.
 // Giriş anonimdir: tarayıcı başına kalıcı bir kimlik (uid) oluşur; e-posta veya şifre istenmez.
 let api=null;
 
@@ -18,7 +18,11 @@ export async function connect(cfg,emu){
     post:(code,d)=>F.addDoc(fd(code),{...d,uid:user.uid,at:F.serverTimestamp()}),
     leave:code=>F.deleteDoc(F.doc(pl(code),user.uid)),
     watchPlayers:(code,cb,err)=>F.onSnapshot(F.query(pl(code),F.orderBy("v","desc"),F.limit(25)),s=>cb(rows(s)),err),
-    watchFeed:(code,cb,err)=>F.onSnapshot(F.query(fd(code),F.orderBy("at","desc"),F.limit(20)),s=>cb(rows(s)),err)
+    watchFeed:(code,cb,err)=>F.onSnapshot(F.query(fd(code),F.orderBy("at","desc"),F.limit(20)),s=>cb(rows(s)),err),
+    // bulut kayıt (saves/{kurtarma kodu})
+    saveGet:async code=>{const d=await F.getDoc(F.doc(db,"saves",code));if(!d.exists())return null;const x=d.data({serverTimestamps:"estimate"});return {...x,at:x.at&&x.at.toMillis?x.at.toMillis():null};},
+    savePut:(code,d)=>F.setDoc(F.doc(db,"saves",code),{...d,at:F.serverTimestamp()}),
+    saveDel:code=>F.deleteDoc(F.doc(db,"saves",code))
   };
   return api;
 }

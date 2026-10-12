@@ -18,6 +18,8 @@ import { initLeague } from "./league.js";
 import { initLeagueUI } from "./ui/league.js";
 import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
 import { initSaveFile } from "./ui/savefile.js";
+import { initCloud } from "./cloud.js";
+import { initCloudUI } from "./ui/cloud.js";
 import { initGuide, restartGuide } from "./ui/guide.js";
 import { showLose } from "./ui/hud.js";
 
@@ -43,6 +45,7 @@ async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail
   if(force||await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
 document.getElementById("resetBtn").onclick=reset;
 initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));
+initCloudUI();initCloud();
 document.getElementById("guideBtn").onclick=()=>{restartGuide();collapseSheet();};
 window.addEventListener("sebeke:reset",reset);
 // Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür

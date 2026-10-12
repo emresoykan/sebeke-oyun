@@ -27,6 +27,8 @@ const EMU=import.meta.env.DEV?new URLSearchParams(location.search).get("fbemu"):
 // önizleme derlemesi (sunucusuz sayfa): tarayıcı içinde örnek oyuncularla çalışan demo lig
 export const DEMO=import.meta.env.VITE_LEAGUE_DEMO==="1";
 export const leagueAvailable=()=>!!CFG||!!EMU||DEMO;
+// bulut kayıt aynı Firebase projesini kullanır (demo derlemede sunucu yok)
+export const fbSetup=()=>CFG||EMU?{cfg:CFG||{apiKey:"demo",projectId:"demo-sebeke",appId:"demo"},emu:EMU}:null;
 
 export const LG={code:null,status:"off",uid:null,players:[],feed:[],err:null};
 let api=null,unsub=[],lastPush=0,timer=null,seen=new Set(),joinedAt=0;

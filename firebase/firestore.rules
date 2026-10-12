@@ -2,12 +2,33 @@ rules_version = '2';
 // Şebeke arkadaş ligi. Her lig bir davet koduyla açılır: leagues/{KOD}/players/{uid} ve leagues/{KOD}/feed/{id}.
 // Lig listesi okunamaz; kodu bilmeyen hiçbir şey göremez. Giriş anonimdir (Firebase Authentication, Anonymous).
 // Oyuncu yalnızca kendi kaydını yazar; alanlar tip ve aralık olarak denetlenir; kayıt en fazla 10 sn'de bir güncellenir.
+// Bulut kayıt: saves/{KURTARMA_KODU}. Kod 16 karakterlik rastgele bir sırdır (~80 bit); kodu bilen okur, yazar ve siler,
+// liste okunamaz. Oyun durumu tek bir JSON metni olarak saklanır; boyut sınırlıdır ve en fazla 20 sn'de bir güncellenir.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function codeOk(code) { return code.matches('^[A-Z0-9]{6,16}$'); }
     function hexColor(c) { return c is string && c.matches('^#[0-9A-Fa-f]{6}$'); }
     function company(s) { return s is string && s.size() >= 1 && s.size() <= 40; }
+
+    match /saves/{code} {
+      function saveCodeOk() { return code.matches('^[A-HJ-NP-Z2-9]{16}$'); }
+      function validSave(d) {
+        return d.keys().hasOnly(['s', 'p', 'v', 'day', 'at'])
+          && d.keys().hasAll(['s', 'v', 'day', 'at'])
+          && d.s is string && d.s.size() >= 2 && d.s.size() <= 800000
+          && (!('p' in d) || (d.p is string && d.p.size() <= 4000))
+          && d.v is int && d.v >= 1 && d.v <= 100
+          && d.day is int && d.day >= 1 && d.day <= 1000000
+          && d.at == request.time;
+      }
+      allow get: if signedIn() && saveCodeOk();
+      allow list: if false;
+      allow create: if signedIn() && saveCodeOk() && validSave(request.resource.data);
+      allow update: if signedIn() && saveCodeOk() && validSave(request.resource.data)
+        && request.time > resource.data.at + duration.value(20, 's');
+      allow delete: if signedIn() && saveCodeOk();
+    }
 
     match /leagues/{code} {
       match /players/{uid} {
