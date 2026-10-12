@@ -19,8 +19,14 @@ import { plantStatus, isLive } from "../plantstatus.js";
 import { openSheet, collapseSheet, renderMySites, sheetState } from "./sheet.js";
 import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
 import { initWeatherLayer } from "./wxflat.js";
+import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
+import { initSearch } from "./search.js";
 
 maplibregl.setWorkerUrl(workerUrl);
+
+// Güneş/rüzgâr potansiyel karoları (potential.js): pot://s/z/x/y veya pot://w/z/x/y
+const EMPTY_PNG=()=>Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="),c=>c.charCodeAt(0)).buffer;
+maplibregl.addProtocol("pot",async p=>{const [k,z,x,y]=p.url.slice(6).split("/");return {data:(await tilePNG(k,+z,+x,+y))||EMPTY_PNG()};});
 
 // Gömülü ayrıntılı kabartma karoları paketlerden okunur (z5–7 tek pakette, z8–9 z6 hücresine göre)
 if(HD){
@@ -142,6 +148,12 @@ function drawNight(hour){
       px[p]=2;px[p+1]=6;px[p+2]=18;px[p+3]=t*t*(3-2*t)*72;}}
   g.putImageData(im,0,0);const src=map.getSource("night");src.play();requestAnimationFrame(()=>requestAnimationFrame(()=>src.pause()));
 }
+// Potansiyel katmanları gece gölgesinin üstünde, yer adlarının ve oyun işaretlerinin altında
+function addPotential(){
+  ["s","w"].forEach(k=>{map.addSource("pot-"+k,{type:"raster",tiles:[`pot://${k}/{z}/{x}/{y}`],tileSize:256,minzoom:1,maxzoom:13});
+    map.addLayer({id:"pot-"+k,type:"raster",source:"pot-"+k,layout:{visibility:potMode()===k?"visible":"none"},paint:{"raster-fade-duration":150,"raster-resampling":"linear"}},"labels-start");});
+  onPotChange(m=>["s","w"].forEach(k=>map&&map.getLayer("pot-"+k)&&map.setLayoutProperty("pot-"+k,"visibility",m===k?"visible":"none")));
+}
 function addNight(){
   nightCv=document.createElement("canvas");nightCv.width=NW;nightCv.height=NH;
   map.addSource("night",{type:"canvas",canvas:nightCv,animate:false,coordinates:[[-180,MAXLAT],[180,MAXLAT],[180,-MAXLAT],[-180,-MAXLAT]]});
@@ -210,6 +222,12 @@ function onClick(e){
 }
 
 // Bir sahaya git: seç ve haritayı oraya götür ("Sahalarım" ve ◎ düğmesi)
+// Arama sonucuna git: şehir ve koordinatta nokta da seçilir (panelde kaynak puanları görünür)
+export function goTo(r){
+  if(mk)mk.flyTo(r.lat,r.lon,zoomToH(r.zoom));
+  else if(map)map.flyTo({center:[r.lon,r.lat],zoom:Math.min(r.zoom,map.getMaxZoom()),duration:reducedMotion.matches?0:1400,essential:true});
+  if(r.sel){armed=false;selectPoint(r.lat,r.lon);ensureVisible(reducedMotion.matches?320:1500);}
+}
 export function focusSite(id){
   const o=S.sites[id];if(!o)return;selectSite(id);
   if(mk)mk.focus(o.lon,o.lat);else if(map)map.flyTo({center:[o.lon,o.lat],zoom:Math.max(map.getZoom(),8),duration:reducedMotion.matches?0:1200,essential:true});
@@ -231,7 +249,7 @@ const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.me
 function applyGfx(L){if(!map)return;map.setPixelRatio(flatRatio(L));if(map.getLayer("hillshade"))map.setLayoutProperty("hillshade","visibility",L.shadows?"visible":"none");}
 
 export async function initMap(){
-  initMapButtons();renderMySites(focusSite);
+  initMapButtons();initPotButton();initSearch(goTo);renderMySites(focusSite);
   const el=document.getElementById("map");
   if(MAPKIT){
     try{
@@ -264,7 +282,7 @@ async function initFlat(){
     new MutationObserver(close).observe(att,{attributes:true,attributeFilter:["class","open"]});close();}
   // vektör kaynağı birkaç saniyede gelmezse yerel adlarla devam et
   if(ONLINE)setTimeout(()=>{if(!vectorOk)useFallback(true);},8000);
-  addNight();addGameLayers();initWeatherLayer(map);pulseLoop();map.on("zoomend",syncFacilities);map.on("zoom",rescaleFacilities);
+  addNight();addPotential();addGameLayers();initWeatherLayer(map);pulseLoop();map.on("zoomend",syncFacilities);map.on("zoom",rescaleFacilities);
   map.on("click",onClick);
   ["rivals","sites"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);

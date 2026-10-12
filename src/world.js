@@ -56,26 +56,46 @@ export function fillRes(t){
 }
 
 // Bir noktanın oyun özellikleri (eski kare nesnesiyle aynı alanlar + ülke/şehir bilgisi)
+// Güneş ve rüzgâr puanı (0-1) kuralları: describe ve potansiyel haritası (potential.js) aynı formülü kullanır
+const sunOf=(lat,ter)=>Math.max(0.15,Math.min(1,Math.min(1,Math.max(0.2,1.05-Math.abs(lat)/75))+(ter==="d"?0.15:0)-(ter==="f"?0.15:0)));
+const windOf=(lat,ter,coastNear)=>Math.max(0.15,Math.min(0.95,0.35+(Math.abs(lat)>=40?0.25:0)+(coastNear?0.12:0)+(ter==="m"?0.08:0)-(ter==="f"?0.1:0)));
+const seaWindOf=lat=>0.7+(Math.abs(lat)>=40?0.15:0);
+function landTer(c,lat,lon){const park=protectedAt(lat,lon);return {park,ter:(c.m==="G"||c.m==="X")?"i":park?"p":(terrainAt(lon,lat)||(forestRule(c.a3,lat)?"f":"pl"))};}
+// Potansiyel haritası için: şehir araması olmadan yalnızca puanlar. Kurulamayan yer (buz örtüsü, Antarktika, derin deniz,
+// piyasa dışı) null döner. Korunan alanlarda puan döner ama p=1 işaretlenir (izin neredeyse çıkmaz).
+export function potentialAt(lat,lon){
+  lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
+  const c=countryAt(lon,lat);
+  if(c){if(c.m==="G"||c.m==="X"||!MARKETS.includes(c.m))return null;const {park,ter}=landTer(c,lat,lon);
+    return {s:sunOf(lat,ter),w:windOf(lat,ter,coastKm(lon,lat)<=COAST_KM),p:park?1:0};}
+  const n=nearestCountry(lon,lat,SHALLOW_KM);
+  return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66?{s:0,w:seaWindOf(lat),p:0}:null;
+}
+
 export function describe(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
   const t={lat:+lat.toFixed(3),lon:+lon.toFixed(3)},c=countryAt(lon,lat);
   if(c){
     t.reg=c.m;t.sea=false;t.country=c.n;t.a3=c.a3;
-    const park=protectedAt(lat,lon);if(park)t.park=park;
-    t.ter=(c.m==="G"||c.m==="X")?"i":park?"p":(terrainAt(lon,lat)||(forestRule(c.a3,lat)?"f":"pl"));
+    const {park,ter}=landTer(c,lat,lon);if(park)t.park=park;t.ter=ter;
     t.mreg=MARKETS.includes(c.m)?c.m:null;
     const coastNear=coastKm(lon,lat)<=COAST_KM;
-    t.solar=Math.max(0.15,Math.min(1,Math.min(1,Math.max(0.2,1.05-Math.abs(lat)/75))+(t.ter==="d"?0.15:0)-(t.ter==="f"?0.15:0)));
-    t.wind=Math.max(0.15,Math.min(0.95,0.35+(Math.abs(lat)>=40?0.25:0)+(coastNear?0.12:0)+(t.ter==="m"?0.08:0)-(t.ter==="f"?0.1:0)));
+    t.solar=sunOf(lat,t.ter);t.wind=windOf(lat,t.ter,coastNear);
     t.hydro=t.ter==="m"?0.8:0;
     t.geo=t.ter==="i"?0:geoAt(lat,lon);t.bio=BIO[t.ter]??0;
   }else{
     t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=0.7+(Math.abs(lat)>=40?0.15:0);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=seaWindOf(lat);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
   }
   const ct=nearestCity(lat,lon);t.city=ct.n;t.cityKm=Math.round(ct.km);
   return t;
+}
+// Yer arama için: şehirler (nüfusa göre sıralı) ve ülkeler (en büyük kara parçasının kutusunun ortası ve genişliği)
+export const cityList=()=>cities;
+export function countryList(){
+  return C.map(c=>{let bb=null,ba=-1;c.polys.forEach(p=>{const b=bboxOf([p]),a=(b[2]-b[0])*(b[3]-b[1]);if(a>ba){ba=a;bb=b;}});
+    return {n:c.n,a3:c.a3,lat:(bb[1]+bb[3])/2,lon:(bb[0]+bb[2])/2,span:Math.max(bb[2]-bb[0],bb[3]-bb[1])};});
 }
 // Bildirim ve panel metinleri için kısa yer adı
 export function placeName(t){return t.sea?`${t.city} açıkları${t.country?" ("+t.country+")":""}`:`${t.city} yakını, ${t.country}`;}
