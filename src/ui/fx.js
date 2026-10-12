@@ -7,13 +7,21 @@ let soundOn=(()=>{try{return localStorage.getItem(SOUND_KEY)==="1";}catch(e){ret
 let ctx=null;
 
 // Balonlar "popover" olarak üst katmanda gösterilir; böylece açık bir pencerenin (olay kartı) üstünde de görünür
+// Balonlar haritanın üst kenarına yerleşir: başlığı, nakdi, görev kartını ve paneli kapatmaz.
+// Mobilde ortada, masaüstünde haritanın sağ üstünde (sol üstte harita düğmeleri var).
+const mobile=matchMedia("(max-width:899.98px)");
+function place(el){
+  const mw=document.getElementById("mapwrap");if(!mw)return;const r=mw.getBoundingClientRect();if(!r.width)return;
+  const w=Math.min(mobile.matches?r.width-72:340,420),left=mobile.matches?r.left+(r.width-w)/2+28:r.right-w-12;
+  Object.assign(el.style,{top:Math.max(8,r.top+10)+"px",left:left+"px",width:w+"px",bottom:"auto",transform:"none"});
+}
 function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);}
-  if(el.showPopover){try{if(el.matches(":popover-open"))el.hidePopover();el.showPopover();}catch(e){}}return el;}
+  if(el.showPopover){try{if(el.matches(":popover-open"))el.hidePopover();el.showPopover();}catch(e){}}place(el);return el;}
 
 export function toast(title,sub="",kind=""){
   const el=document.createElement("div");el.className=`toast ${kind}`;
   el.innerHTML=`<b></b>${sub?"<span></span>":""}`;el.querySelector("b").textContent=title;if(sub)el.querySelector("span").textContent=sub;
-  const b=box();b.appendChild(el);while(b.children.length>2)b.firstChild.remove();
+  const b=box();b.appendChild(el);while(b.children.length>(mobile.matches?1:2))b.firstChild.remove();
   setTimeout(()=>{el.classList.add("out");setTimeout(()=>el.remove(),400);},kind==="win"?4200:3200);
   return el;
 }

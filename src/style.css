@@ -308,6 +308,8 @@ header{align-items:center}
 .mapbtns button[aria-expanded="true"]{background:#fff;color:#111}
 .mapwrap .maplegend{position:absolute;left:64px;top:10px;z-index:3;max-width:min(320px,calc(100% - 80px));margin:0;padding:10px 12px;border-radius:12px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.78rem}
 .mapwrap .maplegend[hidden]{display:none}
+.maphint{position:absolute;z-index:4;width:256px;padding:8px 10px;border-radius:10px;background:rgba(18,26,34,.92);color:#E5ECF0;font-size:.8rem;line-height:1.35;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.maphint[hidden]{display:none}
 .side{background:var(--bg)}
 .grip{display:none}
 .tabs{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
@@ -344,7 +346,14 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .mapwrap{height:calc(100dvh - 256px);min-height:440px;position:sticky;top:12px}
   .side{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;padding-right:2px}
   .tabs{position:sticky;top:0;z-index:2}
-  #toasts{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;transform:none;width:min(380px,calc(100vw - 32px))}
+}
+/* Masaüstü, yeterli yükseklik: sayfa kaymaz; başlık, haber bandı ve görev kartı ne kadar yer kaplarsa harita kalanı doldurur */
+@media (min-width:900px) and (min-height:620px){
+  html,body{height:100%;overflow:hidden}
+  main{display:flex;flex-direction:column;height:100dvh}
+  .stage{flex:1;min-height:0;align-items:stretch}
+  .mapwrap{height:100%;min-height:0;position:relative;top:auto}
+  .side{position:static;max-height:none;height:100%;min-height:0}
 }
 /* Mobil: tam ekran harita, panel alttan açılan kart (sayfa kaydırması yok) */
 @media (max-width:899.98px){
@@ -355,7 +364,7 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .cash b{font-size:1.2rem}
   .mission{margin-bottom:6px;padding:8px 10px;cursor:pointer;position:relative}
   /* mobilde görev kartı kısa: başlık ve ilerleme; dokununca açıklama açılır */
-  .mission .mdesc{display:none}
+  .mission .mdesc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:.8rem}
   .mission.open .mdesc{display:block}
   .mission::after{content:"▾";position:absolute;right:10px;bottom:8px;color:var(--muted);font-size:.8rem}
   .mission.open::after{content:"▴"}
@@ -366,19 +375,26 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .cash b{white-space:nowrap}
   .ticker{margin:0 0 6px}
   .stage{flex:1;min-height:0;padding-bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px))}
-  :root{--peek:66px}
+  :root{--peek:84px}
   .mapwrap{height:100%;min-height:0;border-radius:14px}
   .side{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;flex-direction:column;
     height:calc(var(--peek) + env(safe-area-inset-bottom,0px));padding:0 10px env(safe-area-inset-bottom,0px);
     border-radius:18px 18px 0 0;border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(0,0,0,.25);transition:height .28s ease}
   .side[data-state="half"]{height:min(46dvh,480px)}
   .side[data-state="full"]{height:calc(100dvh - 70px)}
-  .grip{display:flex;justify-content:center;align-items:center;min-height:22px;height:22px;width:100%;border:0;background:transparent;padding:0;flex:0 0 auto;touch-action:none}
+  .grip{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-height:40px;height:40px;width:100%;border:0;background:transparent;padding:0;flex:0 0 auto;touch-action:none;font-weight:400}
+  .grip span{max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;color:var(--muted)}
+  .grip span:empty{display:none}
+  /* 2) satın alma / izin düğmesi kartın altına yapışık: yarım açık kartta da görünür */
+  .panel .actions:has(> .pri){position:sticky;bottom:0;z-index:1;background:var(--surface);margin:8px -14px -12px;padding:10px 14px;border-top:1px solid var(--line);border-radius:0 0 12px 12px}
+  .panel .actions:has(> .pri) .pri{width:100%}
   .grip i{display:block;width:44px;height:5px;border-radius:3px;background:var(--line)}
   .tabs{flex:0 0 auto}
   .tabp{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .side[data-state="peek"] .tabp{visibility:hidden}
   .readouts{grid-template-columns:repeat(2,1fr)}
-  #toasts{top:calc(8px + env(safe-area-inset-top,0px))}
+  .toast{padding:7px 12px}
+  .toast b{font-size:.86rem}
+  .toast span{font-size:.76rem}
 }
 @media (prefers-reduced-motion:reduce){.side{transition:none}}

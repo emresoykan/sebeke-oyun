@@ -96,19 +96,20 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 
 ## Ekran düzeni ve kontroller
 
-- **Masaüstü (900 px ve üstü):** Harita solda, panel sağda sabit durur; haritaya dokununca sonuç aynı anda panelde görünür. Bildirim balonları sol altta çıkar, paneli kapatmaz.
-- **Mobil:** Harita ekranı doldurur, sayfa kaymaz. Panel alttan açılan bir karttır: kapalıyken yalnızca sekmeler görünür, seçim yapılınca yarıya açılır, tutamağa dokunarak veya sürükleyerek büyütülür/küçültülür. Kart açıkken haritaya ilk dokunuş seçimi değiştirmez, yalnızca kartı küçültür. Seçilen nokta kartın altında kalırsa harita kendiliğinden kayar. Görev kartı kısa görünür; dokununca açıklaması açılır.
+- **Masaüstü (900 px ve üstü):** Harita solda, panel sağda sabit durur; haritaya dokununca sonuç aynı anda panelde görünür. Sayfa kaymaz: başlık, haber bandı ve görev kartı ne kadar yer kaplarsa harita kalanı doldurur (620 px'ten kısa ekranlarda sayfa kaydırılır). Kendi sahan seçiliyken boş bir yere ilk tıklama seçimi değiştirmez, "tekrar tıkla" ipucu gösterir.
+- **Mobil:** Harita ekranı doldurur, sayfa kaymaz. Panel alttan açılan bir karttır: kapalıyken yalnızca sekmeler görünür, seçim yapılınca yarıya açılır, tutamağa dokunarak veya sürükleyerek büyütülür/küçültülür. Kart açıkken haritaya ilk dokunuş seçimi değiştirmez, yalnızca kartı küçültür. Seçilen nokta kartın altında kalırsa harita kendiliğinden kayar. Kapalı kartın tutamağında seçili yerin özeti (arazi tipi, en yakın şehir, fiyat ya da sahanın gücü ve izin durumu) görünür. Arazi satın alma ve izin düğmesi kartın altına yapışıktır. Görev açıklaması iki satır görünür; dokununca tamamı açılır.
 - **Sekmeler:** Saha (Sahalarım listesi, seçili nokta/saha paneli), Piyasa (fiyat/üretim grafiği, GÖP masası, lig, hedef), Rapor (gün sonu raporu, bildirimler), Ayarlar (hava katmanı, grafik, ses, "Yeniden başla").
 - **Harita düğmeleri:** Yakınlaştır, uzaklaştır, sıradaki sahama git, lejant ve (destekleyen tarayıcıda) tam ekran. İşaretlerin çevresinde 44 piksellik görünmez dokunma alanı vardır; boş haritada dokunulan yerin 16 piksel çevresindeki en yakın işaret seçilir.
 - **Zaman:** Saat ilk arazi alınana kadar işlemez. Başlıktaki düğmeler duraklatır ve hızı 1x/3x/8x arasında değiştirir.
-- **Klavye:** Boşluk duraklat/devam, 1/3/8 hız, Esc mobil kartı küçültür (3D görünüm açıksa onu kapatır).
+- **Klavye:** Boşluk duraklat/devam, 1/3/8 hız, Esc mobil kartı küçültür (3D görünüm açıksa onu kapatır). Kısayollar bir düğmeye tıkladıktan sonra da çalışır; odak bir düğmedeyken boşluk o düğmeye basar.
+- **Bildirim balonları:** Haritanın üst kenarında çıkar (masaüstünde sağ üst, mobilde ortada); başlığı, nakdi, görev kartını ve paneli kapatmaz. Ekranda masaüstünde en fazla iki, mobilde bir balon kalır.
 - **Hedef:** Portföy değeri 5 M$'a ulaşınca özet ekranı (süre, kurulu güç, toplam üretim ve net kazanç, saha ve rozet sayısı) açılır; oyuncu devam edebilir veya yeni oyuna başlayabilir. "Yeniden başla" onay penceresi ister.
 
 ## Görevler, olay kartları ve geri bildirim
 
 - **Görev zinciri:** Haritanın üstündeki çubuk sıradaki görevi, kısa bir açıklamayı ve ödülü gösterir. 14 görev oyunun ilk yarım saatini yönlendirir: arazi alma, izin, ilk santral, kârlı gün, ilk olay kararı, rüzgâr ve batarya ile çeşitlendirme, ikinci ve üçüncü piyasa, 25 MW, dolu saha, 500 b$ ve 1 M$ portföy. Eski kayıtlarda geçmişte tamamlanan görevler ödülsüz geçilir.
 - **Olay kartları:** İlk santralden sonra, 3. günden itibaren gün başında yaklaşık %45 olasılıkla bir olay çıkar (ilk olay garantili, iki olay arasında en az bir gün). Oyun durur, oyuncu seçeneklerden birini seçer. Olaylar gerçek piyasa olgularından esinlenir ve her kartta bir "piyasa notu" vardır: kuraklık, fırtına (kesme hızı, sigorta), tatil günü öğle fiyat çöküşü (kanibalizasyon, ikili anlaşma), gaz şoku (marjinal fiyatlama), vadeli satış teklifi (hedge), ekipman zammı (CAPEX), şebeke kısıtı, toz (soiling), yerel halk tepkisi (sosyal lisans), sıcak hava dalgası (akşam piki, bakım erteleme), destek programı ve trafo arızası. Seçimlerin etkileri birkaç gün sürer ve haritanın altında etiket olarak görünür.
-- **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz; ekranda en fazla iki balon) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
+- **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
 
 ## Enerji kaynakları
 

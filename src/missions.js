@@ -14,7 +14,7 @@ const markets=()=>new Set(S.plants.map(p=>S.sites[p.t].mreg)).size;
 export const MISSIONS=[
   {n:"İlk araziyi al",d:"Haritayı kaydır, yakınlaştır ve güneşi ya da rüzgârı iyi bir ovaya dokun. Panelde kaynak puanlarına bakıp araziyi satın al. Zaman ilk araziyi alınca işlemeye başlar.",r:5000,ok:()=>Object.keys(S.sites).length>0},
   {n:"İzin başvurusu yap",d:"Santral kurmadan önce çevre izni gerekir. Saha panelinden izin başvurusu yap; ova ve çöllerde ihtimal yüksektir.",r:3000,ok:()=>Object.values(S.sites).some(o=>o.permit!=="none")},
-  {n:"İznin çıkmasını bekle",d:"İnceleme birkaç gün sürer. Beklerken alttaki Hız düğmesiyle zamanı hızlandırabilirsin. Reddedilirse tekrar başvur.",r:5000,ok:()=>Object.values(S.sites).some(o=>o.permit==="ok")},
+  {n:"İznin çıkmasını bekle",d:"İnceleme birkaç gün sürer. Beklerken üstteki hız düğmesiyle (1x/3x/8x) zamanı hızlandırabilirsin. Reddedilirse tekrar başvur.",r:5000,ok:()=>Object.values(S.sites).some(o=>o.permit==="ok")},
   {n:"İlk santralini kur",d:"İzinli sahada bir teknoloji ve ekipman kademesi seç. Ekonomi ucuzdur ama az üretir ve sık arızalanır.",r:10000,ok:()=>S.plants.length>0},
   {n:"Bir günü kârla kapat",d:"Gün sonu raporunda net gelire bak: satış geliri eksi dengesizlik ve işletme giderleri.",r:8000,ok:()=>S.last&&S.last.net>0&&S.plants.length>0},
   {n:"Bir olay kartında karar ver",d:"Piyasa her gün aynı değil. Bir olay kartı çıktığında seçeneklerin etkisini tartıp karar ver.",r:8000,ok:()=>(S.evDone||0)>0},
