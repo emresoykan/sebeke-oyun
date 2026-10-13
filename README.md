@@ -69,6 +69,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/search.js` | Yer arama: oyunun şehir ve ülke listesinde (çevrimdışı), Türkçe karakter duyarsız; koordinat girişi |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
+| `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
 | `public/textures/` | Gömülü dünya görüntüleri: NASA Blue Marble (gündüz) ve Black Marble (gece), 4096×2048; Türkiye ve çevresi için Sentinel-2 mozaiği (`tr-*.jpg`, ~300 m/piksel) |
 | `scripts/` | Harita verisini ve Sentinel-2 Türkiye mozaiğini yeniden üreten Python script'leri |
@@ -124,6 +125,14 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
 
 ## Enerji kaynakları
+
+**Güneş ve rüzgâr kaynağı (gerçek iklim verisi).** Puanlar [NASA POWER](https://power.larc.nasa.gov) uzun dönem yıllık ortalamalarından gelir (`src/data/resource.js`, `scripts/build_resource.py`):
+
+- **Güneş:** yatay düzleme gelen yıllık ortalama ışınım (GHI, CERES SYN1deg, 1°). Puan = GHI / 9 kWh/m²/gün (en az 0,12). GES üretimi puanla orantılıdır; Türkiye ortalaması eski modelle aynı düzeyde kalır (Konya ~4,9 kWh/m²/gün → 0,54), çöller yüksek (Ouarzazate ~0,65), bulutlu kuzey düşük (Hamburg ~0,32).
+- **Rüzgâr:** 50 m'de yıllık ortalama hız (MERRA-2, 0,5°×0,625°), 100 m göbek yüksekliğine pürüzlülük üssü 0,14 ile taşınır. Puan, oyunun hava modelindeki ortalama göbek hızına karşılık gelir (hız = 4 + 8,5 × puan). Veri ~50 km'lik ortalama olduğu için sırt, boğaz ve burunlardaki yerel hızlanmayı göstermez: dağlık arazide +0,8 m/s, kıyıda +0,3 m/s eklenir, ormanda 0,5 m/s düşülür. Yine de Hatay–Belen gibi orografik rüzgâr bölgeleri veride olduğundan zayıf görünür.
+- **Hava modeli:** Geçen alçak basınç ve fırtına sistemlerinin rüzgârı sahanın ortalama hızıyla ölçeklenir (rüzgârlı sahada sert, korunaklı ovada zayıf); böylece uzun dönem kapasite faktörü sahanın kaynağını izler.
+- **Ölçüm (20 gün, 5 MW, standart ekipman; hava rastgele olduğundan ±%20 oynar):** kara RES kapasite faktörü Rize ~0,09, Konya ~0,17, Hamburg ~0,27, Balıkesir/Çanakkale ~0,44–0,47; Kuzey Denizi offshore ~0,48; GES Türkiye ~0,20–0,28. Geri dönüş: iyi rüzgâr sahasında ~60–80 gün, zayıf sahada 180+ gün; GES Türkiye ~80–100 gün.
+- **Eski kayıtlar:** Sahaların puanları yüklemede bir kez yeni veriye göre yeniden hesaplanır (bildirim günlüğüne not düşülür).
 
 Oyunda biyokütle santrali "Biyokütle" diye yazılır, "BES" kısaltması kullanılmaz: batarya depolama sistemi (BESS) ile karışmasın diye. Kayıtlardaki iç kodlar değişmedi (`bes`, `batt`).
 
@@ -266,6 +275,8 @@ pip install pillow numpy
 python3 scripts/build_geo.py                      # Natural Earth'ten src/data/*.json
 python3 scripts/build_relief.py                   # düz haritanın kabartmalı zemini (AWS Terrain Tiles, ~300 karo indirir)
 python3 scripts/build_relief_hd.py                # önizleme için Türkiye ayrıntılı karoları (public/relief-hd, depoya eklenmez; ~1.600 karo indirir)
+pip install numcodecs
+python3 scripts/build_resource.py                 # güneş/rüzgâr kaynak ızgarası (NASA POWER, AWS Open Data; src/data/resource.js, ~270 KB)
 # Dünya görüntüleri: three-globe npm paketindeki NASA kopyaları
 npm pack three-globe && tar xzf three-globe-*.tgz
 cp package/example/img/earth-blue-marble.jpg public/textures/earth-day.jpg
@@ -281,6 +292,7 @@ python3 scripts/build_sentinel_mosaic.py --bluemarble public/textures/earth-day.
 - Uydu görüntüsü: NASA Blue Marble ve gece ışıkları NASA Black Marble (NASA Earth Observatory), kamu malı; kaynak dosyalar three-globe npm paketindeki kopyalar.
 - Türkiye yakın görüntüsü: Contains modified Copernicus Sentinel data 2024–2025 (Copernicus Sentinel-2 L2A, [AWS Open Data](https://registry.opendata.aws/sentinel-2-l2a-cogs/)). Copernicus verisi kaynak gösterilerek serbestçe kullanılabilir.
 - 3D motor: [three.js](https://threejs.org), MIT.
+- Güneş ve rüzgâr kaynağı: [NASA POWER Projesi](https://power.larc.nasa.gov) (NASA Langley Research Center), Analysis Ready Data ([AWS Open Data](https://registry.opendata.aws/nasa-power/), `s3://nasa-power`), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Yıllık ortalama ALLSKY_SFC_SW_DWN (CERES SYN1deg) ve WS50M (MERRA-2).
 - Ülke sınırları, şehirler, coğrafi bölgeler ve kıyı çizgisi: [Natural Earth](https://www.naturalearthdata.com), kamu malı.
 - 3D görünüm motoru: [CesiumJS](https://cesium.com/platform/cesiumjs/), Apache 2.0.
 - Düz harita motoru: [MapLibre GL JS](https://maplibre.org), BSD-3-Clause.
