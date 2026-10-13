@@ -5,7 +5,7 @@
 import * as THREE from "three";
 import { S } from "../state.js";
 import { tierOf } from "../equipment.js";
-import { buildSite } from "./sitemodel.js";
+import { buildSite, padAlpha } from "./sitemodel.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 const TILT=28*Math.PI/180, MAX_PX=1400, MIN_RES=0.3;
@@ -29,7 +29,15 @@ function render(id){
   const {root}=buildSite(id,o,ps);
   // haritada anlamsız olan parçalar: GES parıltı bantları, su sıçraması
   root.traverse(n=>{if(/^glint|^spray/.test(n.name||""))n.visible=false;});
-  const box=new THREE.Box3().setFromObject(root),ctr=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+  // zemin alanları yarı saydam: altındaki uydu görüntüsü (toprak, bitki örtüsü) sezilir
+  root.traverse(n=>{if(n.name==="pad"){n.material=n.material.clone();n.material.transparent=true;n.material.opacity=padAlpha(n.material);}});
+  const box=new THREE.Box3().setFromObject(root);
+  // güneş: öğleden sonra, güney-güneybatıdan ~50° yükseklikte (güney yarıkürede kuzeyden); gölgeler zemine düşer
+  const sd=new THREE.Vector3(-0.34,1.19,o.lat>=0?0.94:-0.94).normalize();
+  // gölgeler sınırların dışına taşar: görüntü alanı gölge boyunca genişletilir
+  const sh=new THREE.Vector3(-sd.x,0,-sd.z).multiplyScalar(box.max.y/sd.y);
+  box.expandByPoint(box.min.clone().add(sh).setY(0)).expandByPoint(box.max.clone().add(sh).setY(0));
+  const ctr=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
   // güneyden ve yukarıdan bakan kamera; görüntünün üstü kuzey
   const cam=new THREE.OrthographicCamera(-1,1,1,-1,1,20000),dir=new THREE.Vector3(0,Math.cos(TILT),Math.sin(TILT));
   cam.position.copy(ctr).addScaledVector(dir,5000);cam.up.set(0,0,-1);cam.lookAt(ctr);cam.updateMatrixWorld();
@@ -39,11 +47,13 @@ function render(id){
   const m=2;x0-=m;x1+=m;y0-=m;y1+=m;
   Object.assign(cam,{left:x0,right:x1,bottom:y0,top:y1});cam.updateProjectionMatrix();
   const res=Math.max(MIN_RES,Math.max(x1-x0,y1-y0)/MAX_PX),W=Math.round((x1-x0)/res),H=Math.round((y1-y0)/res);
-  // ışık: gökyüzü ve kuzeybatıdan güneş, gölgeli
+  // ışık: gökyüzü ve güneş, gölgeli; saydam bir gölge yakalayıcı gölgeleri uydu görüntüsünün üstüne düşürür
   root.add(new THREE.HemisphereLight(0xFFFFFF,0x8A7E66,1.25));
-  const sun=new THREE.DirectionalLight(0xFFFFFF,2.1);sun.position.set(ctr.x-0.5*size.x-200,600,ctr.z-300);sun.target.position.copy(ctr);
-  sun.castShadow=true;const sc=sun.shadow.camera,r=Math.max(size.x,size.z)*0.75+60;Object.assign(sc,{left:-r,right:r,top:r,bottom:-r,near:10,far:3000});
-  sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-0.0006;root.add(sun,sun.target);
+  const sun=new THREE.DirectionalLight(0xFFFFFF,2.1);sun.position.copy(ctr).addScaledVector(sd,1500);sun.target.position.copy(ctr);
+  sun.castShadow=true;const sc=sun.shadow.camera,r=Math.max(size.x,size.z)*0.75+60;Object.assign(sc,{left:-r,right:r,top:r,bottom:-r,near:10,far:4000});
+  sun.shadow.mapSize.set(4096,4096);sun.shadow.bias=-0.0006;root.add(sun,sun.target);
+  const catcher=new THREE.Mesh(new THREE.PlaneGeometry(size.x+40,size.z+40),new THREE.ShadowMaterial({opacity:0.42}));
+  catcher.rotation.x=-Math.PI/2;catcher.position.set(ctr.x,0.02,ctr.z);catcher.receiveShadow=true;root.add(catcher);
   if(!R){R=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});R.setClearColor(0x000000,0);R.shadowMap.enabled=true;R.outputColorSpace=THREE.SRGBColorSpace;
     // metal yüzeyler (paneller) yansıtacak bir gökyüzü bulamazsa simsiyah görünür: yumuşak bir ortam ışığı verilir
     const pm=new THREE.PMREMGenerator(R);ENV=pm.fromScene(new RoomEnvironment(),0.04).texture;pm.dispose();}
@@ -66,13 +76,9 @@ function mips(src){
 // Ekranda px (cihaz pikseli) genişlikte çizilecekse kullanılacak kopya: en az o kadar geniş olan en küçük kopya
 export function lodFor(img,px){let u=img.lods[0].url;for(const l of img.lods){if(l.w>=px)u=l.url;else break;}return u;}
 
-// Metre sınırlarını coğrafi köşelere çevir (MapLibre görüntü kaynağı sırası: KB, KD, GD, GB)
-// k: büyütme (uzaktan bakınca tesis en az belirli piksel boyutunda görünsün diye)
-export function cornersOf(o,img,k=1){
-  const kx=111320*Math.cos(o.lat*Math.PI/180),ky=110574,[e0,e1]=img.east.map(v=>v*k),[n0,n1]=img.north.map(v=>v*k);
+// Metre sınırlarını coğrafi köşelere çevir (MapLibre görüntü kaynağı sırası: KB, KD, GD, GB); gerçek ölçek
+export function cornersOf(o,img){
+  const kx=111320*Math.cos(o.lat*Math.PI/180),ky=110574,[e0,e1]=img.east,[n0,n1]=img.north;
   const w=o.lon+e0/kx,e=o.lon+e1/kx,s=o.lat+n0/ky,n=o.lat+n1/ky;
   return [[w,n],[e,n],[e,s],[w,s]];
 }
-// Tesisin ekranda en az MIN_PX genişlikte görünmesi için büyütme (ppm: metre başına piksel)
-export const MIN_PX=80;
-export const facScale=(img,ppm)=>Math.max(1,MIN_PX/((img.east[1]-img.east[0])*ppm));

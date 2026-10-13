@@ -21,7 +21,7 @@ import { CAL } from "../calendar.js";
 import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
-import { initModels, syncModels } from "./models.js";
+import { initModels, syncModels, regroundModels } from "./models.js";
 import { initWeatherLayer } from "./weather3d.js";
 import { drawMap as drawFlat } from "./map.js";
 import { rivalSites } from "../rivals.js";
@@ -139,7 +139,7 @@ async function addGoogle(){
   if(!GOOGLE_KEY)return;
   try{
     google=await Cesium.createGooglePhotorealistic3DTileset({key:GOOGLE_KEY,onlyUsingWithGoogleGeocoder:true},{showCreditsOnScreen:true,shadows:Cesium.ShadowMode.RECEIVE});
-    nightShader=makeNightShader();google.customShader=nightShader;google.maximumScreenSpaceError=gfx().sse;scene.primitives.add(google);scene.globe.show=false;
+    nightShader=makeNightShader();google.customShader=nightShader;google.maximumScreenSpaceError=gfx().sse;scene.primitives.add(google);scene.globe.show=false;regroundModels();
   }catch(e){console.warn("Google 3D Tiles yüklenemedi, gömülü görüntüyle devam ediliyor:",e);google=null;}
 }
 
@@ -190,7 +190,7 @@ export async function initGlobe(container){
   selOuter=viewer.entities.add({point:{pixelSize:24,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.BLACK,outlineWidth:3.5,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
   selInner=viewer.entities.add({point:{pixelSize:22,color:Cesium.Color.TRANSPARENT,outlineColor:Cesium.Color.WHITE,outlineWidth:1.6,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:ON_TOP}});
   scene.preRender.addEventListener(stepClock);
-  initModels(scene);initWeatherLayer(viewer);ready=true;drawGlobe();
+  initModels(scene,viewer);initWeatherLayer(viewer);ready=true;drawGlobe();
   await addGoogle();
   if(import.meta.env.DEV){window.__viewer=viewer;window.__Cesium=Cesium;}
 }

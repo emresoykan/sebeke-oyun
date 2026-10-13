@@ -67,13 +67,13 @@ function marker(cls,size,onSelect){
 }
 function place(m,lat,lon){const k=lat+","+lon;if(m.key!==k){m.key=k;m.lat=lat;m.lon=lon;m.a.coordinate=coord(lat,lon);}}
 
-// --- Yakınlaşınca tesisin kendisi (siteimage.js): işaretin arkasına gerçek ölçekli kuşbakışı görüntü ---
+// --- Yakınlaşınca tesisin kendisi (siteimage.js): işaretin arkasına gerçek ölçekli kuşbakışı görüntü (büyütme yok) ---
 // three.js ilk yakınlaşmada yüklenir; boyut her harita hareketinde (yakınlaştırırken her karede) metre/piksele göre ayarlanır.
 const FAC_H=zoomToH(11);let F=null,Fload=null,facRaf=0;
 function facPpm(m){const kx=111320*Math.cos(m.lat*RAD),a=map.convertCoordinateToPointOnPage(coord(m.lat,m.lon)),b=map.convertCoordinateToPointOnPage(coord(m.lat,m.lon+1000/kx));return (b.x-a.x)/1000;}
 function sizeFac(m){
   if(!m.fac||!m.img||!map)return;
-  const ppm=facPpm(m),k=F.facScale(m.img,ppm)*ppm,[e0,e1]=m.img.east,[n0,n1]=m.img.north,w=(e1-e0)*k,vis=map.cameraDistance<FAC_H&&w<9000;
+  const k=facPpm(m),[e0,e1]=m.img.east,[n0,n1]=m.img.north,w=(e1-e0)*k,vis=map.cameraDistance<FAC_H&&w<9000;
   m.fac.style.display=vis?"":"none";m.root.classList.toggle("fac",vis);if(!vis)return;
   Object.assign(m.fac.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
   const url=F.lodFor(m.img,w*(window.devicePixelRatio||1));if(m.facUrl!==url){m.facUrl=url;m.fac.src=url;}

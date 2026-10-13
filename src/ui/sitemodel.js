@@ -27,7 +27,7 @@ function materials(){
     white:std({color:0xF2F4F5,roughness:.38,metalness:.08}), grey:std({color:0x80878D,roughness:.65,metalness:.25}),
     dark:std({color:0x2A3036,roughness:.6,metalness:.35}), yellow:std({color:0xF0BE2C,roughness:.5,metalness:.1}),
     panel:std({map:cells,roughness:.16,metalness:.6}), frame:std({color:0xB8C0C7,roughness:.35,metalness:.75}),
-    gravel:std({color:0xB4AB97,roughness:1}), concrete:std({color:0xA8A6A0,roughness:.95}), road:std({color:0xC9BFA8,roughness:1}),
+    gravel:std({color:0xB4AB97,roughness:1,name:"gravel"}), concrete:std({color:0xA8A6A0,roughness:.95}), road:std({color:0xC9BFA8,roughness:1}),
     container:std({map:ribs,roughness:.5,metalness:.15}), dam:std({color:0xCDC7BA,roughness:.9}), earth:std({color:0x7A7450,roughness:1}),
     water:std({color:0x1C5A82,roughness:.05,metalness:.3,transparent:true,opacity:.94}),
     river:std({map:ripple,roughness:.12,metalness:.2}), foam:std({map:foam,roughness:.45,transparent:true,opacity:.95}),
@@ -41,7 +41,8 @@ function materials(){
 }
 
 const box=(w,h,d,mat,x=0,y=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;return m;};
-const pad=(w,d,mat,y=0.06)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);m.rotation.x=-Math.PI/2;m.position.y=y;m.receiveShadow=true;return m;};
+// zemin alanı (çakıl, beton, yol): 3D görünümde modelden çıkarılıp araziye serilir (takePads)
+const pad=(w,d,mat,y=0.06)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);m.rotation.x=-Math.PI/2;m.position.y=y;m.receiveShadow=true;m.name="pad";return m;};
 
 // ---- rüzgâr türbini: konik kule, gövde, burun ve kanat profilli üç kanat ----
 let bladeGeo=null;
@@ -68,15 +69,19 @@ function turbine(sea,parts){
   parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});parts.beacons.push(bc.name);
   return g;
 }
+// ~5 MW'lık türbin başına bir ünite (rotor ~128 m, göbek ~100 m: 4,5–5 MW sınıfı); türbinler arası rotor çapının ~3,5 katı,
+// sıralar arası ~5 katı (yaygın yerleşim aralıkları)
 function windFarm(mw,sea,parts,yaw,sc=1){
-  const n=Math.min(4,Math.max(1,Math.ceil(mw/10))),g=new THREE.Group(),cols=n>2?2:n,sp=150*sc;
-  for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols);t.scale.setScalar(sc);
-    t.position.set((c-(cols-1)/2)*sp+(r%2?sp*.35:0),0,(r-(Math.ceil(n/cols)-1)/2)*sp*1.1);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
+  const n=Math.min(8,Math.max(1,Math.ceil(mw/5))),g=new THREE.Group(),cols=Math.min(4,n),nr=Math.ceil(n/cols),D=128*sc,sp=3.5*D,rs=5*D,rows=[];
+  for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols),cnt=Math.min(cols,n-r*cols);t.scale.setScalar(sc);
+    t.position.set((c-(cnt-1)/2)*sp+(r%2?sp*.5:0),0,(r-(nr-1)/2)*rs);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
+    (rows[r]=rows[r]||[]).push(t.position);
     if(!sea){const cp=pad(26,26,M.gravel);cp.position.x=t.position.x;cp.position.z=t.position.z;g.add(cp);}}
-  if(!sea&&n>1){const xs=g.children.filter(c=>c.type==="Group").map(c=>c.position);const a=xs[0],b=xs[xs.length-1];
-    const road=pad(Math.hypot(b.x-a.x,b.z-a.z)+20,6,M.road,.05);road.position.x=(a.x+b.x)/2;road.position.z=(a.z+b.z)/2;road.rotation.z=-Math.atan2(b.z-a.z,b.x-a.x);g.add(road);}
+  // servis yolları: her sıra boyunca ve sıraları birbirine bağlayan
+  const road=(a,b)=>{const r=pad(Math.hypot(b.x-a.x,b.z-a.z)+20,6,M.road,.05);r.position.x=(a.x+b.x)/2;r.position.z=(a.z+b.z)/2;r.rotation.z=-Math.atan2(b.z-a.z,b.x-a.x);g.add(r);};
+  if(!sea){rows.forEach(r=>{if(r.length>1)road(r[0],r[r.length-1]);});for(let r=1;r<rows.length;r++)road(rows[r-1][0],rows[r][0]);}
   if(sea&&n>=3){const p=new THREE.Group();[[-6,-4],[6,-4],[-6,4],[6,4]].forEach(([x,z])=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,22,10),M.dark);l.position.set(x,9,z);p.add(l);});
-    p.add(box(20,9,14,M.yellow,0,24,0),box(16,4,10,M.grey,0,30.5,0));p.position.set(0,0,sp*1.25);g.add(p);}
+    p.add(box(20,9,14,M.yellow,0,24,0),box(16,4,10,M.grey,0,30.5,0));p.position.set(0,0,(nr-1)/2*rs+sp*.6);g.add(p);}
   return g;
 }
 
@@ -84,26 +89,30 @@ function windFarm(mw,sea,parts,yaw,sc=1){
 // panel tonu ekipman kademesine göre: ekonomi açık mavi polikristal, premium koyu tek renk TOPCon
 const PANEL_TINT={eco:0xC4D6FF,std:0xFFFFFF,pre:0x6A7380};
 function solarFarm(mw,lat,parts,tier="std"){
-  // ~0,5 ha/MW kare saha; ortadan geçen servis yolu sıraları iki yarıya böler
-  const g=new THREE.Group(),side=Math.sqrt(mw*5000),pitch=8,rows=Math.max(4,Math.round(side/pitch)),L=Math.round(side-12),half=(L-8)/2;
-  const tilt=25*RAD*(lat>=0?1:-1),D=rows*pitch,legStep=12,perHalf=Math.floor(half/legStep)+1;
-  const mat=M.panel.clone();mat.map=M.panel.map.clone();mat.map.repeat.set(half/24,1);mat.map.needsUpdate=true;mat.color.setHex(PANEL_TINT[tier]);
-  const pg=new THREE.BoxGeometry(half,.12,4.4),lg=new THREE.CylinderGeometry(.12,.12,1,6);
-  const panels=new THREE.InstancedMesh(pg,mat,rows*2),legs=new THREE.InstancedMesh(lg,M.frame,rows*2*perHalf*2);
-  panels.castShadow=panels.receiveShadow=true;legs.castShadow=true;
+  // ~1,1 ha/MW kare saha (sabit eğimli, iki dikey modüllü 4,6 m derinlikte masalar, sıra aralığı 9,5 m); ortadan geçen
+  // servis yolu sıraları iki yarıya böler. Her yarı sıra ~26 m'lik masalara ayrılır: 3D görünümde her masa kendi
+  // zeminine oturur ve yamaç boyunca eğilir (conformSite).
+  const g=new THREE.Group(),side=Math.sqrt(mw*11000),pitch=9.5,rows=Math.max(4,Math.round(side/pitch)),L=Math.round(side-12),half=(L-8)/2;
+  const tilt=25*RAD*(lat>=0?1:-1),D=rows*pitch,nt=Math.max(1,Math.round(half/26)),tl=half/nt-0.6,perT=Math.max(2,Math.round(tl/12)+1);
+  const mat=M.panel.clone();mat.map=M.panel.map.clone();mat.map.repeat.set(Math.max(1,Math.round(tl/24)),1);mat.map.needsUpdate=true;mat.color.setHex(PANEL_TINT[tier]);
+  const pg=new THREE.BoxGeometry(tl,.12,4.6),lg=new THREE.CylinderGeometry(.12,.12,1,6);
+  const panels=new THREE.InstancedMesh(pg,mat,rows*2*nt),legs=new THREE.InstancedMesh(lg,M.frame,rows*2*nt*perT*2);
+  panels.castShadow=panels.receiveShadow=true;legs.castShadow=true;panels.userData.span=tl/2;
   const m=new THREE.Matrix4(),q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),tilt),q0=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1);
-  let pi=0,li=0;
+  const tables=[];
   for(let i=0;i<rows;i++){const z=(i-(rows-1)/2)*pitch;
-    for(const cx of [-(half/2+4),half/2+4]){panels.setMatrixAt(pi++,m.compose(new THREE.Vector3(cx,1.9,z),q,one));
-      for(let k=0;k<perHalf;k++)for(const dz of [-1.6,1.6]){const hh=1.9-dz*Math.sin(tilt);
-        legs.setMatrixAt(li++,m.compose(new THREE.Vector3(cx-half/2+k*legStep,hh/2,z+dz),q0,new THREE.Vector3(1,hh,1)));}}}
+    for(const cx of [-(half/2+4),half/2+4])for(let t=0;t<nt;t++)tables.push([cx-half/2+(t+.5)*half/nt,z,i]);}
+  let li=0;
+  tables.forEach(([x,z],pi)=>{panels.setMatrixAt(pi,m.compose(new THREE.Vector3(x,1.9,z),q,one));
+    for(let k=0;k<perT;k++)for(const dz of [-1.7,1.7]){const hh=1.9-dz*Math.sin(tilt);
+      legs.setMatrixAt(li++,m.compose(new THREE.Vector3(x-tl/2+.5+k*(tl-1)/(perT-1),hh/2,z+dz),q0,new THREE.Vector3(1,hh,1)));}});
   g.add(pad(L+14,D+12,M.gravel),pad(7,D+12,M.road,.08),panels,legs);
   // güneş parıltısı: sıralar 12 banda ayrılır, üretim varken bantlar sırayla yanarak panellerin üstünden kayar
-  const K=12,gg=new THREE.PlaneGeometry(half,4.2);gg.rotateX(-Math.PI/2);
+  const K=12,gg=new THREE.PlaneGeometry(tl,4.4);gg.rotateX(-Math.PI/2);
   const lift=new THREE.Vector3(0,.09,0).applyQuaternion(q);
   for(let k=0;k<K;k++){const r0=Math.floor(k*rows/K),r1=Math.floor((k+1)*rows/K);if(r1<=r0)continue;
-    const im=new THREE.InstancedMesh(gg,M.glint,(r1-r0)*2);let j=0;
-    for(let i=r0;i<r1;i++){const z=(i-(rows-1)/2)*pitch;for(const cx of [-(half/2+4),half/2+4])im.setMatrixAt(j++,m.compose(new THREE.Vector3(cx,1.9,z).add(lift),q,one));}
+    const band=tables.filter(t=>t[2]>=r0&&t[2]<r1),im=new THREE.InstancedMesh(gg,M.glint,band.length);im.userData.span=tl/2;
+    band.forEach(([x,z],j)=>im.setMatrixAt(j,m.compose(new THREE.Vector3(x,1.9,z).add(lift),q,one)));
     im.name=`glint${parts.glints.length}`;g.add(im);parts.glints.push(im.name);}
   const nInv=Math.max(1,Math.round(mw/10));
   for(let b=0;b<nInv;b++){const z=(b-(nInv-1)/2)*(D/nInv);g.add(box(3,2.6,6,M.grey,0,1.3,z));
@@ -138,7 +147,7 @@ function hydro(parts){
   const river=new THREE.Mesh(new THREE.PlaneGeometry(26,170),M.river.clone());river.material.map=M.river.map.clone();river.material.map.needsUpdate=true;
   river.rotation.x=-Math.PI/2;river.position.set(0,.25,30+85);river.receiveShadow=true;g.add(river);
   g.add(box(26,13,15,M.concrete,34,6.5,38),box(26,1,15,M.dark,34,13.5,38));
-  parts.flows.push("chute");
+  parts.flows.push("chute");g.userData.rigid=true; // vadi modeli tek parça: araziye bir bütün olarak oturur
   // dolusavak dibinde su sıçraması (çalışırken)
   const sp=new THREE.Group();sp.name="spray";
   [[-5,3,34,3.4],[0,4,35,4.2],[5,3,34,3.4],[-2.5,6,37,3],[2.5,6,37,3]].forEach(([x,y,z,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),M.steam);m.position.set(x,y,z);sp.add(m);});
@@ -237,3 +246,33 @@ export function buildSite(id,o,ps){
   return {root,parts};
 }
 
+
+
+// --- Araziye oturtma (3D görünüm) ---
+// f(x,z,exact): saha koordinatına göre yerel zemin yüksekliği (metre). Her nesne kendi zeminine iner; panel masaları
+// iki ucunun yüksekliğine göre yamaç boyunca eğilir; instanced olmayan nesneler (türbin, bina) için exact=true
+// verilir (tek noktadan ölçülen hassas yükseklik). Vadi modeli (HES) bir bütün olarak oturur.
+export function conformSite(root,f){
+  root.updateMatrixWorld(true);
+  const m=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3(),qz=new THREE.Quaternion(),Z=new THREE.Vector3(0,0,1),bb=new THREE.Box3(),c0=new THREE.Vector3();
+  for(const gr of root.children){
+    if(gr.userData.rigid){gr.position.y+=f(gr.position.x,gr.position.z,true);continue;}
+    for(const c of gr.children){
+      if(c.isInstancedMesh){const sp=c.userData.span;
+        for(let i=0;i<c.count;i++){c.getMatrixAt(i,m);m.decompose(p,q,s);const x=p.x+gr.position.x,z=p.z+gr.position.z;
+          if(sp){const a=f(x-sp,z),b=f(x+sp,z);p.y+=(a+b)/2;q.premultiply(qz.setFromAxisAngle(Z,Math.atan2(b-a,2*sp)));}else p.y+=f(x,z);
+          c.setMatrixAt(i,m.compose(p,q,s));}
+        c.instanceMatrix.needsUpdate=true;c.boundingBox=c.boundingSphere=null;}
+      else{bb.setFromObject(c).getCenter(c0);c.position.y+=f(c0.x,c0.z,true);}
+    }
+  }
+}
+// zemin alanının saydamlığı: geniş çakıl alanlar (GES zemini, türbin platformu) altındaki toprağı belli eder
+export const padAlpha=mat=>mat.name==="gravel"?0.55:0.85;
+// Zemin alanlarını modelden çıkarır: [{pts:[[x,z]×4], color:"#rrggbb", a}] (saha koordinatında köşeler)
+export function takePads(root){
+  root.updateMatrixWorld(true);const out=[],v=new THREE.Vector3(),rm=[];
+  root.traverse(n=>{if(n.name!=="pad")return;const {width:w,height:h}=n.geometry.parameters;
+    out.push({pts:[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([a,b])=>{v.set(a,b,0).applyMatrix4(n.matrixWorld);return [v.x,v.z];}),color:"#"+n.material.color.getHexString(),a:padAlpha(n.material)});rm.push(n);});
+  rm.forEach(n=>n.parent.remove(n));return out;
+}
