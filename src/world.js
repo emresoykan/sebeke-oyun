@@ -5,6 +5,7 @@ import terrain from "./data/terrain.json";
 import coast from "./data/coast.json";
 import cities from "./data/cities.json";
 import { PROTECTED } from "./data/protected.js";
+import { GHI, WS50 } from "./data/resource.js";
 import { MARKETS, COAST_KM, SHALLOW_KM } from "./config.js";
 
 const R=6371, rad=Math.PI/180;
@@ -56,10 +57,27 @@ export function fillRes(t){
 }
 
 // Bir noktanın oyun özellikleri (eski kare nesnesiyle aynı alanlar + ülke/şehir bilgisi)
-// Güneş ve rüzgâr puanı (0-1) kuralları: describe ve potansiyel haritası (potential.js) aynı formülü kullanır
-const sunOf=(lat,ter)=>Math.max(0.15,Math.min(1,Math.min(1,Math.max(0.2,1.05-Math.abs(lat)/75))+(ter==="d"?0.15:0)-(ter==="f"?0.15:0)));
-const windOf=(lat,ter,coastNear)=>Math.max(0.15,Math.min(0.95,0.35+(Math.abs(lat)>=40?0.25:0)+(coastNear?0.12:0)+(ter==="m"?0.08:0)-(ter==="f"?0.1:0)));
-const seaWindOf=lat=>0.7+(Math.abs(lat)>=40?0.15:0);
+// --- Güneş ve rüzgâr kaynağı: NASA POWER uzun dönem yıllık ortalamaları (src/data/resource.js, CC BY 4.0) ---
+// Izgara bayt dizisi olarak gömülüdür; nokta değeri çift doğrusal aradeğerlemeyle okunur (boylamda dünya etrafında sarar).
+function decode(g){const b=atob(g.b64),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return {...g,a};}
+const GG=decode(GHI),WG=decode(WS50);
+function sample(g,lat,lon){
+  const y=Math.max(0,Math.min(g.rows-1.001,(lat-g.lat0)/g.dlat)),x=((lon-g.lon0)/g.dlon%g.cols+g.cols)%g.cols;
+  const i=Math.floor(y),j=Math.floor(x),fy=y-i,fx=x-j,j2=(j+1)%g.cols,v=(r,c)=>g.a[r*g.cols+c];
+  return g.step*((v(i,j)*(1-fx)+v(i,j2)*fx)*(1-fy)+(v(i+1,j)*(1-fx)+v(i+1,j2)*fx)*fy);
+}
+// Yatay ışınım (kWh/m²/gün) ve 100 m göbek yüksekliğinde ortalama rüzgâr (50 m verisinden, yüzey pürüzlülüğü üssü 0,14)
+export const ghiAt=(lat,lon)=>sample(GG,lat,lon)*24/1000;
+export const wind100At=(lat,lon)=>sample(WG,lat,lon)*1.102;
+// Güneş puanı yıllık ışınımla orantılı (GES üretimi de öyle): 9 kWh/m²/gün = 1. Türkiye ortalaması eski modelle aynı kalır
+// (Konya ~4,9 → 0,55); çöller daha yüksek, bulutlu kuzey daha düşük çıkar.
+const sunOf=(lat,lon)=>Math.max(0.12,Math.min(1,ghiAt(lat,lon)/9));
+// Rüzgâr puanı oyunun hava modelindeki ortalama göbek hızına çevrilir: hız = 4 + 8,5 × puan (weather.js siteBase).
+// 0,5°'lik veri sırt ve boğazlardaki yerel hızlanmayı ortalar; dağlık arazide +0,8 m/s, kıyıda +0,3 m/s eklenir, ormanda
+// pürüzlülük nedeniyle 0,5 m/s düşülür.
+const windScore=v=>Math.max(0.05,Math.min(0.95,(v-4)/8.5));
+const windOf=(lat,lon,ter,coastNear)=>windScore(wind100At(lat,lon)+(ter==="m"?0.8:0)+(coastNear?0.3:0)-(ter==="f"?0.5:0));
+const seaWindOf=(lat,lon)=>windScore(wind100At(lat,lon));
 function landTer(c,lat,lon){const park=protectedAt(lat,lon);return {park,ter:(c.m==="G"||c.m==="X")?"i":park?"p":(terrainAt(lon,lat)||(forestRule(c.a3,lat)?"f":"pl"))};}
 // Potansiyel haritası için: şehir araması olmadan yalnızca puanlar. Kurulamayan yer (buz örtüsü, Antarktika, derin deniz,
 // piyasa dışı) null döner. Korunan alanlarda puan döner ama p=1 işaretlenir (izin neredeyse çıkmaz).
@@ -67,9 +85,9 @@ export function potentialAt(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
   const c=countryAt(lon,lat);
   if(c){if(c.m==="G"||c.m==="X"||!MARKETS.includes(c.m))return null;const {park,ter}=landTer(c,lat,lon);
-    return {s:sunOf(lat,ter),w:windOf(lat,ter,coastKm(lon,lat)<=COAST_KM),p:park?1:0};}
+    return {s:sunOf(lat,lon),w:windOf(lat,lon,ter,coastKm(lon,lat)<=COAST_KM),p:park?1:0};}
   const n=nearestCountry(lon,lat,SHALLOW_KM);
-  return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66?{s:0,w:seaWindOf(lat),p:0}:null;
+  return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66?{s:0,w:seaWindOf(lat,lon),p:0}:null;
 }
 
 export function describe(lat,lon){
@@ -80,13 +98,13 @@ export function describe(lat,lon){
     const {park,ter}=landTer(c,lat,lon);if(park)t.park=park;t.ter=ter;
     t.mreg=MARKETS.includes(c.m)?c.m:null;
     const coastNear=coastKm(lon,lat)<=COAST_KM;
-    t.solar=sunOf(lat,t.ter);t.wind=windOf(lat,t.ter,coastNear);
+    t.solar=sunOf(lat,lon);t.wind=windOf(lat,lon,t.ter,coastNear);
     t.hydro=t.ter==="m"?0.8:0;
     t.geo=t.ter==="i"?0:geoAt(lat,lon);t.bio=BIO[t.ter]??0;
   }else{
     t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=seaWindOf(lat);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=seaWindOf(lat,lon);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
   }
   const ct=nearestCity(lat,lon);t.city=ct.n;t.cityKm=Math.round(ct.km);
   return t;

@@ -75,6 +75,9 @@ export function sampleWx(wx,lat,lon,base){
   let c=base&&base.cloud!=null?base.cloud:climoCloud(lat),rain=0,storm=0,heat=0,calm=1;
   const bg=bgWind(lat),bs=base&&base.speed!=null?base.speed:5.5,bm=Math.hypot(bg[0],bg[1])||1;
   let u=bg[0]/bm*bs,v=bg[1]/bm*bs;const sg=Math.sign(lat)||1,cl=Math.cos(lat*RAD);
+  // geçen sistemlerin rüzgârı sahanın ortalama hızıyla ölçeklenir: açık kıyı ve boğazlarda fırtına sert, korunaklı ovada
+  // zayıf eser (rüzgâr dağılımı ortalamayla birlikte büyür). Sahasız örneklemede (harita) ölçek 1.
+  const ks=base&&base.speed!=null?clamp(bs/7.5,0.45,1.5):1;
   for(const s of wx.sys){
     let dlon=lon-s.lon;if(dlon>180)dlon-=360;if(dlon<-180)dlon+=360;
     const dx=dlon*KM*Math.cos((lat+s.lat)/2*RAD),dy=(lat-s.lat)*KM,d=Math.hypot(dx,dy),q=d/s.r;
@@ -82,9 +85,9 @@ export function sampleWx(wx,lat,lon,base){
     const st=strength(s),g=Math.exp(-q*q),ring=q*Math.exp(0.5-q*q)*1.17; // ring: merkezin 0,7 yarıçap dışında en kuvvetli
     // dönüş yönü: alçak basınç kuzey yarımkürede saat yönünün tersine, yüksek basınç saat yönünde
     const tx=d>1?-dy/d:0,ty=d>1?dx/d:0,rot=(s.type==="high"?-1:1)*sg;
-    if(s.type==="low"){c+=0.62*st*g;rain+=st*Math.max(0,g-0.55)*2.4;const w=11*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
-    else if(s.type==="storm"){c+=0.95*st*g;rain+=st*Math.max(0,g-0.35)*2.4;storm=Math.max(storm,st*g);const w=24*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
-    else if(s.type==="high"){c-=0.55*st*g;calm*=1-0.55*st*g;const w=2.5*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
+    if(s.type==="low"){c+=0.62*st*g;rain+=st*Math.max(0,g-0.55)*2.4;const w=11*ks*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
+    else if(s.type==="storm"){c+=0.95*st*g;rain+=st*Math.max(0,g-0.35)*2.4;storm=Math.max(storm,st*g);const w=24*ks*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
+    else if(s.type==="high"){c-=0.55*st*g;calm*=1-0.55*st*g;const w=2.5*ks*st*ring;u+=rot*tx*w;v+=rot*ty*w;}
     else{c-=0.4*st*g;heat=Math.max(heat,st*g);calm*=1-0.3*st*g;}
   }
   u*=calm;v*=calm;

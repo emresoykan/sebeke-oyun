@@ -84,7 +84,7 @@ function legend(){
   const el=document.getElementById("potLegend");if(!el)return;el.hidden=mode==="off";if(mode==="off")return;
   const [r,g,b]=HUE[mode];
   el.innerHTML=`<b>${NAME[mode]} potansiyeli</b><div class="pl-scale">${[1,2,3,4,5].map(n=>`<span><i style="background:rgba(${r},${g},${b},${ALPHA[n]+0.12})"></i>${"●".repeat(n)}</span>`).join("")}</div>
-    <small>Oyunun kaynak puanı (panelde ●●●○○). Boş alanlarda kurulum yapılamaz. Tam değer için haritaya dokun.</small>`;
+    <small>Kaynak puanı (panelde ●●●○○), NASA POWER yıllık ortalamalarından (~50 km çözünürlük). Boş alanlarda kurulum yapılamaz. Tam değer için haritaya dokun.</small>`;
 }
 function label(btn){
   btn.innerHTML=ICON[mode];btn.setAttribute("aria-pressed",String(mode!=="off"));
