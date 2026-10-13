@@ -10,18 +10,26 @@ let ctx=null;
 // Balonlar haritanın üst kenarına yerleşir: başlığı, nakdi, görev kartını ve paneli kapatmaz.
 // Mobilde ortada, masaüstünde haritanın sağ üstünde (sol üstte harita düğmeleri var).
 const mobile=matchMedia("(max-width:899.98px)");
+// Mobilde alttaki kartın hedef üst kenarı (geçiş animasyonu sürerken ölçmek yerine durumdan hesaplanır; style.css ile aynı ölçüler)
+function sheetTop(){const sd=document.getElementById("side");if(!sd)return innerHeight;const st=sd.dataset.state;
+  return st==="full"?70:st==="half"?innerHeight-Math.min(innerHeight*0.46,480):innerHeight-84;}
 function place(el){
   const mw=document.getElementById("mapwrap");if(!mw)return;const r=mw.getBoundingClientRect();if(!r.width)return;
+  // mobilde kart tam açıkken harita görünmez: balonlar en üstte, başlığın üzerinde kısa süre görünür (paneli kapatmaz)
+  if(mobile.matches&&document.getElementById("side")?.dataset.state==="full"){
+    Object.assign(el.style,{top:"8px",left:"8px",width:(innerWidth-16)+"px",bottom:"auto",transform:"none"});return;}
   const w=Math.min(mobile.matches?r.width-72:340,420),left=mobile.matches?r.left+(r.width-w)/2+28:r.right-w-12;
   // haritanın üstündeki kartların (mobilde rehber, açık arama kutusu ve sonuçları) altına inilir; yer kalmazsa
   // haritanın görünen alt kenarına yerleşir
   let top=r.top+10;
   const over=[mobile.matches&&mw.querySelector(".guide:not([hidden])"),mw.querySelector(".mapsearch:not([hidden])")].filter(Boolean);
   over.forEach(o=>{if(!mobile.matches&&o.classList.contains("mapsearch")&&o.getBoundingClientRect().right<left)return;top=Math.max(top,o.getBoundingClientRect().bottom+6);});
-  const side=document.getElementById("side"),bot=Math.min(r.bottom,mobile.matches&&side?side.getBoundingClientRect().top:r.bottom);
+  const bot=Math.min(r.bottom,mobile.matches?sheetTop():r.bottom);
   if(top>bot-70)top=Math.max(r.top+10,bot-70-(mobile.matches?0:60));
   Object.assign(el.style,{top:Math.max(8,top)+"px",left:left+"px",width:w+"px",bottom:"auto",transform:"none"});
 }
+// kart açılıp kapanınca ekrandaki balonlar yeniden yerleşir
+window.addEventListener("sebeke:sheet",()=>{const el=document.getElementById("toasts");if(el&&el.children.length)place(el);});
 function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);}
   if(el.showPopover){try{if(el.matches(":popover-open"))el.hidePopover();el.showPopover();}catch(e){}}place(el);return el;}
 

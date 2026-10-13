@@ -17,7 +17,7 @@ export function setTab(t){
   sd.querySelectorAll(".tabp").forEach(p=>p.hidden=p.dataset.tab!==t);
   if(onTab)onTab(t);
 }
-export function setSheet(st){const sd=side();if(sd&&mobile.matches)sd.dataset.state=st;}
+export function setSheet(st){const sd=side();if(sd&&mobile.matches&&sd.dataset.state!==st){sd.dataset.state=st;window.dispatchEvent(new CustomEvent("sebeke:sheet"));}}
 export const sheetState=()=>side()?.dataset.state||"peek";
 // Seçim yapılınca: Saha sekmesi; mobilde kart yarıya açılır, masaüstünde panel başa kaydırılır
 export function openSheet(tab="saha"){
