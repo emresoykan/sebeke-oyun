@@ -32,7 +32,9 @@ async function toModel(root,id,o,h0){
   model.readyEvent.addEventListener(()=>URL.revokeObjectURL(url));
   return model;
 }
-function swap(cur,model,parts){if(cur.model)scene.primitives.remove(cur.model);scene.primitives.add(model);cur.model=model;cur.parts=parts;}
+// yeni model hazır olunca eskisi kaldırılır (değişim sırasında saha bir an bile boş görünmez)
+function swap(cur,model,parts){const old=cur.model;scene.primitives.add(model);cur.model=model;cur.parts=parts;
+  if(!old)return;if(model.ready)scene.primitives.remove(old);else model.readyEvent.addEventListener(()=>{if(!old.isDestroyed())scene.primitives.remove(old);});}
 
 // zemin alanları: araziye (ve Google 3D dokusuna) serilen yarı saydam çokgenler; tıklanınca saha seçilir
 function drawPads(id,o,pads){
@@ -47,13 +49,17 @@ async function loadSite(id,o,ps,sig){
   const model=await toModel(root,id,o,null);
   const cur=sites.get(id);
   if(!cur||cur.sig!==sig){model.destroy();return;} // bu arada santral değişti
-  swap(cur,model,parts);clearPads(cur);cur.pads=drawPads(id,o,pads);Object.assign(cur,{o,ps,lvl:0,busy:false,near:0});
+  swap(cur,model,parts);clearPads(cur);cur.pads=drawPads(id,o,pads);Object.assign(cur,{o,ps,lastD:Infinity,G:null,busy:false,near:0});
 }
 
 // --- Araziye oturtma ---
-// Yükseklikler ekranda zaten yüklü Google 3D karolarından ölçülür (scene.sampleHeight): kamera sahaya ~3 km
-// yaklaşınca bir kez, ~900 m'ye inince daha ayrıntılı karolarla bir kez daha. Ölçüm karelere bölünerek yapılır
-// (arayüz takılmaz). En ayrıntılı karoları indirip bekleyen yöntem (sampleHeightMostDetailed) canlıda sonuç vermemişti.
+// Yükseklikler ekranda yüklü Google 3D karolarından ölçülür (scene.sampleHeight). Google yaklaştıkça daha ayrıntılı
+// (çoğu zaman biraz daha yüksek) zemin karoları yükler; uzaktan ölçülen yükseklikte kalan alçak paneller bu zeminin
+// altında kalıp kaybolur. Bu yüzden kamera sahaya ~3 km içindeyken her belirgin yaklaşmada (mesafe ~%40 azalınca)
+// karolar yüklenince yeniden ölçülür; model yalnızca zemin gerçekten değiştiyse (>0,4 m) yeniden kurulur.
+// Ölçüm karelere bölünür (arayüz takılmaz). En ayrıntılı karoları indirip bekleyen yöntem (sampleHeightMostDetailed)
+// canlıda sonuç vermemişti.
+const LIFT=0.25; // ölçüm ve karo farklarına karşı küçük pay: masalar zemine gömülmesin
 function tileset(){for(let i=0;i<scene.primitives.length;i++){const p=scene.primitives.get(i);if(p instanceof Cesium.Cesium3DTileset&&p.show)return p;}return null;}
 function checkGround(){
   if(!scene||!viewer.useDefaultRenderLoop||document.hidden||!scene.sampleHeightSupported)return;
@@ -61,25 +67,28 @@ function checkGround(){
   const now=performance.now(),cam=viewer.camera.positionWC;
   for(const [id,s] of sites){
     if(!s.model||!s.model.ready||s.busy||!s.o||s.o.sea)continue;
-    const d=Cesium.Cartesian3.distance(cam,s.model.boundingSphere.center),lvl=d<900?2:d<3000?1:0;
-    if(lvl<=s.lvl){s.near=0;continue;}
-    // karolar yüklenince ölç; sürekli akış varsa ~5 sn sonra yine de ölç
+    const d=Cesium.Cartesian3.distance(cam,s.model.boundingSphere.center);
+    if(d>3000||d>s.lastD*0.6){s.near=0;continue;}
+    // karolar yüklenince ölç; sürekli akış varsa ~6 sn sonra yine de ölç
     if(!s.near)s.near=now;
-    if(ts.tilesLoaded||now-s.near>5000)conformNow(id,s,lvl);
+    if(ts.tilesLoaded||now-s.near>6000)conformNow(id,s,d);
   }
 }
-async function conformNow(id,s,lvl){
+async function conformNow(id,s,d){
   const sig=s.sig,t0=performance.now();s.busy=true;
   try{
     const b=buildSite(id,s.o,s.ps);takePads(b.root);
     const g=await groundOf(s.o,b.root);
     if(s.sig!==sig||sites.get(id)!==s)return;
     if(!g){console.warn("Arazi yüksekliği ölçülemedi (karolar henüz yüklenmemiş olabilir):",id);s.near=0;return;}
+    s.lastD=d;s.near=0;
+    // zemin öncekinden belirgin farklı değilse model aynen kalır
+    if(s.G&&Math.abs(g.h0-s.h0)<0.4&&g.G.length===s.G.length&&g.G.every((v,i)=>Math.abs(v-s.G[i])<0.4))return;
     conformSite(b.root,g.f);
-    const m2=await toModel(b.root,id,s.o,g.h0);
+    const m2=await toModel(b.root,id,s.o,g.h0+LIFT);
     if(s.sig!==sig||sites.get(id)!==s){m2.destroy();return;}
-    swap(s,m2,b.parts);s.lvl=lvl;
-    console.info(`Saha araziye oturtuldu (${id}): ${g.n} nokta, ${Math.round(performance.now()-t0)} ms, zemin farkı ${g.lo.toFixed(1)}…${g.hi.toFixed(1)} m`);
+    swap(s,m2,b.parts);s.G=g.G;s.h0=g.h0;
+    console.info(`Saha araziye oturtuldu (${id}): kamera ${Math.round(d)} m, ${g.n} nokta, ${Math.round(performance.now()-t0)} ms, zemin farkı ${g.lo.toFixed(1)}…${g.hi.toFixed(1)} m`);
   }catch(e){console.warn("Arazi yüksekliği ölçülemedi:",e);}
   finally{s.busy=false;}
 }
@@ -115,7 +124,7 @@ async function groundOf(o,root){
   anchors.forEach(([x,z],k)=>{const v=median(H.slice(N+5+k*5,N+10+k*5));if(v!=null)A.set(key(x,z),v-h0);});
   const bil=(x,z)=>{const u=Math.min(n-1.001,Math.max(0,(x-x0)/dx)),w=Math.min(n-1.001,Math.max(0,(z-z0)/dz)),i=u|0,j=w|0,a=u-i,b=w-j;
     return (G[j*n+i]*(1-a)+G[j*n+i+1]*a)*(1-b)+(G[(j+1)*n+i]*(1-a)+G[(j+1)*n+i+1]*a)*b;};
-  return {h0,n:pts.length,lo,hi,f:(x,z,ex)=>{if(ex){const v=A.get(key(x,z));if(v!=null)return v;}return bil(x,z);}};
+  return {h0,G,n:pts.length,lo,hi,f:(x,z,ex)=>{if(ex){const v=A.get(key(x,z));if(v!=null)return v;}return bil(x,z);}};
 }
 
 // Santral listesindeki değişikliğe göre saha modellerini kur/yenile/kaldır
@@ -132,7 +141,7 @@ export function syncModels(){
   for(const [id,s] of sites)if(!live.has(id)){if(s.model)scene.primitives.remove(s.model);clearPads(s);sites.delete(id);}
 }
 // Google 3D arazisi sonradan yüklenince sahalar yeniden ölçülür (kamera yaklaşınca)
-export function regroundModels(){for(const s of sites.values()){s.lvl=0;s.near=0;}}
+export function regroundModels(){for(const s of sites.values()){s.lastD=Infinity;s.G=null;s.near=0;}}
 
 const rotX=new Cesium.Matrix3(),rotM=new Cesium.Matrix4();
 function show(model,name,v){const n=model.getNode(name);if(n)n.show=v;}

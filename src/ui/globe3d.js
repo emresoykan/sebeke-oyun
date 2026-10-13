@@ -140,6 +140,8 @@ async function addGoogle(){
   try{
     google=await Cesium.createGooglePhotorealistic3DTileset({key:GOOGLE_KEY,onlyUsingWithGoogleGeocoder:true},{showCreditsOnScreen:true,shadows:Cesium.ShadowMode.RECEIVE});
     nightShader=makeNightShader();google.customShader=nightShader;google.maximumScreenSpaceError=gfx().sse;scene.primitives.add(google);scene.globe.show=false;regroundModels();
+    // Google 3D'de yakın plan nettir: tesis ayrıntısı görülsün diye kamera zemine ~40 m'ye kadar inebilir
+    scene.screenSpaceCameraController.minimumZoomDistance=40;
   }catch(e){console.warn("Google 3D Tiles yüklenemedi, gömülü görüntüyle devam ediliyor:",e);google=null;}
 }
 
@@ -180,6 +182,7 @@ export async function initGlobe(container){
   const night=Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(base+"textures/earth-night.jpg",{credit:"Gece ışıkları: NASA Black Marble"}),{dayAlpha:0,nightAlpha:1});
   viewer.imageryLayers.add(night);
   Object.assign(scene.globe,{enableLighting:true,dynamicAtmosphereLighting:true,dynamicAtmosphereLightingFromSun:true,baseColor:Cesium.Color.fromCssColorString("#0B1D33")});
+  // gömülü dünya dokusu yakında bulanık: Google 3D yoksa kamera zemine 600 m'den fazla yaklaşmaz
   scene.screenSpaceCameraController.minimumZoomDistance=600;
   viewer.shadowMap.softShadows=true;viewer.shadowMap.size=2048;viewer.shadowMap.maximumDistance=25000;
   viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(S.sel.lon,S.sel.lat-0.05,8000),orientation:{heading:0,pitch:Cesium.Math.toRadians(-35),roll:0}});
