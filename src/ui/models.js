@@ -2,8 +2,8 @@
 // Her saha gerçek boyutlu (metre) yerel koordinatlarla kurulur: x=doğu, y=yukarı, z=güney. glTF'ye
 // dönüştürülüp sahanın doğu-kuzey-yukarı çerçevesine yerleştirilir; Cesium güneşe göre aydınlatır ve
 // gölgelerini düşürür. Ölçek gerçektir (uzaktan büyütülmez; uzakta sahayı işaret noktası gösterir).
-// Araziye oturtma: Google 3D arazisi varsa saha alanında zemin yükseklikleri ölçülür; her panel masası, türbin ve
-// bina kendi zeminine iner, masalar yamaç boyunca eğilir. Çakıl/beton/yol alanları modelden çıkarılıp araziye serilir.
+// Araziye oturtma: Google 3D arazisi varsa kamera yaklaşınca saha alanında zemin yükseklikleri ölçülür; her panel
+// masası, türbin ve bina kendi zeminine iner, masalar yamaç boyunca eğilir. Çakıl/beton/yol alanları modelden çıkarılıp araziye serilir.
 // Hareketli parçalar (rotorlar, ikaz ışıkları, dolusavak, durum LED'leri) düğüm adlarıyla canlandırılır.
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
@@ -43,23 +43,47 @@ const clearPads=cur=>{(cur.pads||[]).forEach(e=>viewer.entities.remove(e));cur.p
 
 async function loadSite(id,o,ps,sig){
   const {root,parts}=buildSite(id,o,ps),pads=takePads(root);
-  // önce düz model (tek noktadan zemine oturur): hemen görünür; arazi ölçülünce oturtulmuş modelle değişir
+  // önce düz model (tek noktadan zemine oturur): hemen görünür; kamera yaklaşınca arazi ölçülür ve oturtulmuş modelle değişir
   const model=await toModel(root,id,o,null);
-  let cur=sites.get(id);
+  const cur=sites.get(id);
   if(!cur||cur.sig!==sig){model.destroy();return;} // bu arada santral değişti
-  swap(cur,model,parts);clearPads(cur);cur.pads=drawPads(id,o,pads);
-  if(o.sea||!hasTiles())return;
-  const b=buildSite(id,o,ps);takePads(b.root);
-  const g=await groundOf(o,b.root).catch(e=>{console.warn("Arazi yüksekliği ölçülemedi:",e);return null;});
-  cur=sites.get(id);if(!g||!cur||cur.sig!==sig)return;
-  conformSite(b.root,g.f);
-  const m2=await toModel(b.root,id,o,g.h0);
-  cur=sites.get(id);if(!cur||cur.sig!==sig){m2.destroy();return;}
-  swap(cur,m2,b.parts);
+  swap(cur,model,parts);clearPads(cur);cur.pads=drawPads(id,o,pads);Object.assign(cur,{o,ps,lvl:0,busy:false,near:0});
 }
 
-// Google 3D Tiles yüklü mü (yoksa küre düz elipsoit: oturtmaya gerek yok)
-function hasTiles(){for(let i=0;i<scene.primitives.length;i++){const p=scene.primitives.get(i);if(p instanceof Cesium.Cesium3DTileset&&p.show)return true;}return false;}
+// --- Araziye oturtma ---
+// Yükseklikler ekranda zaten yüklü Google 3D karolarından ölçülür (scene.sampleHeight): kamera sahaya ~3 km
+// yaklaşınca bir kez, ~900 m'ye inince daha ayrıntılı karolarla bir kez daha. Ölçüm karelere bölünerek yapılır
+// (arayüz takılmaz). En ayrıntılı karoları indirip bekleyen yöntem (sampleHeightMostDetailed) canlıda sonuç vermemişti.
+function tileset(){for(let i=0;i<scene.primitives.length;i++){const p=scene.primitives.get(i);if(p instanceof Cesium.Cesium3DTileset&&p.show)return p;}return null;}
+function checkGround(){
+  if(!scene||!viewer.useDefaultRenderLoop||document.hidden||!scene.sampleHeightSupported)return;
+  const ts=tileset();if(!ts)return;
+  const now=performance.now(),cam=viewer.camera.positionWC;
+  for(const [id,s] of sites){
+    if(!s.model||!s.model.ready||s.busy||!s.o||s.o.sea)continue;
+    const d=Cesium.Cartesian3.distance(cam,s.model.boundingSphere.center),lvl=d<900?2:d<3000?1:0;
+    if(lvl<=s.lvl){s.near=0;continue;}
+    // karolar yüklenince ölç; sürekli akış varsa ~5 sn sonra yine de ölç
+    if(!s.near)s.near=now;
+    if(ts.tilesLoaded||now-s.near>5000)conformNow(id,s,lvl);
+  }
+}
+async function conformNow(id,s,lvl){
+  const sig=s.sig,t0=performance.now();s.busy=true;
+  try{
+    const b=buildSite(id,s.o,s.ps);takePads(b.root);
+    const g=await groundOf(s.o,b.root);
+    if(s.sig!==sig||sites.get(id)!==s)return;
+    if(!g){console.warn("Arazi yüksekliği ölçülemedi (karolar henüz yüklenmemiş olabilir):",id);s.near=0;return;}
+    conformSite(b.root,g.f);
+    const m2=await toModel(b.root,id,s.o,g.h0);
+    if(s.sig!==sig||sites.get(id)!==s){m2.destroy();return;}
+    swap(s,m2,b.parts);s.lvl=lvl;
+    console.info(`Saha araziye oturtuldu (${id}): ${g.n} nokta, ${Math.round(performance.now()-t0)} ms, zemin farkı ${g.lo.toFixed(1)}…${g.hi.toFixed(1)} m`);
+  }catch(e){console.warn("Arazi yüksekliği ölçülemedi:",e);}
+  finally{s.busy=false;}
+}
+
 // yükseklik ölçümünde arazi dışındaki her şey (modeller, bulut katmanı, etiketler, işaretler, sınırlar) yok sayılır
 function others(){
   const out=[...viewer.entities.values];
@@ -67,26 +91,31 @@ function others(){
   walk(scene.primitives);walk(scene.groundPrimitives);return out;
 }
 const median=a=>{const v=a.filter(x=>x!=null).sort((p,q)=>p-q);return v.length?v[v.length>>1]:null;};
-// Sahanın zemin yüksekliği: ızgara (en çok 24×24 nokta, 3×3 medyan süzgeci: tek ağaç/direk sıçramaları atılır) ve
-// tek tek nesneler (türbin, bina) için beşer noktanın medyanı. Dönüş: {h0: saha noktasının elipsoit yüksekliği, f}
+// Sahanın zemin yüksekliği: ızgara (en çok 16×16 nokta, 3×3 medyan süzgeci: tek ağaç/direk sıçramaları atılır) ve
+// tek tek nesneler (türbin, bina) için beşer noktanın medyanı. Dönüş: {h0: saha noktasının elipsoit yüksekliği, f, n, lo, hi}
 async function groundOf(o,root){
   const bb=new THREE.Box3().setFromObject(root),x0=bb.min.x-10,x1=bb.max.x+10,z0=bb.min.z-10,z1=bb.max.z+10;
-  const n=Math.max(2,Math.min(24,Math.ceil(Math.max(x1-x0,z1-z0)/12)+1)),dx=(x1-x0)/(n-1),dz=(z1-z0)/(n-1);
+  const n=Math.max(2,Math.min(16,Math.ceil(Math.max(x1-x0,z1-z0)/15)+1)),dx=(x1-x0)/(n-1),dz=(z1-z0)/(n-1);
   const anchors=[];conformSite(root,(x,z,ex)=>{if(ex)anchors.push([x,z]);return 0;});
   const pts=[],five=(x,z)=>[[0,0],[6,0],[-6,0],[0,6],[0,-6]].forEach(([a,b])=>pts.push([x+a,z+b]));
   for(let j=0;j<n;j++)for(let i=0;i<n;i++)pts.push([x0+i*dx,z0+j*dz]);
   five(0,0);anchors.forEach(([x,z])=>five(x,z));
-  const res=await scene.sampleHeightMostDetailed(pts.map(([x,z])=>{const [lon,lat]=geo(o,x,z);return Cesium.Cartographic.fromDegrees(lon,lat);}),others());
-  const H=res.map(c=>c&&Number.isFinite(c.height)?c.height:null),N=n*n,h0=median(H.slice(N,N+5));
-  if(h0==null)return null;
-  const G=new Float64Array(N);
+  const ex=others(),H=[],c=new Cesium.Cartographic();
+  for(let k=0;k<pts.length;k++){
+    const [lon,lat]=geo(o,pts[k][0],pts[k][1]);Cesium.Cartographic.fromDegrees(lon,lat,0,c);
+    const h=scene.sampleHeight(c,ex);H.push(Number.isFinite(h)?h:null);
+    if(k%25===24)await new Promise(r=>setTimeout(r,0));
+  }
+  const N=n*n,h0=median(H.slice(N,N+5));
+  if(h0==null||H.filter(v=>v!=null).length<N*0.5)return null;
+  const G=new Float64Array(N);let lo=0,hi=0;
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){const nb=[];for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++){const ii=i+a,jj=j+b;if(ii>=0&&jj>=0&&ii<n&&jj<n)nb.push(H[jj*n+ii]);}
-    const v=median(nb);G[j*n+i]=(v==null?h0:v)-h0;}
+    const v=median(nb),g=(v==null?h0:v)-h0;G[j*n+i]=g;lo=Math.min(lo,g);hi=Math.max(hi,g);}
   const key=(x,z)=>x.toFixed(2)+","+z.toFixed(2),A=new Map();
   anchors.forEach(([x,z],k)=>{const v=median(H.slice(N+5+k*5,N+10+k*5));if(v!=null)A.set(key(x,z),v-h0);});
   const bil=(x,z)=>{const u=Math.min(n-1.001,Math.max(0,(x-x0)/dx)),w=Math.min(n-1.001,Math.max(0,(z-z0)/dz)),i=u|0,j=w|0,a=u-i,b=w-j;
     return (G[j*n+i]*(1-a)+G[j*n+i+1]*a)*(1-b)+(G[(j+1)*n+i]*(1-a)+G[(j+1)*n+i+1]*a)*b;};
-  return {h0,f:(x,z,ex)=>{if(ex){const v=A.get(key(x,z));if(v!=null)return v;}return bil(x,z);}};
+  return {h0,n:pts.length,lo,hi,f:(x,z,ex)=>{if(ex){const v=A.get(key(x,z));if(v!=null)return v;}return bil(x,z);}};
 }
 
 // Santral listesindeki değişikliğe göre saha modellerini kur/yenile/kaldır
@@ -102,8 +131,8 @@ export function syncModels(){
   });
   for(const [id,s] of sites)if(!live.has(id)){if(s.model)scene.primitives.remove(s.model);clearPads(s);sites.delete(id);}
 }
-// Google 3D arazisi sonradan yüklenince sahalar araziye yeniden oturtulur
-export function regroundModels(){for(const s of sites.values())s.sig=null;syncModels();}
+// Google 3D arazisi sonradan yüklenince sahalar yeniden ölçülür (kamera yaklaşınca)
+export function regroundModels(){for(const s of sites.values()){s.lvl=0;s.near=0;}}
 
 const rotX=new Cesium.Matrix3(),rotM=new Cesium.Matrix4();
 function show(model,name,v){const n=model.getNode(name);if(n)n.show=v;}
@@ -144,7 +173,7 @@ function animate(s,st,dt){
 }
 
 export function initModels(sc,v){
-  scene=sc;viewer=v;syncModels();
+  scene=sc;viewer=v;syncModels();setInterval(checkGround,700);
   scene.preUpdate.addEventListener(()=>{
     const now=performance.now(),dt=Math.min(0.1,(now-(lastT||now))/1000);lastT=now;
     for(const [id,s] of sites)if(s.model&&s.model.ready&&S.sites[id])animate(s,plantStatus(id),dt);
