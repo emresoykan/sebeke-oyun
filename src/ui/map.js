@@ -101,7 +101,7 @@ async function syncFacilities(){
       if(cur&&cur.sig===sig)continue;facs.set(id,{sig});
       if(!sig){if(map.getLayer(src))map.removeLayer(src);if(map.getSource(src))map.removeSource(src);continue;}
       const img=await F.siteImage(id);if(!img||facs.get(id).sig!==sig||!map)continue;
-      const f=facs.get(id),k=facK(S.sites[id],img),coordinates=F.cornersOf(S.sites[id],img,k);f.img=img;f.url=F.lodFor(img,facPx(S.sites[id],img,k));
+      const f=facs.get(id),coordinates=F.cornersOf(S.sites[id],img);f.img=img;f.url=F.lodFor(img,facPx(S.sites[id],img));
       if(map.getSource(src))map.getSource(src).updateImage({url:f.url,coordinates});
       else{map.addSource(src,{type:"image",url:f.url,coordinates});
         map.addLayer({id:src,type:"raster",source:src,minzoom:FAC_Z-0.5,paint:{"raster-fade-duration":0,"raster-opacity":["interpolate",["linear"],["zoom"],FAC_Z-0.5,0,FAC_Z+1,1]}},"site-pulse");}
@@ -110,16 +110,14 @@ async function syncFacilities(){
   facBusy=false;if(facAgain){facAgain=false;syncFacilities();}
 }
 
-// uzaktan tesis en az belirli piksel boyutunda; yaklaştıkça gerçek ölçeğe iner (yakınlaştırırken karede bir güncellenir)
+// tesis gerçek ölçekte çizilir; yakınlaştırırken yalnızca ekrandaki boyuta uygun küçültülmüş kopya değişir
 const facMpp=o=>40075016*Math.cos(o.lat*Math.PI/180)/(512*2**map.getZoom());
-function facK(o,img){return facMod.facScale(img,1/facMpp(o));}
 // görüntünün ekrandaki genişliği (cihaz pikseli): uygun küçültülmüş kopyayı seçmek için
-const facPx=(o,img,k)=>(img.east[1]-img.east[0])*k/facMpp(o)*map.getPixelRatio();
+const facPx=(o,img)=>(img.east[1]-img.east[0])/facMpp(o)*map.getPixelRatio();
 function rescaleFacilities(){
   if(!facMod||facRaf)return;facRaf=requestAnimationFrame(()=>{facRaf=0;
     for(const [id,f] of facs){const src=map.getSource("fac-"+id),o=S.sites[id];if(!src||!f.img||!o)continue;
-      const k=facK(o,f.img),coordinates=facMod.cornersOf(o,f.img,k),url=facMod.lodFor(f.img,facPx(o,f.img,k));
-      if(url!==f.url){f.url=url;src.updateImage({url,coordinates});}else src.setCoordinates(coordinates);}});
+      const url=facMod.lodFor(f.img,facPx(o,f.img));if(url!==f.url){f.url=url;src.updateImage({url,coordinates:facMod.cornersOf(o,f.img)});}}});
 }
 
 // Nabız: ~25 kare/sn; sekme gizliyken, hareket azaltma açıkken veya üreten saha yokken durur (pil)
