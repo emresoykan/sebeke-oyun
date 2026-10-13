@@ -7,7 +7,7 @@ import { fillRes } from "./world.js";
 // İzinli teknolojiler: HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi olan karada, deniz enerjisi sığ denizde
 export function allowed(t){
   fillRes(t);
-  if(t.sea)return t.shallow?["off","mar"]:[];if(!t.mreg)return[];
+  if(t.urban)return[];if(t.sea)return t.shallow?["off","mar"]:[];if(!t.mreg)return[];
   const a=["ges","res"];if(t.ter==="m")a.push("hes");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");a.push("batt");return a;
 }
 // Deniz enerjisi gelişmekte olan bir teknoloji: yeterli deneyim (kurulu güç) olmadan yatırım yapılamaz

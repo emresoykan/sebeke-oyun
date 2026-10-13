@@ -29,6 +29,8 @@ export function addLog(msg){S.log.unshift("Gün "+S.dayNo+": "+msg);S.log=S.log.
 
 // Seçili noktanın bilgisi: satın alınmış sahaysa kayıtlı bilgi, değilse anlık hesap (önbellekli)
 let cacheKey=null, cacheVal=null;
+// yerleşim alanı verisi geç yüklenince seçili noktanın bilgisi yeniden hesaplanır
+export function clearSelCache(){cacheKey=null;}
 export function selSite(){
   const s=S.sel;if(s.id&&S.sites[s.id])return S.sites[s.id];
   const k=s.lat.toFixed(4)+","+s.lon.toFixed(4);if(k!==cacheKey){cacheKey=k;cacheVal=describe(s.lat,s.lon);}return cacheVal;

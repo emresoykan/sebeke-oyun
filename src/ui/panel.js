@@ -68,7 +68,9 @@ export function renderPanel(){
   if(rv){const {r,s:x}=rv,d=km(t.lat,t.lon,x.lat,x.lon);
     html+=`<div class="rival" style="--rc:${r.c}"><b>${r.n}</b> • ${x.mw} MW ${TECH[x.k].n} ${x.build>0?`(inşaat, ${x.build} gün)`:`(Gün ${x.day}'den beri işletmede)`}<br><small>${x.city} yakını, ${x.country} • ${REG[x.mreg].n} piyasası${d>=1?` • ${d.toFixed(0)} km uzakta`:""}</small></div>`;
     html+=`<div class="status bad">Bu bölge rakip şirketin sahasına çok yakın: ${SITE_MIN_KM} km içinde yeni saha açılamaz.</div>`;}
-  else if(!o){
+  else if(!o&&t.urban){
+    html+=`<div class="status bad">Yerleşim alanı${t.cityKm<5?` (${t.city})`:""}: şehir ve kasabaların yapılaşmış bölgelerinde santral için arazi satın alınamaz. Kentin dışındaki tarım arazisi, mera ya da sanayi bölgelerine bak.</div>`;
+  }else if(!o){
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
     html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}">${t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
   }else if(o.permit==="none"||o.permit==="rejected"){

@@ -1,5 +1,5 @@
 // Giriş noktası: oyun döngüsü, kontroller ve ilk yükleme
-import { S, setS, fresh, load, save } from "./state.js";
+import { S, setS, fresh, load, save, clearSelCache } from "./state.js";
 import { newDay, tick } from "./sim.js";
 import { initMap, drawMap, initMap3DUI } from "./ui/map.js";
 import { renderPanel } from "./ui/panel.js";
@@ -20,6 +20,7 @@ import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
 import { initSaveFile } from "./ui/savefile.js";
 import { initCloud } from "./cloud.js";
 import { initCloudUI } from "./ui/cloud.js";
+import { loadUrban } from "./urban.js";
 import { initGuide, restartGuide } from "./ui/guide.js";
 import { showLose } from "./ui/hud.js";
 
@@ -46,6 +47,8 @@ async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail
 document.getElementById("resetBtn").onclick=reset;
 initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));
 initCloudUI();initCloud();
+// yerleşim alanları arka planda yüklenir; gelince seçili noktanın paneli yenilenir
+loadUrban().then(ok=>{if(ok){clearSelCache();renderPanel();}});
 document.getElementById("guideBtn").onclick=()=>{restartGuide();collapseSheet();};
 window.addEventListener("sebeke:reset",reset);
 // Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür
