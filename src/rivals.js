@@ -47,7 +47,7 @@ function findSpot(r,k){
   const tr=rnd()<r.tr,pool=(tr?TR:WORLD).filter(x=>x[2]===k);if(!pool.length)return null;
   for(let n=0;n<20;n++){
     const [la,lo]=pool[Math.floor(rnd()*pool.length)],lat=la+(rnd()-0.5)*0.5,lon=lo+(rnd()-0.5)*0.5,t=describe(lat,lon);
-    if(t.sea||!t.mreg||(tr&&t.a3!=="TUR")||t.ter==="p"||t.ter==="f"||!allowed(t).includes(k))continue;
+    if(t.sea||!t.mreg||t.urban||(tr&&t.a3!=="TUR")||t.ter==="p"||t.ter==="f"||!allowed(t).includes(k))continue;
     // yatırım eşiği: GES için yıllık ~4,5 kWh/m²/gün ışınım, RES için 100 m'de ~6,5 m/s ortalama rüzgâr
     if((k==="ges"&&t.solar<0.5)||(k==="res"&&t.wind<0.3))continue;
     if(!clearOf(t.lat,t.lon))continue;

@@ -69,6 +69,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/search.js` | Yer arama: oyunun şehir ve ülke listesinde (çevrimdışı), Türkçe karakter duyarsız; koordinat girişi |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
+| `src/urban.js`, `public/data/urban.bin` | Yerleşim alanları: kentsel alan poligonları (Natural Earth, üretilmiş; `scripts/build_urban.py`), açılışta arka planda yüklenir; nokta sorgusu |
 | `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
 | `public/textures/` | Gömülü dünya görüntüleri: NASA Blue Marble (gündüz) ve Black Marble (gece), 4096×2048; Türkiye ve çevresi için Sentinel-2 mozaiği (`tr-*.jpg`, ~300 m/piksel) |
@@ -125,6 +126,8 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
 
 ## Enerji kaynakları
+
+**Yerleşim alanları.** Şehir ve kasabaların yapılaşmış bölgelerinde arazi satın alınamaz ve santral kurulamaz (gerçekte büyük ölçekli santral bu alanlara kurulmaz; çatı GES'i oyunda yok). Sınırlar Natural Earth 1:10m Urban Areas poligonlarından gelir (dünyada ~11.900 kentsel alan, ~200 m'ye sadeleştirilmiş, `public/data/urban.bin`); ayrıca büyük bir şehrin merkezine 2 km'den yakın noktalar da yerleşim sayılır. Kaba kıyı çizgisinin denize düşürdüğü kıyı kent dokusu (ör. İstanbul Boğazı kıyıları) da kapsanır. Veri MODIS uydu verisinden (~2002 dönemi, ~500 m–1 km) türetildiği için sonradan büyüyen yerleşimleri ve küçük köyleri göstermez; panel, yerleşim alanında "arazi satın alınamaz" der, potansiyel haritasında bu alanlar boş kalır, rakipler de buralara kurmaz. Eski kayıtlarda bu alanlarda kalan sahalar korunur.
 
 **Güneş ve rüzgâr kaynağı (gerçek iklim verisi).** Puanlar [NASA POWER](https://power.larc.nasa.gov) uzun dönem yıllık ortalamalarından gelir (`src/data/resource.js`, `scripts/build_resource.py`):
 
@@ -277,6 +280,7 @@ python3 scripts/build_relief.py                   # düz haritanın kabartmalı 
 python3 scripts/build_relief_hd.py                # önizleme için Türkiye ayrıntılı karoları (public/relief-hd, depoya eklenmez; ~1.600 karo indirir)
 pip install numcodecs
 python3 scripts/build_resource.py                 # güneş/rüzgâr kaynak ızgarası (NASA POWER, AWS Open Data; src/data/resource.js, ~270 KB)
+python3 scripts/build_urban.py                    # yerleşim alanları (Natural Earth 1:10m Urban Areas; public/data/urban.bin, ~950 KB)
 # Dünya görüntüleri: three-globe npm paketindeki NASA kopyaları
 npm pack three-globe && tar xzf three-globe-*.tgz
 cp package/example/img/earth-blue-marble.jpg public/textures/earth-day.jpg
@@ -293,6 +297,7 @@ python3 scripts/build_sentinel_mosaic.py --bluemarble public/textures/earth-day.
 - Türkiye yakın görüntüsü: Contains modified Copernicus Sentinel data 2024–2025 (Copernicus Sentinel-2 L2A, [AWS Open Data](https://registry.opendata.aws/sentinel-2-l2a-cogs/)). Copernicus verisi kaynak gösterilerek serbestçe kullanılabilir.
 - 3D motor: [three.js](https://threejs.org), MIT.
 - Güneş ve rüzgâr kaynağı: [NASA POWER Projesi](https://power.larc.nasa.gov) (NASA Langley Research Center), Analysis Ready Data ([AWS Open Data](https://registry.opendata.aws/nasa-power/), `s3://nasa-power`), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Yıllık ortalama ALLSKY_SFC_SW_DWN (CERES SYN1deg) ve WS50M (MERRA-2).
+- Yerleşim alanları: [Natural Earth](https://www.naturalearthdata.com) 1:10m Urban Areas (MODIS uydu verisinden türetilmiş kentsel alanlar), kamu malı.
 - Ülke sınırları, şehirler, coğrafi bölgeler ve kıyı çizgisi: [Natural Earth](https://www.naturalearthdata.com), kamu malı.
 - 3D görünüm motoru: [CesiumJS](https://cesium.com/platform/cesiumjs/), Apache 2.0.
 - Düz harita motoru: [MapLibre GL JS](https://maplibre.org), BSD-3-Clause.
