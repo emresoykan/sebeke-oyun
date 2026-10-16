@@ -26,7 +26,7 @@ function materials(){
   return {
     white:std({color:0xF2F4F5,roughness:.38,metalness:.08}), grey:std({color:0x80878D,roughness:.65,metalness:.25}),
     dark:std({color:0x2A3036,roughness:.6,metalness:.35}), yellow:std({color:0xF0BE2C,roughness:.5,metalness:.1}),
-    panel:std({map:cells,roughness:.16,metalness:.6}), frame:std({color:0xB8C0C7,roughness:.35,metalness:.75}),
+    panel:std({map:cells,roughness:.3,metalness:.25}), frame:std({color:0xB8C0C7,roughness:.35,metalness:.75}),
     gravel:std({color:0xB4AB97,roughness:1,name:"gravel"}), concrete:std({color:0xA8A6A0,roughness:.95}), road:std({color:0xC9BFA8,roughness:1}),
     container:std({map:ribs,roughness:.5,metalness:.15}), dam:std({color:0xCDC7BA,roughness:.9}), earth:std({color:0x7A7450,roughness:1}),
     water:std({color:0x1C5A82,roughness:.05,metalness:.3,transparent:true,opacity:.94}),
