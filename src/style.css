@@ -366,6 +366,7 @@ header{align-items:center}
 .mysites[hidden],.mods[hidden]{display:none}
 /* satın alma / izin düğmesi panelin altına yapışık: geri alma kutusu ya da uzun içerik onu aşağı itse de görünür kalır */
 .panel .actions:has(> .pri){position:sticky;bottom:0;z-index:1;background:var(--surface);margin:8px -14px -12px;padding:10px 14px;border-top:1px solid var(--line);border-radius:0 0 12px 12px}
+.res .muted{color:var(--muted);font-size:.8rem}
 .res .rv{font-family:"Noto Sans",system-ui,sans-serif;letter-spacing:0;color:var(--muted);font-size:.74rem;margin-left:4px}
 .undo{display:flex;align-items:center;gap:10px;margin:10px 0 2px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));font-size:.84rem}
 .undo span{flex:1}

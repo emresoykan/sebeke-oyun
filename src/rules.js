@@ -3,9 +3,28 @@ import { REG, MAR_UNLOCK } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
+import { slopeCached } from "./slope.js";
 
-// İzinli teknolojiler: HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi olan karada, deniz enerjisi sığ denizde
-export function allowed(t){
+// Arazi eğimi sınırları (%, sahanın 250 m çevresinin ortalaması). Mevzuatta tek bir sayı yok; yaygın saha geliştirme
+// pratiğine göre yaklaşık değerler: sabit eğimli GES düz araziye (≤%10) kurulur, güneye bakan yamaçta ~%15'e kadar
+// kabul edilir (sıralar birbirini gölgelemez, hafriyat makul kalır). Batarya, biyokütle ve jeotermal santral binası düz
+// parsel ister. Rüzgâr türbinleri sırtlara kurulur: yol ve platform yapılabilecek ~%40'a kadar. HES vadide kurulur: sınır yok.
+export const SLOPE={flat:10,south:15,res:40};
+export const slopeOfSite=t=>t.slope!==undefined?t.slope:slopeCached(t.lat,t.lon);
+// eğim nedeniyle kurulamayan teknoloji mi (ölçülmediyse veya ölçülemediyse kısıt yok)
+export function tooSteep(k,t){
+  const s=slopeOfSite(t);if(!s||t.sea)return false;
+  if(k==="ges")return s.mean>(s.south?SLOPE.south:SLOPE.flat);
+  if(k==="batt"||k==="bes"||k==="jes")return s.mean>SLOPE.flat;
+  if(k==="res")return s.mean>SLOPE.res;
+  return false;
+}
+
+// İzinli teknolojiler: HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi olan karada, deniz enerjisi sığ denizde;
+// arazi eğimi ölçüldüyse fazla eğimli yerde düz arazi isteyen teknolojiler çıkar
+export const allowed=t=>baseAllowed(t).filter(k=>!tooSteep(k,t));
+// eğim kuralı uygulanmadan önceki liste (panelde hangi teknolojinin eğim yüzünden düştüğünü söylemek için)
+export function baseAllowed(t){
   fillRes(t);
   if(t.urban)return[];if(t.sea)return t.shallow?["off","mar"]:[];if(!t.mreg)return[];
   const a=["ges","res"];if(t.ter==="m")a.push("hes");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");a.push("batt");return a;

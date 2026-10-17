@@ -69,6 +69,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/search.js` | Yer arama: oyunun şehir ve ülke listesinde (çevrimdışı), Türkçe karakter duyarsız; koordinat girişi |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
+| `src/slope.js` | Arazi eğimi: seçilen noktanın 250 m çevresinin ortalama eğimi ve baktığı yön, AWS Terrain Tiles yükseklik karolarından (12. yakınlık, ~30 m) |
 | `src/urban.js`, `public/data/urban.bin` | Yerleşim alanları: kentsel alan poligonları (Natural Earth, üretilmiş; `scripts/build_urban.py`), açılışta arka planda yüklenir; nokta sorgusu |
 | `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
 | `src/data/` | Üretilmiş harita verisi (ülkeler, ülke etiketleri, şehirler, arazi bölgeleri, kıyı çizgisi) ve korunan alan listesi |
@@ -126,6 +127,8 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
 
 ## Enerji kaynakları
+
+**Arazi eğimi.** Kara noktası seçilince çevresinin gerçek eğimi ölçülür (AWS Open Data Terrain Tiles, 12. yakınlık, ~30 m/piksel; noktanın 250 m çevresindeki piksellerin ortalama eğimi ve yamacın baktığı yön) ve panelde "Eğim" satırında gösterilir. Düz arazi isteyen tesisler eğimli yerde kurulamaz. Mevzuatta tek bir sınır yok; değerler yaygın saha geliştirme pratiğine göre seçilmiş yaklaşık sınırlardır: GES en çok %10 (güneye bakan yamaçta %15), batarya, biyokütle ve jeotermal santral en çok %10, rüzgâr türbini (yol ve platform) en çok %40; HES için sınır yok. Kurulabilecek hiçbir tesis kalmayan sarp arazi satın alınamaz. Sınır ölçüm sonrası her yeni kurulumda uygulanır; eski kayıtlarda bu sınırları aşan yerlerde kurulmuş santraller korunur. Ölçüm ağ gerektirir; yükseklik verisine ulaşılamazsa panel bunu söyler ve kural uygulanmaz. Rakipler eğim ölçmez, GES'i yalnızca kaba sınıflandırmadaki dağlık bölgelere kurmaz. Potansiyel haritası eğimi göstermez.
 
 **Yerleşim alanları.** Şehir ve kasabaların yapılaşmış bölgelerinde arazi satın alınamaz ve santral kurulamaz (gerçekte büyük ölçekli santral bu alanlara kurulmaz; çatı GES'i oyunda yok). Sınırlar Natural Earth 1:10m Urban Areas poligonlarından gelir (dünyada ~11.900 kentsel alan, ~200 m'ye sadeleştirilmiş, `public/data/urban.bin`); ayrıca büyük bir şehrin merkezine 2 km'den yakın noktalar da yerleşim sayılır. Kaba kıyı çizgisinin denize düşürdüğü kıyı kent dokusu (ör. İstanbul Boğazı kıyıları) da kapsanır. Veri MODIS uydu verisinden (~2002 dönemi, ~500 m–1 km) türetildiği için sonradan büyüyen yerleşimleri ve küçük köyleri göstermez; panel, yerleşim alanında "arazi satın alınamaz" der, potansiyel haritasında bu alanlar boş kalır, rakipler de buralara kurmaz. Eski kayıtlarda bu alanlarda kalan sahalar korunur.
 
