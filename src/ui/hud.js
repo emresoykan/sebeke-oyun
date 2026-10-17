@@ -7,6 +7,7 @@ import { updateButtons } from "./panel.js";
 import { setGameClock } from "./map.js";
 import { CAL, fmtDate, seasonOf } from "../calendar.js";
 import { hasRenew } from "../market.js";
+import { renderFin } from "./finview.js";
 
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
@@ -71,6 +72,7 @@ export function showLose(){
 }
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
 export function renderReport(){
+  renderFin();
   const L=S.last;if(!L)return;
   const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;

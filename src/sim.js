@@ -19,6 +19,7 @@ import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate } from "./calend
 import { MREF, siteWx, clock } from "./wxsite.js";
 import { RENEW, production, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
+import { acc } from "./finance.js";
 import { rivalsDay, rivalCap } from "./rivals.js";
 import { news } from "./news.js";
 import { leagueDay } from "./league.js";
@@ -75,8 +76,9 @@ export function tick(){
   const h=S.hour, st=D.st; let cash=0;
   const dev={},val={},batts={},bm=S.desk?S.desk.batt:"arb"; // piyasa başına sapma (gerçek − taahhüt) ve değeri
   S.plants.forEach(p=>{
-    const t=site(p.t), M=D[t.mreg], m=t.mreg, pr=M.price[h], g=M.gen[h], q=eqOf(p);
+    const t=site(p.t), M=D[t.mreg], m=t.mreg, pr=M.price[h], g=M.gen[h], q=eqOf(p), ac=acc(p);
     const ox=TECH[p.k].opex*q.opex*p.mw/BLOCK/24;st.opex+=ox;cash-=ox;
+    ac.cap+=p.mw;ac.h++; // proje ekonomisi kaydı (finance.js): arızalı saatler de sayılır, kapasite faktörünü düşürür
     const sp=salePrice(m,p.k,h,pr);
     if(p.down){ // arızalı santral üretmez, işletme gideri sürer; GÖP'te sattığı miktar eksik üretim olarak dengesizliğe düşer
       const c=p.cm?p.cm[h]:0;if(c){cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)-c;val[m]=(val[m]||0)-c*sp;}return;}
@@ -88,16 +90,16 @@ export function tick(){
       if(p.k==="ges"&&sp<=0){st.curt+=e;e=0;}
       const c=p.cm?p.cm[h]:e; // GÖP taahhüdü (gün ortasında kurulan santralde üretimin kendisi)
       cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)+e-c;val[m]=(val[m]||0)+(e-c)*sp;
-      st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
-      if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;} // yenilik desteği gerçekleşen üretime ödenir
+      ac.e+=e;ac.r+=e*sp;st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
+      if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;ac.r+=x;} // yenilik desteği gerçekleşen üretime ödenir
       if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="mar")g.m+=e;else g.w+=e;}
-    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
-    else if(p.k==="jes"){const e=geoOut(p,h);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
-    else if(p.k==="bes"){const e=p.plan?p.plan[h]:0,f=e*bioFuel(p);st.E.bes+=e;st.R.bes+=e*sp;st.da+=e*sp;st.fuel+=f;g.o+=e;cash+=e*sp-f;}
+    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
+    else if(p.k==="jes"){const e=geoOut(p,h);ac.e+=e;ac.r+=e*sp;st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
+    else if(p.k==="bes"){const e=p.plan?p.plan[h]:0,f=e*bioFuel(p);ac.e+=e;ac.r+=e*sp;ac.f+=f;st.E.bes+=e;st.R.bes+=e*sp;st.da+=e*sp;st.fuel+=f;g.o+=e;cash+=e*sp-f;}
     else if(p.k==="batt"){p.soc=p.soc||0;const cap=p.mw*2;
       if(bm==="bal"){(batts[m]=batts[m]||[]).push(p);return;}if(bm==="off")return;
-      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
-      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);p.soc-=e;st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
+      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;ac.r-=e*pr;st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
+      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);p.soc-=e;ac.r+=e*r*pr;st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
   });
   // dengesizlik uzlaştırması: piyasa başına net sapma; dengeleme modundaki batarya önce sapmayı kapatır
   for(const m in dev){const c=settle(m,dev[m],D[m].price[h],batts[m]||[],st);st.dev+=Math.abs(dev[m]);cash+=c;st.imb+=val[m]-c;}
