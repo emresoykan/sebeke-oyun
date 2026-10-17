@@ -69,6 +69,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/search.js` | Yer arama: oyunun şehir ve ülke listesinde (çevrimdışı), Türkçe karakter duyarsız; koordinat girişi |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
+| `src/finance.js`, `src/ui/finview.js` | Proje ekonomisi: santral bazında gerçek dünya karşılığı LCOE, NPV, IRR, geri ödeme (Rapor sekmesi) |
 | `src/slope.js` | Arazi eğimi: seçilen noktanın 250 m çevresinin ortalama eğimi ve baktığı yön, AWS Terrain Tiles yükseklik karolarından (12. yakınlık, ~30 m) |
 | `src/urban.js`, `public/data/urban.bin` | Yerleşim alanları: kentsel alan poligonları (Natural Earth, üretilmiş; `scripts/build_urban.py`), açılışta arka planda yüklenir; nokta sorgusu |
 | `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
@@ -127,6 +128,8 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 - **Geri bildirim:** Görev ve rozetlerde kutlama balonu, gün sonunda net kazanç balonu (gelir ya da gider yoksa çıkmaz) ve nakit göstergesinde renkli vuruş. "Ses" düğmesi (varsayılan kapalı) kısa efektleri açar. Sistemde "hareketi azalt" açıksa animasyonlar kapanır.
 
 ## Enerji kaynakları
+
+**Proje ekonomisi (gerçek dünya karşılığı).** Rapor sekmesinde her santral kaydı için kapasite faktörü (CF), ortalama satış fiyatı, yatırım, LCOE (seviyelendirilmiş enerji maliyeti), NPV (net bugünkü değer), IRR (iç verim oranı) ve geri ödeme süresi gösterilir. Oyunun parası sıkıştırılmış olduğu için (yatırımlar gerçeğin ~1/60'ı) hesap oyun parasıyla değil gerçek dünya ölçeğinde yapılır: üretim ve satış fiyatı santralin oyunda gerçekleşen değerleridir (en az 3 günlük veri), yatırım maliyetleri IRENA *Renewable Power Generation Costs in 2024* küresel ağırlıklı ortalamalarıdır (birincil rapora erişilemedi, raporu aktaran kaynaklardan; deniz enerjisi oyun varsayımı). İşletme gideri, ömür, GES verim kaybı (%0,5/yıl) ve iskonto oranı (WACC, varsayılan %10, kaydırıcıyla %4–16) doğrulanmamış varsayımlardır. Vergi, enflasyon, finansman, arazi, bağlantı, hurda değeri ve dengesizlik maliyeti hariçtir; 30 günden kısa veride mevsimsellik yıllık değeri saptırabilir. Varsayımlar, formüller ve kısaltmalar panelde açılır bölümde yazılıdır.
 
 **Arazi eğimi.** Kara noktası seçilince çevresinin gerçek eğimi ölçülür (AWS Open Data Terrain Tiles, 12. yakınlık, ~30 m/piksel; noktanın 250 m çevresindeki piksellerin ortalama eğimi ve yamacın baktığı yön) ve panelde "Eğim" satırında gösterilir. Düz arazi isteyen tesisler eğimli yerde kurulamaz. Mevzuatta tek bir sınır yok; değerler yaygın saha geliştirme pratiğine göre seçilmiş yaklaşık sınırlardır: GES en çok %10 (güneye bakan yamaçta %15), batarya, biyokütle ve jeotermal santral en çok %10, rüzgâr türbini (yol ve platform) en çok %40; HES için sınır yok. Kurulabilecek hiçbir tesis kalmayan sarp arazi satın alınamaz. Sınır ölçüm sonrası her yeni kurulumda uygulanır; eski kayıtlarda bu sınırları aşan yerlerde kurulmuş santraller korunur. Ölçüm ağ gerektirir; yükseklik verisine ulaşılamazsa panel bunu söyler ve kural uygulanmaz. Rakipler eğim ölçmez, GES'i yalnızca kaba sınıflandırmadaki dağlık bölgelere kurmaz. Potansiyel haritası eğimi göstermez.
 

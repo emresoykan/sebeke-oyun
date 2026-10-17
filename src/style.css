@@ -468,3 +468,12 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
   .toast span{font-size:.76rem}
 }
 @media (prefers-reduced-motion:reduce){.side{transition:none}}
+
+/* proje ekonomisi (Rapor sekmesi) */
+.finw{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.86rem;margin-bottom:8px}
+.finw input{flex:1;min-width:140px}
+.fint td,.fint th{white-space:nowrap}
+.fint td:first-child{white-space:normal;text-align:left;min-width:120px}
+.findet{margin-top:10px;font-size:.84rem;line-height:1.45}
+.findet summary{cursor:pointer;font-weight:700;min-height:32px}
+.findet ul{padding-left:18px;margin:4px 0}
