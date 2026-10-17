@@ -42,8 +42,8 @@ export function newDay(){
     const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>p.k==="ges"&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
     // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür
-    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(1+rc.res/400);
-    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-PRICE.solar*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
+    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1);
+    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0}))};
     priceMods(k,D[k]); // olay etkileri, günlük ortalama ve batarya planı
