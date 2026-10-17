@@ -6,6 +6,11 @@ export const COAST_KM=150, SHALLOW_KM=200;
 export const START_MONEY=250000, START_TOPUP=100000;
 // Satın almayı geri alma süresi (ms) ve iflas: nakit art arda bu kadar gün sonu eksi kalırsa oyun biter
 export const UNDO_MS=10000, BANKRUPT_DAYS=7;
+// Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
+// lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
+// grow/capK: piyasanın güneş doygunluğu her gün grow kadar artar, başlangıç değerinin capK katında durur; wind: rüzgârın fiyat etkisi;
+// heat: sıcak havada akşam (17–22) talebinin fiyatı artırma payı
+export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 export const REG={

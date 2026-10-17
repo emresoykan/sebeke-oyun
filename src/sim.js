@@ -1,5 +1,5 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
-import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS } from "./config.js";
+import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE } from "./config.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
 import { permitProb, rejectWhy, landCost } from "./rules.js";
@@ -42,8 +42,8 @@ export function newDay(){
     const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>p.k==="ges"&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
     // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür
-    const rc=rivalCap(k),mS=S.mSolar[k]+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=10*(1+rc.res/400);
-    const price=BASE.map((b,h)=>clamp(mult*(b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+0.35*ws[h].heat:1)-57*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
+    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(1+rc.res/400);
+    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-PRICE.solar*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0}))};
     priceMods(k,D[k]); // olay etkileri, günlük ortalama ve batarya planı
@@ -108,13 +108,16 @@ export function tick(){
   render();
 }
 
+// piyasanın güneş doygunluğu tavanı (eski kayıtlarda daha yüksek kalmış değer de buna indirgenir)
+const solarCap=k=>Math.min(1.6,REG[k].s0*PRICE.capK);
+
 export function endDay(){
   const st=D.st, E=st.E, R=st.R;
   const net=dayNet(st);
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
   S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
-  MARKETS.forEach(k=>S.mSolar[k]=Math.min(1.6,S.mSolar[k]+0.012));
+  MARKETS.forEach(k=>S.mSolar[k]=Math.min(solarCap(k),S.mSolar[k]+PRICE.grow));
   // izin süreçleri
   Object.values(S.sites).forEach(o=>{
     if(o.permit!=="pending")return;o.days--;
