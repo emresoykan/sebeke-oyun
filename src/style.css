@@ -477,3 +477,26 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
 .findet{margin-top:10px;font-size:.84rem;line-height:1.45}
 .findet summary{cursor:pointer;font-weight:700;min-height:32px}
 .findet ul{padding-left:18px;margin:4px 0}
+/* pilot geri bildirim formu */
+dialog#fbDlg{width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);color:var(--ink)}
+dialog#fbDlg::backdrop{background:rgba(5,10,15,.55)}
+dialog#fbDlg h3{margin:0 0 4px;font-size:1.15rem}
+.fbk fieldset{border:0;margin:0 0 12px;padding:0;min-width:0}
+.fbk legend{font-weight:600;font-size:.92rem;margin-bottom:4px;padding:0}
+.fbopt{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;padding:3px 0}
+.fbopt input{margin-top:3px}
+.fbhint{color:var(--muted);font-size:.8rem;margin:4px 0 8px}
+.fbsc>div{display:flex;flex-wrap:wrap;gap:6px}
+.fbsc label{position:relative}
+.fbsc input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.fbsc span{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:40px;border:1px solid var(--line);border-radius:10px;font-weight:600;font-size:.9rem}
+.fbnps span{min-width:34px}
+.fbsc input:checked+span{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.fbsc input:focus-visible+span{outline:3px solid var(--wind);outline-offset:2px}
+.fbtxt{display:block;font-weight:600;font-size:.92rem;margin-bottom:10px}
+.fbtxt textarea{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);resize:vertical}
+.fbmsg{min-height:1.2em;font-size:.86rem;margin:6px 0 0}
+dialog#fbDlg .pact{flex-wrap:wrap;align-items:center}
+.fbnote{flex:1 1 100%;text-align:right}
+a.btnlink{display:inline-flex;align-items:center;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 12px;font-weight:600;text-decoration:none}
+a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}

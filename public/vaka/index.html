@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wattlas vaka çalışması</title>
+<meta name="description" content="Bir enerji oyununun fiyat modelini EPİAŞ ve ENTSO-E 2025 verisiyle kalibre etmek ve proje ekonomisine (LCOE, NPV, IRR) bağlamak.">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="alternate" hreflang="en" href="../case-study/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vaka.css">
+</head>
+<body>
+<main>
+  <div class="top"><a class="brand" href="../"><img src="../icons/logo-64.png" alt="" width="28" height="28">Wattlas</a>
+    <nav><a href="../">Oyuna dön</a><a href="../case-study/" hreflang="en" lang="en">English</a></nav></div>
+
+  <p class="kicker">Vaka çalışması • Ekim 2026</p>
+  <h1>Bir oyunun fiyat modelini piyasa verisiyle kalibre etmek ve proje ekonomisine bağlamak</h1>
+  <p class="lede">Wattlas'ta oyuncu dünya haritasında yenilenebilir enerji santralleri kurar. Bu not, oyunun saatlik elektrik fiyatı modelinin 2025 piyasa verisiyle nasıl ayarlandığını ve aynı modelden gerçek dünya ölçeğinde LCOE, NPV ve IRR hesaplandığında ne çıktığını anlatır.</p>
+
+  <section class="card tldr" aria-labelledby="ozet">
+    <h2 id="ozet" style="margin-top:0">Özet</h2>
+    <ul>
+      <li><b>Sorun:</b> Oyunun Türkiye piyasası öğle fiyatını 4–9 $/MWh'ye düşürüyordu. Satılamayan üretim kısıldığı için güneş santralinin (GES) kapasite faktörü %8'de kalıyordu. Bu modelden hesaplanan finansal göstergeler anlamsızdı.</li>
+      <li><b>Yaklaşım:</b> EPİAŞ 2025 ve ENTSO-E 2025 (Almanya, İspanya) verisinden ortalama fiyat ve fiyat oranı (capture rate) hedefleri çıkarıldı. Model parametreleri, oyun içinde 365 günlük simülasyonlarla bu hedeflere göre ayarlandı.</li>
+      <li><b>Sonuç:</b> Türkiye'de ortalama fiyat 65,8–66,8 $/MWh çıktı (gerçek: 66,4). Güneş fiyat oranı %73–74 (gerçek: ~%75), rüzgâr %95–99 (gerçek: %99). Avrupa'da ortalama fiyat 78–91 $/MWh (hedef: ~89), güneş oranı %50–57 (hedef: ~%50).</li>
+      <li><b>Bulgu:</b> Aynı maliyetle kurulan bir GES, %10 sermaye maliyetinde Türkiye'de başa baş noktasında. Avrupa'da NPV'nin işareti simüle edilen hava yılına göre değişiyor. Farkı yaratan güneş kaynağı değil; fiyat oranı ve kısıntı.</li>
+    </ul>
+  </section>
+
+  <div class="kpis" role="list">
+    <div class="kpi" role="listitem"><small>Türkiye ortalama fiyat, oyun</small><b>65,8–66,8 $</b><span>gerçek 66,4 $/MWh</span></div>
+    <div class="kpi" role="listitem"><small>Türkiye güneş fiyat oranı, oyun</small><b>%73–74</b><span>gerçek ~%75 (örnek günler)</span></div>
+    <div class="kpi" role="listitem"><small>GES kapasite faktörü (Konya)</small><b>%8 → %21–22</b><span>kısıntı neredeyse sıfırlandı</span></div>
+    <div class="kpi" role="listitem"><small>GES IRR, Türkiye / Avrupa</small><b>%10,6–10,7 / %7,5–11,7</b><span>yalnızca spot satış, vergisiz</span></div>
+  </div>
+
+  <h2>1. Neden önemliydi?</h2>
+  <p>Oyunun proje ekonomisi modülü her santral için üretimi ve ortalama satış fiyatını oyunun simülasyonundan alır. Yatırım ve işletme gideri ise gerçek dünya varsayımlarıdır. Simülasyon fiyatı gerçeğe uzaksa LCOE, NPV ve IRR de yanlış olur: hatalı girdi hatalı sonuç verir. Modül anlam taşısın diye önce fiyat modelinin piyasa verisiyle sınanması gerekiyordu.</p>
+  <p>Oyunun saatlik fiyatı; baz bir günlük eğri, mevsimsel talep, akşam ısınma talebi, güneşin öğle fiyatını düşürme etkisi ve rüzgârın genel fiyatı düşürme etkisinden oluşur. Kalibrasyon bu bileşenlerin büyüklüğünü ayarlar.</p>
+
+  <h2>2. Veri</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Gösterge</th><th class="l">Kaynak</th><th class="l">Dönem</th><th class="l">Birim</th></tr></thead>
+    <tbody>
+      <tr><td>Türkiye ortalama fiyat</td><td class="l">EPİAŞ Şeffaflık Platformu, gün öncesi piyasa takas fiyatı (PTF)</td><td class="l">2025, 8.760 saat</td><td class="l">USD/MWh (EPİAŞ'ın USD karşılığı)</td></tr>
+      <tr><td>Türkiye rüzgâr fiyat oranı</td><td class="l">EPİAŞ PTF × gerçek zamanlı rüzgâr üretimi</td><td class="l">2025, tam yıl</td><td class="l">oran</td></tr>
+      <tr><td>Türkiye güneş fiyat oranı</td><td class="l">EPİAŞ PTF × gerçek zamanlı güneş üretimi (lisanslı santraller)</td><td class="l">2025'ten 7 örnek gün</td><td class="l">oran</td></tr>
+      <tr><td>Avrupa fiyat ve oranlar</td><td class="l">ENTSO-E Şeffaflık Platformu, gün öncesi fiyat ve gerçekleşen üretim; Almanya-Lüksemburg ve İspanya</td><td class="l">2025, her ayın 15'i (12 gün)</td><td class="l">EUR/MWh; EUR/USD ≈ 1,116</td></tr>
+    </tbody></table></div>
+  <p class="note">Yıllık ve aylık ENTSO-E sorguları zaman aşımına uğradığı için günlük örnekleme yapıldı. Kur, örnek günlerde EPİAŞ'ın yayımladığı USD ve EUR fiyatlarının oranından türetildi; resmî yıllık kur değildir.</p>
+
+  <h2>3. Yöntem</h2>
+  <p><b>Fiyat oranı (capture rate):</b> Bir teknolojinin ürettiği saatlerde ortalama ne fiyat aldığının, düz (baz) ortalama fiyata oranıdır. Güneş herkes aynı saatte ürettiği için öğle fiyatını düşürür; güneş kurulu gücü arttıkça bu oran düşer. Bu etkiye kanibalizasyon denir.</p>
+  <div class="formula">capture fiyatı = Σ (fiyat × üretim) ÷ Σ üretim
+capture oranı = capture fiyatı ÷ ortalama fiyat</div>
+  <ol>
+    <li><b>Hedefleri çıkar:</b> Gerçek veriden yukarıdaki iki göstergeyi Türkiye ve Avrupa için ayrı ayrı hesapla. Avrupa oyunda tek piyasa olduğu için Almanya ve İspanya'nın basit ortalaması hedef alındı.</li>
+    <li><b>Oyunda ölç:</b> Oyunu tarayıcıda, ekransız çalıştır. Bir GES ve bir rüzgâr santrali (RES) kur, 365 oyun günü ilerlet, aynı göstergeleri ölç. Oyun santrali sıfır fiyatta üretimi kıstığı için "piyasa" güneş oranı kısılan üretimi de sıfır fiyattan satılmış sayar; gerçek veriyle karşılaştırılabilir olan budur.</li>
+    <li><b>Ayarla ve tekrarla:</b> Sapmanın nedenini bul, ilgili parametreyi değiştir, yeniden ölç.</li>
+  </ol>
+  <h3>Neden sapıyordu ve ne değişti?</h3>
+  <ul>
+    <li>Piyasanın güneş doygunluğu her gün 0,012 artıyor, yaklaşık üç ayda tavana ulaşıyordu. Sonrasında öğle fiyatı neredeyse her gün sıfıra iniyordu. Günlük artış 0,002'ye indirildi, tavan başlangıç değerinin 1,2 katıyla sınırlandı.</li>
+    <li>Güneşin öğle fiyatını düşürme derinliği 57'den 30 $/MWh'ye, rüzgârın etkisi 10'dan 8'e indirildi. Baz fiyat düzeyi %8 artırıldı.</li>
+    <li>Avrupa'da fiyat düzeyi çarpanı 1,15'ten 1,9'a çıkarıldı. Güneş etkisi Türkiye'nin 2,5 katı, rüzgâr etkisi 3 katı yapıldı. Bu, iki ülkenin verisinde güneş ve rüzgârın fiyatı Türkiye'dekinden daha güçlü düşürmesini (daha düşük fiyat oranları) yansıtır.</li>
+  </ul>
+
+  <h2>4. Sonuçlar</h2>
+  <div class="legend" aria-hidden="true"><span><i class="i-real"></i>Gerçek 2025</span><span><i class="i-old"></i>Oyun, önce</span><span><i class="i-new"></i>Oyun, sonra</span></div>
+  <div class="bars" role="img" aria-label="Güneş fiyat oranı. Türkiye: gerçek yüzde 75, oyun önce yüzde 60, sonra yüzde 74. Avrupa: hedef yüzde 50, önce yüzde 89, sonra yüzde 53.">
+    <div class="g">Güneş fiyat oranı, Türkiye</div>
+    <div class="bar"><span>Gerçek (örnek günler)</span><span class="t"><i class="i-real" style="width:68.2%"></i></span><span class="v">%75</span></div>
+    <div class="bar"><span>Oyun, önce</span><span class="t"><i class="i-old" style="width:54.5%"></i></span><span class="v">%60</span></div>
+    <div class="bar"><span>Oyun, sonra</span><span class="t"><i class="i-new" style="width:67.3%"></i></span><span class="v">%74</span></div>
+    <div class="g">Güneş fiyat oranı, Avrupa</div>
+    <div class="bar"><span>Hedef (DE ve ES ort.)</span><span class="t"><i class="i-real" style="width:45.5%"></i></span><span class="v">%50</span></div>
+    <div class="bar"><span>Oyun, önce</span><span class="t"><i class="i-old" style="width:80.9%"></i></span><span class="v">%89</span></div>
+    <div class="bar"><span>Oyun, sonra</span><span class="t"><i class="i-new" style="width:48.2%"></i></span><span class="v">%53</span></div>
+  </div>
+
+  <h3>Türkiye</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Gösterge</th><th>Gerçek (2025)</th><th>Oyun, önce</th><th>Oyun, sonra</th></tr></thead>
+    <tbody>
+      <tr><td>Ortalama fiyat</td><td>66,4 $/MWh</td><td>43,7 $/MWh</td><td>65,8–66,8 $/MWh</td></tr>
+      <tr><td>Güneş fiyat oranı</td><td>~%75 (7 örnek gün)</td><td>%60</td><td>%73–74</td></tr>
+      <tr><td>Rüzgâr fiyat oranı</td><td>%99</td><td>%103</td><td>%95–99</td></tr>
+      <tr><td>Öğle fiyatı (11–14 ortalaması)</td><td>33–50 $/MWh (örnek günler)</td><td>4–9 $/MWh</td><td>41–44 $/MWh</td></tr>
+      <tr><td>GES kapasite faktörü (Konya)</td><td>—</td><td>%8,2</td><td>%21–22</td></tr>
+    </tbody></table></div>
+  <h3>Avrupa</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Gösterge</th><th>Almanya</th><th>İspanya</th><th>Hedef</th><th>Oyun, önce</th><th>Oyun, sonra</th></tr></thead>
+    <tbody>
+      <tr><td>Ortalama fiyat</td><td>95,3 €/MWh (~106 $)</td><td>64,9 €/MWh (~72 $)</td><td>~89 $/MWh</td><td>84,6 $/MWh</td><td>77,9–90,7 $/MWh</td></tr>
+      <tr><td>Güneş fiyat oranı</td><td>%45</td><td>%56</td><td>~%50</td><td>%89</td><td>%50–57</td></tr>
+      <tr><td>Rüzgâr fiyat oranı</td><td>%74</td><td>%92</td><td>~%83</td><td>%94</td><td>%85–90</td></tr>
+    </tbody></table></div>
+  <p class="note">"Sonra" sütunları aynı ayarla yapılan birden fazla 365 günlük simülasyonun aralığıdır: Türkiye'de 4, Avrupa'da 4 koşu. Grafikteki "sonra" değerleri kalibrasyon koşusudur. Koşular arasındaki fark oyunun hava modelinden ve rastgelelikten gelir. Avrupa'da ortalama fiyatın bir yıldan diğerine ±%8 oynaması, gerçek piyasadaki yıllar arası oynaklık gibi okunabilir ama ona göre ayarlanmamıştır.</p>
+
+  <h2>5. Proje ekonomisi: aynı GES iki piyasada</h2>
+  <p>Kalibre edilmiş modelle 5 MW'lık bir GES ve 5 MW'lık bir RES, her piyasada 365 gün çalıştırıldı. Üretim ve satış fiyatı simülasyondan, maliyetler gerçek dünya varsayımlarından gelir.</p>
+  <h3>Varsayımlar</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Kalem</th><th>GES</th><th>RES</th><th class="l">Kaynak ve not</th></tr></thead>
+    <tbody>
+      <tr><td>Yatırım</td><td>691 $/kW</td><td>1.041 $/kW</td><td class="l">IRENA, <i>Renewable Power Generation Costs in 2024</i>: küresel ağırlıklı ortalama kurulu maliyet. Birincil rapora erişilemedi, raporu aktaran kaynaklardan alındı.</td></tr>
+      <tr><td>İşletme gideri</td><td>12 $/kW-yıl</td><td>40 $/kW-yıl</td><td class="l">Doğrulanmamış varsayım</td></tr>
+      <tr><td>Ömür</td><td>25 yıl</td><td>25 yıl</td><td class="l">Varsayım; GES'te yıllık %0,5 verim kaybı</td></tr>
+      <tr><td>İskonto oranı (WACC)</td><td colspan="2">%10 (duyarlılık: %8 ve %12)</td><td class="l">Nominal USD; varsayım</td></tr>
+    </tbody></table></div>
+  <p class="note">Hesaba katılmayanlar: vergi, enflasyon (fiyat ve giderler sabit), kredi ve finansman yapısı, arazi ve şebeke bağlantısı maliyeti, hurda değeri, dengesizlik maliyeti, destek mekanizmaları ve ikili anlaşmalar. Gelir yalnızca spot satıştan gelir (merchant). Sonuçlar bu yüzden bir yatırım değerlendirmesi değil, fiyat modelinin finansal sonucunu gösteren bir alıştırmadır.</p>
+  <div class="formula">LCOE = (yatırım + Σ gider_t ÷ (1+WACC)^t) ÷ Σ üretim_t ÷ (1+WACC)^t
+NPV  = −yatırım + Σ (üretim_t × satış fiyatı − gider_t) ÷ (1+WACC)^t
+IRR  = NPV'yi sıfır yapan iskonto oranı</div>
+  <h3>Sonuçlar (%10 WACC)</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Santral</th><th>Kapasite faktörü</th><th>Ort. satış fiyatı</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Geri ödeme</th></tr></thead>
+    <tbody>
+      <tr><td>GES, Türkiye (Konya)</td><td>%22,3</td><td>48,6–49,0 $/MWh</td><td>46,8–46,9 $/MWh</td><td class="pos">+0,14 – +0,19 M$</td><td>%10,6–10,7</td><td>8,4–8,5 yıl</td></tr>
+      <tr><td>GES, Avrupa (İspanya iç kesim)</td><td>%16,2–18,2</td><td>54,7–63,5 $/MWh</td><td>57,3–64,7 $/MWh</td><td><span class="neg">−0,62</span> – <span class="pos">+0,43</span> M$</td><td>%7,5–11,7</td><td>7,9–10,9 yıl</td></tr>
+      <tr><td>RES, Türkiye (Çanakkale)</td><td>%38,7–42,0</td><td>62,8–64,3 $/MWh</td><td>42,0–45,6 $/MWh</td><td class="pos">+2,65 – +3,72 M$</td><td>%16,2–18,6</td><td>5,3–6,0 yıl</td></tr>
+      <tr><td>RES, Avrupa (Kuzey Almanya)</td><td>%37,5–40,9</td><td>66,5–78,8 $/MWh</td><td>43,1–47,1 $/MWh</td><td class="pos">+3,80 – +5,18 M$</td><td>%18,8–21,8</td><td>4,6–5,3 yıl</td></tr>
+    </tbody></table></div>
+  <p class="note">Aralıklar Türkiye'de 2, Avrupa'da 3 bağımsız 365 günlük simülasyondandır. Yatırım: GES 3,46 M$, RES 5,21 M$ (5 MW).</p>
+  <h3>WACC duyarlılığı: GES, Türkiye</h3>
+  <div class="tw"><table>
+    <thead><tr><th>WACC</th><th>%8</th><th>%10</th><th>%12</th></tr></thead>
+    <tbody>
+      <tr><td>LCOE ($/MWh)</td><td>40,9–41,0</td><td>46,8–46,9</td><td>52,9–53,1</td></tr>
+      <tr><td>NPV (M$)</td><td class="pos">+0,76 – +0,81</td><td class="pos">+0,14 – +0,19</td><td class="neg">−0,30 – −0,33</td></tr>
+    </tbody></table></div>
+
+  <h3>Yorum</h3>
+  <ul>
+    <li><b>Türkiye GES'i başa baş noktasında.</b> Ortalama satış fiyatı (≈49 $/MWh) LCOE'nin (≈47 $/MWh) yalnızca biraz üstünde. IRR %10,6–10,7 olduğu için bunun üzerindeki bir sermaye maliyetinde proje değer yaratmıyor. WACC'taki 2 puanlık değişim NPV'nin işaretini çeviriyor: desteksiz, yalnızca spot satış yapan GES'te finansman maliyeti belirleyicidir.</li>
+    <li><b>Avrupa'da daha yüksek fiyat, daha düşük getiri.</b> Avrupa'nın ortalama fiyatı Türkiye'den yüksek. Ancak güneş saatlerinde fiyat sık sık sıfıra iniyor ve oyundaki santral üretimin %18–28'ini kısıyor. Kapasite faktörü düştükçe aynı yatırım daha az MWh'ye bölünüyor; LCOE 57–65 $/MWh'ye çıkıyor. Kaynak (ışınım) değil, fiyat oranı ve kısıntı getiriyi belirliyor.</li>
+    <li><b>Hava yılı riski.</b> Avrupa GES'inde aynı ayarla simüle edilen üç yılda NPV −0,62 ile +0,43 M$ arasında değişti. Yalnızca spot satış yapan (merchant) bir güneş projesinde fiyat ve kısıntı riskinin, uzun vadeli satış anlaşması (PPA) veya batarya ile azaltılmasının neden değerli olduğunu gösteriyor.</li>
+    <li><b>RES sonuçları iyimser okunmalı.</b> Seçilen sahalar oyunun iyi rüzgâr sahalarıdır, filo ortalaması değildir. IRENA'nın küresel ortalama yatırım maliyeti de belirli bir ülkedeki proje maliyetinden düşük olabilir. Her iki etki de IRR'ı yukarı çeker.</li>
+  </ul>
+
+  <h2>6. Sınırlamalar</h2>
+  <ul>
+    <li><b>Küçük örnek:</b> Türkiye güneş oranı 7 güne, Avrupa 12 güne dayanır. Günlük değerler çok oynak; Almanya'da güneş oranı tek günde −%57 ile %137 arasında değişti. Hedefler yön ve büyüklük gösterir, kesin yıllık değer değildir.</li>
+    <li><b>Lisanssız güneş eksik:</b> EPİAŞ gerçek zamanlı üretimindeki güneş yalnızca lisanslı santralleri kapsar. Profilin şekli temsilîdir.</li>
+    <li><b>Negatif fiyat yok:</b> Oyunda fiyat tabanı 0'dır ve santral sıfır fiyatta üretimi kısar. Gerçek piyasada negatif fiyat vardır ve destekli santraller üretmeye devam eder. Bu yüzden Avrupa'da oyundaki kısıntı yüksektir.</li>
+    <li><b>Tek Avrupa piyasası:</b> Almanya ile İspanya arasındaki fark ortalamada kaybolur.</li>
+    <li><b>Oyun hızı:</b> Oyunun kendi ekonomisi (oyun parası) bilerek sıkıştırılmıştır; bu nottaki finansal göstergeler oyun parasıyla değil, gerçek dünya ölçeğinde hesaplanır.</li>
+  </ul>
+
+  <h2>7. Sonraki adımlar</h2>
+  <ul>
+    <li>Tam yıl saatlik güneş verisiyle Türkiye güneş oranını yeniden ölçmek.</li>
+    <li>Negatif fiyatları ve destek mekanizmalarını modele eklemek.</li>
+    <li>Avrupa'yı ülke bazında ayrı piyasalara bölmek.</li>
+    <li>Pilot oyuncu geri bildirimiyle hangi bölümün gerçekçi bulunmadığını ölçmek.</li>
+  </ul>
+
+  <section class="card" aria-labelledby="pilot">
+    <h2 id="pilot" style="margin-top:0">Pilot: oynayıp görüşünü yaz</h2>
+    <p>Enerji veya finans alanında çalışıyorsan oyunu 15–20 dakika oyna; kısa form sonra kendiliğinden açılır (Ayarlar → Geri bildirim ver ile de ulaşılır). Form anonimdir; ad, e-posta ya da şirket bilgisi istenmez.</p>
+    <div class="cta"><a class="btn" href="../?geribildirim">Oyna ve geri bildirim ver</a><a class="btn sec" href="https://github.com/emresoykan/sebeke-oyun/blob/main/docs/kalibrasyon.md">Kalibrasyon notu (ayrıntılı)</a></div>
+  </section>
+
+  <footer>
+    <p><b>Şeffaflık:</b> Kod ve analiz adımları bir yapay zekâ kodlama asistanıyla (Claude Code) birlikte yürütüldü. Kapsam, kararlar ve sonuçların kontrolü yazara aittir. Hesaplar depodaki script'ler ve notlarla yeniden üretilebilir (<a href="https://github.com/emresoykan/sebeke-oyun">kaynak kod</a>).</p>
+    <p>Yalnızca kamuya açık veri kullanıldı; herhangi bir şirketin iç verisi kullanılmadı. Oyundaki şirketler, markalar ve ekipman modelleri kurgusaldır. Bu not yatırım tavsiyesi değildir.</p>
+  </footer>
+</main>
+</body>
+</html>

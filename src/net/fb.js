@@ -22,7 +22,9 @@ export async function connect(cfg,emu){
     // bulut kayıt (saves/{kurtarma kodu})
     saveGet:async code=>{const d=await F.getDoc(F.doc(db,"saves",code));if(!d.exists())return null;const x=d.data({serverTimestamps:"estimate"});return {...x,at:x.at&&x.at.toMillis?x.at.toMillis():null};},
     savePut:(code,d)=>F.setDoc(F.doc(db,"saves",code),{...d,at:F.serverTimestamp()}),
-    saveDel:code=>F.deleteDoc(F.doc(db,"saves",code))
+    saveDel:code=>F.deleteDoc(F.doc(db,"saves",code)),
+    // pilot geri bildirimi (feedback/{uid}): yalnızca yazılır, oyundan okunamaz
+    feedback:d=>F.setDoc(F.doc(db,"feedback",user.uid),{...d,at:F.serverTimestamp()})
   };
   return api;
 }

@@ -70,6 +70,9 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
 | `src/finance.js`, `src/ui/finview.js` | Proje ekonomisi: santral bazında gerçek dünya karşılığı LCOE, NPV, IRR, geri ödeme (Rapor sekmesi) |
+| `src/ui/feedback.js` | Pilot geri bildirim formu: anonim sorular, oyun özeti, kopyala/indir, Firebase varsa gönder |
+| `public/vaka/`, `public/case-study/` | Vaka çalışması sayfaları (Türkçe, İngilizce) |
+| `scripts/sim_year.cjs` | Oyunu ekransız N gün simüle edip fiyat, capture oranı, kapasite faktörü ve proje ekonomisini yazdırır |
 | `src/slope.js` | Arazi eğimi: seçilen noktanın 250 m çevresinin ortalama eğimi ve baktığı yön, AWS Terrain Tiles yükseklik karolarından (12. yakınlık, ~30 m) |
 | `src/urban.js`, `public/data/urban.bin` | Yerleşim alanları: kentsel alan poligonları (Natural Earth, üretilmiş; `scripts/build_urban.py`), açılışta arka planda yüklenir; nokta sorgusu |
 | `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
@@ -129,7 +132,7 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 
 ## Enerji kaynakları
 
-**Fiyat modeli kalibrasyonu.** Türkiye piyasasının saatlik fiyat modeli EPİAŞ 2025 verisiyle karşılaştırılıp ayarlandı (`PRICE`, `src/config.js`): oyunda yıllık ortalama fiyat 65,8 $/MWh (gerçek PTF 66,4), güneşin fiyat oranı %74 (gerçek ~%75, 7 örnek gün), rüzgârın %99 (gerçek %99). Önceki modelde öğle fiyatı ~3 ayda kalıcı olarak sıfıra iniyor, GES yıllık %8 kapasite faktörüne düşüyordu. Avrupa piyasası ENTSO-E 2025 Almanya ve İspanya örnek günleriyle ayrıca ayarlandı (ortalama fiyat 87,9 $/MWh, güneşin piyasa fiyat oranı %53, rüzgâr %90; piyasa bazında `REG.E.mult/sk/wk`). Yöntem, veri, önce/sonra tabloları ve sınırlamalar: [docs/kalibrasyon.md](docs/kalibrasyon.md).
+**Fiyat modeli kalibrasyonu.** Türkiye piyasasının saatlik fiyat modeli EPİAŞ 2025 verisiyle karşılaştırılıp ayarlandı (`PRICE`, `src/config.js`): oyunda yıllık ortalama fiyat 65,8 $/MWh (gerçek PTF 66,4), güneşin fiyat oranı %74 (gerçek ~%75, 7 örnek gün), rüzgârın %99 (gerçek %99). Önceki modelde öğle fiyatı ~3 ayda kalıcı olarak sıfıra iniyor, GES yıllık %8 kapasite faktörüne düşüyordu. Avrupa piyasası ENTSO-E 2025 Almanya ve İspanya örnek günleriyle ayrıca ayarlandı (ortalama fiyat 87,9 $/MWh, güneşin piyasa fiyat oranı %53, rüzgâr %90; piyasa bazında `REG.E.mult/sk/wk`). Aynı ayarla tekrarlanan koşular hava modeli nedeniyle farklı sonuç verir (Avrupa ortalama fiyatı 77,9–90,7 $/MWh). Yöntem, veri, önce/sonra tabloları ve sınırlamalar: [docs/kalibrasyon.md](docs/kalibrasyon.md).
 
 **Proje ekonomisi (gerçek dünya karşılığı).** Rapor sekmesinde her santral kaydı için kapasite faktörü (CF), ortalama satış fiyatı, yatırım, LCOE (seviyelendirilmiş enerji maliyeti), NPV (net bugünkü değer), IRR (iç verim oranı) ve geri ödeme süresi gösterilir. Oyunun parası sıkıştırılmış olduğu için (yatırımlar gerçeğin ~1/60'ı) hesap oyun parasıyla değil gerçek dünya ölçeğinde yapılır: üretim ve satış fiyatı santralin oyunda gerçekleşen değerleridir (en az 3 günlük veri), yatırım maliyetleri IRENA *Renewable Power Generation Costs in 2024* küresel ağırlıklı ortalamalarıdır (birincil rapora erişilemedi, raporu aktaran kaynaklardan; deniz enerjisi oyun varsayımı). İşletme gideri, ömür, GES verim kaybı (%0,5/yıl) ve iskonto oranı (WACC, varsayılan %10, kaydırıcıyla %4–16) doğrulanmamış varsayımlardır. Vergi, enflasyon, finansman, arazi, bağlantı, hurda değeri ve dengesizlik maliyeti hariçtir; 30 günden kısa veride mevsimsellik yıllık değeri saptırabilir. Varsayımlar, formüller ve kısaltmalar panelde açılır bölümde yazılıdır.
 
@@ -251,6 +254,14 @@ Ayarlar → "Bulut kaydı aç". Lig ile aynı Firebase projesini kullanır (anon
 - **Kurallar** (`firebase/firestore.rules`, `saves` bölümü): kod biçimi, alan listesi, tip ve boyut sınırları, sunucu zamanı ve 20 sn güncelleme aralığı denetlenir. Emülatörde 19 senaryoyla test edildi (lig kurallarının 29 senaryosu da geçiyor).
 
 **Kurulum:** Lig için yapılan kurulum yeterli; yalnızca güncel `firebase/firestore.rules` içeriği Firebase konsolunda Firestore → Rules sekmesine yapıştırılıp **Publish** edilmeli (yoksa sunucu bulut kaydı reddeder ve oyunda "Sunucu isteği reddetti" yazar).
+
+## Vaka çalışması ve pilot geri bildirim
+
+- **Vaka çalışması:** `public/vaka/` (Türkçe) ve `public/case-study/` (İngilizce), yayında `…/sebeke-oyun/vaka/` ve `…/sebeke-oyun/case-study/`. Fiyat modelinin EPİAŞ ve ENTSO-E 2025 verisiyle kalibrasyonunu, aynı modelle 5 MW GES ve RES için Türkiye ve Avrupa'da LCOE, NPV, IRR sonuçlarını ve WACC duyarlılığını anlatır. Sayılar `scripts/sim_year.cjs` ile üretildi (Türkiye 2, Avrupa 3 bağımsız 365 günlük koşu); koşudan koşuya fark hava modeli ve rastgelelikten gelir. Oyundan Ayarlar → "Vaka çalışması" ile açılır.
+- **Geri bildirim formu** (`src/ui/feedback.js`): Ayarlar → "Geri bildirim ver". Anonimdir: alan, deneyim bandı, beş 1–5 puanlık soru (fiyat, proje ekonomisi ve saha kurallarının gerçekçiliği; tablonun anlaşılırlığı; capture oranının öğretilmesi), 0–10 tavsiye puanı ve üç kısa metin. İsteğe bağlı oyun özeti (oyun günü, santral sayısı ve türleri, MW, piyasalar, masaüstü/mobil) eklenir; profil adı ve şirket adı eklenmez. Metinde e-posta ya da telefon numarası görünürse gönderim durdurulur.
+- **Pilot bağlantısı:** `…/sebeke-oyun/?geribildirim`. Oyuncu önce oynar; form 15 dakika ya da 8 oyun günü sonra bir kez kendiliğinden açılır.
+- **Teslim:** `FIREBASE_CONFIG` tanımlıysa "Gönder" yanıtı `feedback/{anonim uid}` belgesine yazar; tarayıcı başına bir yanıt tutulur, en fazla 30 sn'de bir değiştirilebilir, oyundan hiç kimse okuyamaz (yanıtlar Firebase konsolunda, Firestore → `feedback`). Sunucu yoksa ya da gönderim başarısız olursa yanıt panoya kopyalanır veya JSON olarak indirilir.
+- **Kurallar** (`firebase/firestore.rules`, `feedback` bölümü): alan listesi, seçenek değerleri, puan aralıkları, metin boyu (en fazla 600 karakter) ve sunucu zamanı denetlenir. Emülatörde 21 senaryoyla test edildi; lig (29) ve bulut kayıt (19) senaryoları da geçiyor. **Kurulum:** güncel kural dosyası Firebase konsolunda Firestore → Rules sekmesine yapıştırılıp **Publish** edilmeli.
 
 ## Harita
 
