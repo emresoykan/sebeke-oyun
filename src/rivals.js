@@ -50,6 +50,8 @@ function findSpot(r,k){
     if(t.sea||!t.mreg||t.urban||(tr&&t.a3!=="TUR")||t.ter==="p"||t.ter==="f"||!allowed(t).includes(k))continue;
     // yatırım eşiği: GES için yıllık ~4,5 kWh/m²/gün ışınım, RES için 100 m'de ~6,5 m/s ortalama rüzgâr
     if((k==="ges"&&t.solar<0.5)||(k==="res"&&t.wind<0.3))continue;
+    // rakipler arazi eğimini ölçmez: GES'i kaba sınıflandırmadaki dağlık bölgelere kurmazlar
+    if(k==="ges"&&t.ter==="m")continue;
     if(!clearOf(t.lat,t.lon))continue;
     return t;
   }

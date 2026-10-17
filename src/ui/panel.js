@@ -1,7 +1,8 @@
 // --- Panel ---
 import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
-import { S, selSite } from "../state.js";
-import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry } from "../rules.js";
+import { S, selSite, save } from "../state.js";
+import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed } from "../rules.js";
+import { slopeOf } from "../slope.js";
 import { fillRes, ghiAt, wind100At } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
@@ -28,7 +29,7 @@ const pctTxt=v=>"%"+(Math.round(v*1000)/10).toLocaleString("tr-TR");
 
 // Ekipman seçimi: teknoloji sekmeleri ve her kademe için bir kart (marka, özellik, üretim, arıza riski, maliyet)
 function buildHtml(t){
-  const ks=allowed(t);if(!ks.includes(tab))tab=ks[0];
+  const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
   let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="--c:var(${TECH[k].c})" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
   h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
     const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
@@ -39,6 +40,27 @@ function buildHtml(t){
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
+}
+
+// Arazi eğimi: panelde ölçülen değer; düz arazi isteyen teknolojiler eğimli yerde çıkar (rules.js)
+function slopeRow(t){
+  const s=slopeOfSite(t);
+  if(s===undefined)return `<span class="muted">ölçülüyor…</span>`;
+  if(s===null)return `<span class="muted">ölçülemedi (yükseklik verisine ulaşılamadı; eğim kuralı uygulanmıyor)</span>`;
+  const d=s.mean<=5?"düz":s.mean<=SLOPE.flat?"hafif eğimli":s.mean<=SLOPE.res?"eğimli":"sarp";
+  return `%${s.mean.toLocaleString("tr-TR")} • ${d}${s.south&&s.mean>5?", güneye bakan yamaç":""} <small class="rv">250 m çevrenin ortalaması</small>`;
+}
+function steepTxt(t){
+  const s=slopeOfSite(t),ks=baseAllowed(t).filter(k=>tooSteep(k,t));if(!s||!ks.length)return "";
+  const lim={ges:`GES en çok %${SLOPE.flat}, güneye bakan yamaçta %${SLOPE.south}`,res:`rüzgâr türbini yolu ve platformu en çok %${SLOPE.res}`,
+    batt:`batarya en çok %${SLOPE.flat}`,bes:`biyokütle santrali en çok %${SLOPE.flat}`,jes:`jeotermal santral en çok %${SLOPE.flat}`};
+  return `Arazi eğimi %${s.mean.toLocaleString("tr-TR")}: ${ks.map(k=>TECH[k].n).join(", ")} için fazla eğimli (${ks.map(k=>lim[k]).join("; ")}).`;
+}
+// seçili noktanın eğimi henüz ölçülmediyse ölç; satın alınmış sahaya kaydet
+function measureSlope(t,id){
+  if(t.sea||t.reg==="X"||t.reg==="G"||slopeOfSite(t)!==undefined)return;
+  slopeOf(t.lat,t.lon).then(r=>{const o=id&&S.sites[id];if(o&&r&&o.slope===undefined){o.slope=r;save();}
+    const c=selSite();if(c&&c.lat===t.lat&&c.lon===t.lon)renderPanel();});
 }
 
 export function renderPanel(){
@@ -62,7 +84,9 @@ export function renderPanel(){
   const ghi=`<small class="rv">${ghiAt(t.lat,t.lon).toFixed(1).replace(".",",")} kWh/m²/gün</small>`,ws=`<small class="rv">${wind100At(t.lat,t.lon).toFixed(1).replace(".",",")} m/s</small>`;
   html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
     `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
-    `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`)+`</div>`;
+    `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`+
+    `<span>Eğim</span><span>${slopeRow(t)}</span>`)+`</div>`;
+  measureSlope(t,id);
   html+=`<div id="wxBox">${wxHtml(t)}</div>`;
   const p=permitProb(t),rv=o?null:rivalNear(t.lat,t.lon);
   if(rv){const {r,s:x}=rv,d=km(t.lat,t.lon,x.lat,x.lon);
@@ -70,7 +94,10 @@ export function renderPanel(){
     html+=`<div class="status bad">Bu bölge rakip şirketin sahasına çok yakın: ${SITE_MIN_KM} km içinde yeni saha açılamaz.</div>`;}
   else if(!o&&t.urban){
     html+=`<div class="status bad">Yerleşim alanı${t.cityKm<5?` (${t.city})`:""}: şehir ve kasabaların yapılaşmış bölgelerinde santral için arazi satın alınamaz. Kentin dışındaki tarım arazisi, mera ya da sanayi bölgelerine bak.</div>`;
+  }else if(!o&&!t.sea&&!allowed(t).length){
+    html+=`<div class="status bad">${steepTxt(t)} Bu noktada kurulabilecek tesis yok: araziyi almak için daha düz bir yer seç.</div>`;
   }else if(!o){
+    if(steepTxt(t))html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
     html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}">${t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
   }else if(o.permit==="none"||o.permit==="rejected"){
@@ -84,6 +111,7 @@ export function renderPanel(){
     html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${SITE_LIMIT} MW kurulu${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
+    if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
   }
   el.innerHTML=html;

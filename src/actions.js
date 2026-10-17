@@ -2,7 +2,8 @@
 import { BLOCK, SITE_LIMIT, REG, TECH, UNDO_MS } from "./config.js";
 import { describe, placeName } from "./world.js";
 import { S, save, addLog } from "./state.js";
-import { landCost, permitFee, permitDays } from "./rules.js";
+import { landCost, permitFee, permitDays, allowed } from "./rules.js";
+import { slopeCached } from "./slope.js";
 import { siteMW, newDayHydro, planBio, awardAch } from "./sim.js";
 import { locked } from "./rules.js";
 import { capexOf, eqName, TIERS } from "./equipment.js";
@@ -38,12 +39,12 @@ export function undoLast(){
 }
 
 // Seçili noktada yeni saha aç (arazi satın al / deniz alanı kirala)
-export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban)return;S.money-=c;
-  const id="s"+(S.nextId++);S.sites[id]={...t,permit:"none"};S.sel={id,lat:t.lat,lon:t.lon};
+export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||(!t.sea&&!allowed(t).length))return;S.money-=c;
+  const id="s"+(S.nextId++),sl=slopeCached(t.lat,t.lon);S.sites[id]={...t,permit:"none"};if(sl)S.sites[id].slope=sl;S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
 export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();window.dispatchEvent(new CustomEvent("sebeke:permit"));}
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer
-export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT||locked(k))return;S.money-=c;
+export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=c;
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
   if(k==="jes"&&o.well==null){o.well=+(0.55+Math.random()*0.55).toFixed(2);
