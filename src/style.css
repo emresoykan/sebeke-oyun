@@ -500,3 +500,21 @@ dialog#fbDlg .pact{flex-wrap:wrap;align-items:center}
 .fbnote{flex:1 1 100%;text-align:right}
 a.btnlink{display:inline-flex;align-items:center;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 12px;font-weight:600;text-decoration:none}
 a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
+/* proje finansmanı */
+.pfh{font-size:.98rem;margin:16px 0 4px}
+.pfnote{font-size:.8rem;margin:0 0 6px}
+.pfbox{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:8px}
+.pfcard{min-width:0}
+.pfcard{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.84rem}
+.pfmini{width:100%;border-collapse:collapse;margin-top:4px;table-layout:fixed}
+.pfmini th[scope=row]{width:44%}
+.pfmini th,.pfmini td{padding:3px 4px;text-align:right;border-top:1px solid var(--line);font-weight:400}
+.pfmini thead th{border-top:0;font-weight:700;color:var(--muted);font-size:.78rem}
+.pfmini th[scope=row]{text-align:left;color:var(--muted)}
+.pfmini tr.pfst th{text-align:left;font-size:.76rem;color:var(--muted);padding-top:6px}
+.pfin{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px 14px;margin:8px 0}
+.pfin label{display:flex;flex-direction:column;gap:2px;font-size:.82rem}
+.pfin .pfv{display:flex;align-items:center;gap:6px}
+.pfin input{width:90px;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.pfin input:focus-visible{outline:3px solid var(--wind);outline-offset:1px}
+.pfreset{font-size:.82rem;padding:6px 10px}
