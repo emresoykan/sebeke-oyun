@@ -208,7 +208,7 @@ let targetTime=null;
 export function setGlobeClock(hour){
   if(!viewer)return;
   targetTime=Cesium.JulianDate.addHours(Cesium.JulianDate.fromDate(CAL.date),hour-3,new Cesium.JulianDate());
-  if(nightShader)nightShader.setUniform("u_day",0.15+0.85*daylight(Math.min(hour,23)));
+  if(nightShader)nightShader.setUniform("u_day",0.32+0.68*daylight(Math.min(hour,23))); // gece de arazi seçilebilsin (eskiden %15: test raporunda "karanlık açılıyor")
 }
 function stepClock(){
   const now=performance.now(),dt=Math.min(0.25,(now-(lastFrame||now))/1000);lastFrame=now;

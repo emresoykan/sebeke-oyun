@@ -32,13 +32,14 @@ export function drawChart(){
 export function render(){
   const h=Math.min(S.hour,23),k=selMarket(),M=D[k],st=D.st;
   document.getElementById("cash").textContent=fmt$(S.money);
-  const sn=seasonOf(CAL.date);document.getElementById("dayLbl").textContent=`${sn.i} ${fmtDate(CAL.date)} • Gün ${S.dayNo}`;
+  const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");dl.textContent=`${sn.i} ${fmtDate(CAL.date)} • Gün ${S.dayNo}`;
+  dl.title="Takvim oyun gününden hızlı akar: her oyun günü takvimi 3 gün ilerletir, bir yıl 120 oyun gününde geçer. Üretim ve gelir her oyun gününde bir günlüktür.";
   document.getElementById("clockTop").textContent=String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);
   document.getElementById("roPrice").textContent=fmtP(M.price[h]);
   let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+(x.j||0)+(x.o||0)+(x.m||0)+Math.max(0,x.b);});
-  document.getElementById("roGen").textContent=g.toFixed(1)+" MW";
+  document.getElementById("roGen").textContent=g.toLocaleString("tr-TR",{minimumFractionDigits:1,maximumFractionDigits:1})+" MW";
   const net=dayNet(st),r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";

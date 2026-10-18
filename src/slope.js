@@ -23,7 +23,7 @@ async function tile(x,y){
 // noktanın çevresinin eğimi (Promise): {mean: ortalama eğim %, aspect: yamacın baktığı yön (kuzeyden saat yönünde °), south: güneye bakıyor mu}
 export function slopeOf(lat,lon){
   const k=key(lat,lon);if(results.has(k))return Promise.resolve(results.get(k));if(pending.has(k))return pending.get(k);
-  const p=measure(lat,lon).catch(e=>{console.warn("Arazi eğimi ölçülemedi:",e);return null;}).then(r=>{results.set(k,r);pending.delete(k);return r;});
+  const p=Promise.race([measure(lat,lon),new Promise((_,j)=>setTimeout(()=>j(new Error("zaman aşımı")),8000))]).catch(e=>{console.warn("Arazi eğimi ölçülemedi:",e);return null;}).then(r=>{results.set(k,r);pending.delete(k);return r;});
   pending.set(k,p);return p;
 }
 async function measure(lat,lon){
