@@ -229,14 +229,27 @@ def from_pbf(path):
         la = [p[0] for p in pts]; lo = [p[1] for p in pts]
         els[(typ, oid)] = {"type": typ, "id": oid, "tags": tags, "center": {"lat": sum(la) / len(la), "lon": sum(lo) / len(lo)},
                            "bounds": {"minlat": min(la), "maxlat": max(la), "minlon": min(lo), "maxlon": max(lo)}}
+    loc, wpts = {}, {}  # süzülmüş dosyadaki tüm düğüm konumları ve yol noktaları: site ilişkileri üyelerinden konum alır
     class H(osmium.SimpleHandler):
         def node(self, n):
-            t = n.tags
+            if not n.location.valid(): return
+            loc[n.id] = (n.location.lat, n.location.lon); t = n.tags
             if t.get("power") == "plant" or (t.get("power") == "generator" and t.get("generator:source") == "wind"):
-                if n.location.valid(): els[("node", n.id)] = {"type": "node", "id": n.id, "lat": n.location.lat, "lon": n.location.lon, "tags": tg(n)}
+                els[("node", n.id)] = {"type": "node", "id": n.id, "lat": n.location.lat, "lon": n.location.lon, "tags": tg(n)}
         def way(self, w):
+            pts = [(x.location.lat, x.location.lon) for x in w.nodes if x.location.valid()]
+            if pts: wpts[w.id] = pts
             if w.tags.get("power") != "plant" or w.is_closed(): return  # kapalı yollar alan olarak gelir
-            put("way", w.id, tg(w), [(x.location.lat, x.location.lon) for x in w.nodes if x.location.valid()])
+            put("way", w.id, tg(w), pts)
+        def relation(self, r):
+            # çokgen ilişkiler alan olarak gelir; diğerleri (çoğunlukla type=site: türbinleri ya da bölümleri bir arada
+            # tutan santral kaydı) üyelerinin noktalarından konumlanır
+            if r.tags.get("power") != "plant" or r.tags.get("type") == "multipolygon": return
+            pts = []
+            for m in r.members:
+                if m.type == "n" and m.ref in loc: pts.append(loc[m.ref])
+                elif m.type == "w" and m.ref in wpts: pts += wpts[m.ref]
+            put("relation", r.id, tg(r), pts)
         def area(self, a):
             if a.tags.get("power") != "plant": return
             pts = [(x.location.lat, x.location.lon) for ring in a.outer_rings() for x in ring if x.location.valid()]
