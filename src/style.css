@@ -140,6 +140,8 @@ dialog#profileDlg::backdrop{background:rgba(5,10,15,.55)}
 .eqstats{display:grid;grid-template-columns:1fr auto;gap:1px 6px;font-size:.76rem;margin:4px 0}
 .eqstats span{color:var(--muted)}
 .eqcard button{margin-top:auto;padding:8px 6px;font-size:.84rem}
+.eqcard button.loan{margin-top:0;background:transparent;color:var(--ink);border:1px solid var(--c)}
+.loannote b{color:var(--ink)}
 .eqnote{font-size:.74rem;color:var(--muted);margin-top:6px}
 @media (max-width:560px){ .eqcards{grid-template-columns:1fr} .pspecs,.pach{grid-template-columns:1fr} }
 

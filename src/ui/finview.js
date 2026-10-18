@@ -1,7 +1,10 @@
 // --- Rapor sekmesi: proje ekonomisi (gerçek dünya karşılığı) ---
 // Her santral kaydı için kapasite faktörü, ortalama satış fiyatı, yatırım, LCOE, NPV, IRR ve geri ödeme; iskonto oranı
 // kaydırıcıyla değiştirilebilir (duyarlılık). Varsayımlar, formüller ve kısaltmalar açılır bölümde.
-import { S } from "../state.js";
+import { S, save } from "../state.js";
+import { loanDSCR, prepay, totalDebt, dailyDS, dueOf, ECON_YEAR } from "../loans.js";
+import { fmt$ } from "../utils.js";
+import { render } from "./hud.js";
 import { TECH } from "../config.js";
 import { placeName } from "../world.js";
 import { eqName, tierOf } from "../equipment.js";
@@ -100,6 +103,15 @@ function assumptions(){
   </ul></details>`;
 }
 
+// Banka kredileri (oyun parasıyla): kalan anapara, günlük taksit, kalan gün, gerçekleşen DSCR; erken kapama
+function loanRows(){
+  const L=S.loans||[];if(!L.length)return `<p class="mut">Kredi yok. Santral kurarken "Kredili" düğmesiyle yatırımın bir kısmını bankadan karşılayabilirsin.</p>`;
+  return `<div style="overflow-x:auto"><table class="fint"><thead><tr><th>Santral</th><th>Kalan anapara</th><th>Günlük taksit</th><th>Kalan</th><th title="Gerçekleşen günlük nakit akışı ÷ günlük taksit (sahada o teknolojideki tüm krediler)">DSCR</th><th></th></tr></thead><tbody>${L.map(x=>{
+    const o=S.sites[x.t],d=loanDSCR(x);
+    return `<tr><td>${o?placeName(o):"—"} ${TECH[x.k].n}<small class="mut"> • %${nf(x.R*100,1)} yıllık</small></td><td>${fmt$(x.bal)}</td><td>${fmt$(dueOf(x))}${x.g>0?`<small class="mut"> faiz, ${x.g} gün ödemesiz</small>`:""}</td><td>${x.left} gün</td><td>${d==null?"—":nf(d,2)+(d<1?" ⚠":"")}</td><td><button type="button" data-pre="${x.id}" ${S.money<x.bal?"disabled":""}>Kapat</button></td></tr>`;}).join("")}</tbody></table></div>
+    <p class="mut">Toplam borç ${fmt$(totalDebt())}, günlük taksit ${fmt$(dailyDS())}. Portföy değeri borç düşülerek hesaplanır. Vade ve faiz ekonomik zaman ölçeğiyle çevrilir: 1 yıl ≈ ${nf(ECON_YEAR,1)} oyun günü. ⚠: santralin nakit akışı taksiti karşılamıyor, fark nakitten ödeniyor.</p>`;
+}
+
 export function renderFin(){
   const el=document.getElementById("fin");if(!el)return;
   if(!el.dataset.init){el.dataset.init="1";
@@ -109,6 +121,8 @@ export function renderFin(){
       <h3 class="pfh">Proje finansmanı <small class="mut">borç, vergi ve satış sözleşmesi</small></h3>
       <p class="mut pfnote">Her santral iki yapıyla: <b>Spot</b>, tüm üretimi piyasaya satar; <b>PPA</b>, ilk yıllarda sabit fiyatla satar, karşılığında banka daha çok borç verir. Alttaki stres satırları spot fiyatın %${STRESS*100} düştüğü kötü senaryodur (borç baz senaryoyla boyutlanır).</p>
       <div id="pfRows" class="pfbox"></div>
+      <h3 class="pfh">Banka kredileri <small class="mut">oyun parasıyla</small></h3>
+      <div id="loanRows"></div>
       <details class="findet"><summary>Finansman varsayımları ve hesap yöntemi</summary>
         ${pfInputs()}
         <p><b>Hesap</b> (yıllık, gerçek dünya ölçeğinde)</p>
@@ -125,9 +139,11 @@ export function renderFin(){
     el.querySelector('input[type="range"]').oninput=e=>{setWacc(+e.target.value/100);renderFin();};
     // finansman varsayımları: geçerli sayı girilince tablo yenilenir (giriş kutuları yeniden çizilmez)
     el.querySelectorAll("input[data-pf]").forEach(inp=>inp.oninput=()=>{const v=+inp.value;if(inp.value!==""&&isFinite(v)&&v>=+inp.min&&v<=+inp.max){setPf(inp.dataset.pf,v);el.querySelector("#pfRows").innerHTML=pfRows();}});
+    el.addEventListener("click",e=>{const b=e.target.closest("button[data-pre]");if(!b)return;if(prepay(+b.dataset.pre)){save();render();renderFin();}});
     el.querySelector(".pfreset").onclick=()=>{resetPf();el.querySelectorAll("input[data-pf]").forEach(i=>i.value=pf[i.dataset.pf]);el.querySelector("#pfRows").innerHTML=pfRows();};
   }
   el.querySelector("#finW").textContent="%"+nf(wacc*100,1);
   el.querySelector("#finRows").innerHTML=rows();
   el.querySelector("#pfRows").innerHTML=pfRows();
+  el.querySelector("#loanRows").innerHTML=loanRows();
 }

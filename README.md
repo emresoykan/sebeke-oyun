@@ -69,6 +69,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `src/ui/search.js` | Yer arama: oyunun şehir ve ülke listesinde (çevrimdışı), Türkçe karakter duyarsız; koordinat girişi |
 | `src/ui/hud.js` | Fiyat/üretim grafiği, göstergeler, rapor, trend |
 | `src/main.js` | Giriş noktası: oyun döngüsü, kontroller, ilk yükleme |
+| `src/loans.js` | Oyun içi banka kredisi: ekonomik zaman ölçeği, DSCR'a göre boyutlandırma, ödemesiz dönem, günlük taksit, erken kapama |
 | `src/finance.js`, `src/ui/finview.js` | Proje ekonomisi ve proje finansmanı: santral bazında gerçek dünya karşılığı LCOE, NPV, IRR, geri ödeme; borç, DSCR, vergi, PPA, özsermaye IRR'ı ve fiyat stresi (Rapor sekmesi) |
 | `src/ui/feedback.js` | Pilot geri bildirim formu: anonim sorular, oyun özeti, kopyala/indir, Firebase varsa gönder |
 | `public/vaka/`, `public/case-study/` | Vaka çalışması sayfaları (Türkçe, İngilizce) |
@@ -147,6 +148,15 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 | Kurumlar vergisi | Türkiye %25, Avrupa %27,5 | Türkiye: ikincil kaynaklar (KVK md. 32); Avrupa: Almanya %29,9 ve İspanya %25 ortalaması (Tax Foundation, OECD 2025) |
 | Zarar devri | Türkiye 5 yıl, Avrupa süresiz | KVK md. 9 (ikincil kaynaklar); Avrupa'da yıllık mahsup üst sınırları uygulanmadı |
 | Vade, borç oranı üst sınırı, hedef DSCR (spot / PPA), vergi amortismanı, PPA süresi ve indirimi | 12 yıl, %75, 1,40 / 1,20, 10 yıl, 10 yıl, %10 | varsayım |
+
+**Banka kredisi (oyunda).** Santral kartlarında "+5 MW" düğmesinin altındaki **Kredili** düğmesi bloğu kısmen bankadan karşılar: nakitten yalnızca özsermaye payı düşer (`src/loans.js`). Faiz, vade, borç oranı üst sınırı ve hedef DSCR yukarıdaki proje finansmanı varsayımlarıdır (panelden değiştirilince yeni kredilere uygulanır).
+
+- **Zaman ölçeği:** oyunda yatırımlar gerçeğin ~1/63'ü (GES: 691 $/kW × 5 MW ÷ 55 b$), gelir gerçek ölçekte; yatırıma oranla gelir 63 kat hızlı birikir. Bu yüzden ekonomik olarak 1 yıl ≈ 5,8 oyun günü sayılır: yıllık %8,6 faiz oyun günü başına ~%1,43, 12 yıl vade 70 oyun günüdür. Böylece taksitin santral nakit akışına oranı (DSCR) gerçek dünyadakiyle aynı kalır. Takvimin hızı (bir oyun günü 3 takvim günü) bu hesabı etkilemez.
+- **Boyutlandırma:** borç = min(%75 × yatırım, CFADS ÷ 1,40 × anüite faktörü). CFADS, oyuncunun aynı piyasada aynı teknolojideki santrallerinin gerçekleşen günlük satış geliri (yakıt düşülmüş) eksi bloğun işletme gideridir (en az 3 günlük veri; oyunda vergi yok). Veri yoksa banka en çok %50 verir (varsayım; gerçekte bağımsız üretim raporuyla boyutlandırılır).
+- **Geri ödeme:** ilk 2 yıl (12 oyun günü) ödemesiz, yalnızca faiz; sonra kalan 58 günde eşit taksit (varsayım; proje kredilerinde 1–3 yıllık ödemesiz dönem yaygındır, kaynakla doğrulanmadı). Taksit gün sonunda nakitten düşer; nakit eksiye düşer ve 7 gün düzelmezse iflas kuralı işler. Krediler Rapor sekmesinde (kalan anapara, günlük taksit, kalan gün, gerçekleşen DSCR) listelenir ve cezasız erken kapatılabilir. Portföy değeri borç düşülerek hesaplanır; satın almayı geri almak krediyi de iptal eder.
+- **Etki (bot simülasyonu, tek koşular, tahmin):** kazancını hep yeniden yatıran bir botla, kredisiz 1 M$ portföye 57–62., 5 M$'a 162–165. günde; kredili 40–52. ve 116–162. günde ulaşıldı. Ödemesiz dönem olmadan kredi oyunu yavaşlattı (1 M$: 100. gün): DSCR 1,40'la boyutlanan taksit santral nakdinin ~%70'ini aldığından yeniden yatırıma az nakit kalıyordu. Borç, getirisi faizinden az yüksek projede büyümeyi kendiliğinden hızlandırmaz; hızlandıran, ödemesiz dönemde serbest kalan nakittir.
+
+**Batarya fiyatı.** Batarya bloğu (5 MW / 10 MWh) 12 b$'dan 30 b$'a çıktı: diğer teknolojilerle aynı ölçek (IRENA 2024: 192 $/kWh × 10 MWh = 1,92 M$; ÷ 63 ≈ 30 b$). Ölçek tümüyle aynı değil: rüzgâr karada ~1/37, biyokütle ~1/108, offshore ~1/55 (oyun dengesi için bırakıldı).
 
 Varsayımlar panelden değiştirilebilir ve tarayıcıda saklanır. Hariç: inşaat dönemi ve inşaat faizi, kredi komisyonları, borç servis rezervi, kur riski (her şey USD), enflasyon, temettü kısıtları. `scripts/sim_year.cjs` aynı göstergeleri 365 günlük simülasyon için yazdırır.
 
