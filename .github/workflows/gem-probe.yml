@@ -1,0 +1,21 @@
+# Geçici: GEM indirme sayfasının yapısını okur (yalnızca okuma; form gönderilmez). İş bitince silinecek.
+name: GEM sayfa yoklaması
+on:
+  push:
+    branches: [claude/vite-modular-game-hi6q24]
+    paths: [.github/workflows/gem-probe.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          U=https://globalenergymonitor.org/projects/global-integrated-power-tracker/download-data/
+          curl -sSL -A "Mozilla/5.0" "$U" -o p.html; echo "boyut: $(wc -c < p.html)"
+          echo "--- form ve dosya bağlantıları ---"
+          grep -oiE '<form[^>]*>|<input[^>]*name="[^"]*"[^>]*>|https?://[^"'"'"' ]+\.(xlsx|csv|zip|gpkg|geojson)' p.html | sort -u | head -60
+          echo "--- 'download' geçen bağlantılar ---"
+          grep -oiE 'href="[^"]*(download|uploads|gem\.wiki|docs\.google)[^"]*"' p.html | sort -u | head -40
+          echo "--- metin ---"
+          sed -e 's/<[^>]*>/ /g' p.html | tr -s ' \n' | grep -iE 'download|license|release|form|email|cc by' | head -40
