@@ -144,7 +144,10 @@ function legend(){
   const mw=document.getElementById("mapwrap");if(!mw)return;let el=document.getElementById("realLegend");
   if(!on){if(el)el.hidden=true;return;}
   // açılır kutu: masaüstünde açık, dar ekranda kapalı başlar (haritayı kapatmasın)
-  if(!el){el=document.createElement("details");el.id="realLegend";el.className="reallegend";el.open=!matchMedia("(max-width:599px)").matches;mw.appendChild(el);}
+  if(!el){el=document.createElement("details");el.id="realLegend";el.className="reallegend";
+    // varsayılan kapalı (haritayı kapatmasın); açık/kapalı seçimi saklanır
+    try{el.open=localStorage.getItem(KEY+"-legend")==="1";}catch(e){}
+    el.addEventListener("toggle",()=>{try{localStorage.setItem(KEY+"-legend",el.open?"1":"0");}catch(e){}});mw.appendChild(el);}
   el.hidden=false;
   if(!index){el.innerHTML=`<summary>Gerçek santraller</summary><small>${loading?"Yükleniyor…":"Veri yüklenemedi."}</small>`;return;}
   // kapsam: haritanın ortasındaki ülke; denizdeyse ya da ülkede santral yoksa dünya toplamı

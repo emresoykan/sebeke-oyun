@@ -5,6 +5,7 @@ import { initMap, drawMap, initMap3DUI } from "./ui/map.js";
 import { renderPanel } from "./ui/panel.js";
 import { render, renderLog, renderReport, drawChart } from "./ui/hud.js";
 import { initProfile } from "./ui/profile.js";
+import { PROFILE_KEY } from "./profile.js";
 import { skipDone } from "./missions.js";
 import { renderMission } from "./ui/mission.js";
 import { initSound } from "./ui/fx.js";
@@ -46,7 +47,10 @@ speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x �
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
 // iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
-  if(force||await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
+  const r=force?{ok:true,checked:false}:await confirmBox("Yeniden başla","Oyundaki tüm ilerleme (para, sahalar, santraller, krediler, rozetler) silinsin mi? Bu işlem geri alınamaz. Şirket profilin (ad, şirket, renk, uzmanlık) korunur; aşağıdan onu da silebilirsin.","Sil",true,"Şirket profilini de sil ve kurulum ekranını yeniden aç");
+  if(!r.ok)return;
+  if(r.checked)try{localStorage.removeItem(PROFILE_KEY);}catch(err){}
+  setS(fresh());save();newDay();location.reload();}
 document.getElementById("resetBtn").onclick=reset;
 initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));initFeedback(document.getElementById("fbBtn"));
 initCloudUI();initCloud();

@@ -57,10 +57,13 @@ export function renderMySites(go){
 }
 
 // Onay penceresi: Promise<boolean>
-export function confirmBox(title,text,ok="Evet",danger=false){
+// check verilirse pencerede bir onay kutusu çıkar ve sonuç {ok, checked} olur
+export function confirmBox(title,text,ok="Evet",danger=false,check=null){
   const d=document.getElementById("confirmDlg");
-  d.innerHTML=`<h3></h3><p></p><div class="dlgbtns"><button data-v="0">Vazgeç</button><button data-v="1" class="${danger?"dangerbtn":"pri"}"></button></div>`;
+  d.innerHTML=`<h3></h3><p></p>${check?'<label class="dlgcheck"><input type="checkbox"> <span></span></label>':""}<div class="dlgbtns"><button data-v="0">Vazgeç</button><button data-v="1" class="${danger?"dangerbtn":"pri"}"></button></div>`;
   d.querySelector("h3").textContent=title;d.querySelector("p").textContent=text;d.querySelector('[data-v="1"]').textContent=ok;
-  return new Promise(res=>{d.querySelectorAll("button").forEach(b=>b.onclick=()=>{d.close();res(b.dataset.v==="1");});
-    d.oncancel=()=>res(false);d.showModal();d.querySelector('[data-v="0"]').focus();});
+  if(check)d.querySelector(".dlgcheck span").textContent=check;
+  const out=v=>check?{ok:v,checked:d.querySelector(".dlgcheck input").checked}:v;
+  return new Promise(res=>{d.querySelectorAll("button").forEach(b=>b.onclick=()=>{d.close();res(out(b.dataset.v==="1"));});
+    d.oncancel=()=>res(out(false));d.showModal();d.querySelector('[data-v="0"]').focus();});
 }
