@@ -1,0 +1,75 @@
+# Global Energy Monitor (GEM) Global Integrated Power Tracker verisini OSM santral dosyasıyla birleştirir (pilot: Türkiye).
+# GEM dosyası indirme formundan alınır (ad, e-posta, amaç istenir); bu iş formu doldurmaz. İki yol:
+#  - Elle (workflow_dispatch): "url" alanına GEM'in verdiği indirme bağlantısı yazılır (xlsx ya da zip). Dosya indirilir,
+#    ülkenin satırları data/gem/gipt-<ISO3>.json ara dosyasına çıkarılır ve birleştirme uygulanır.
+#  - Ara dosya ya da betik değişince (push): mevcut ara dosyayla birleştirme yeniden uygulanır (indirme yok).
+# OSM iş akışı (osm-plants.yml) her güncellemede ara dosyaları yeniden uygular. Veri: GEM, CC BY 4.0.
+name: GEM santral verisi
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "GIPT indirme bağlantısı (xlsx ya da zip); boşsa mevcut ara dosya yeniden uygulanır"
+        required: false
+        default: ""
+      release:
+        description: "Sürüm adı (ör. September 2026); boşsa dosya adından"
+        required: false
+        default: ""
+      country:
+        description: "Ülke (ISO3)"
+        required: false
+        default: "TUR"
+  push:
+    branches: [claude/vite-modular-game-hi6q24]
+    paths: [scripts/merge_gem.py, data/gem/**, .github/workflows/gem-plants.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gem-plants
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openpyxl==3.1.5
+      - name: İndir ve ülkeyi çıkar
+        if: ${{ inputs.url }}
+        env:
+          URL: ${{ inputs.url }}
+          REL: ${{ inputs.release }}
+          A3: ${{ inputs.country }}
+        run: |
+          mkdir -p /tmp/gem && cd /tmp/gem
+          curl -fL --retry 3 -A "wattlas-gem/1.0 (github.com/emresoykan/sebeke-oyun)" -o dl "$URL"; ls -la dl; file dl
+          # xlsx de bir zip'tir; içinde [Content_Types].xml yoksa arşivdir: en büyük xlsx/csv dosyası alınır
+          if unzip -l dl 2>/dev/null | grep -q 'Content_Types'; then mv dl gipt.xlsx; f=gipt.xlsx
+          elif unzip -l dl >/dev/null 2>&1; then unzip -q dl -d x; f=$(find x -type f \( -iname '*.xlsx' -o -iname '*.csv' \) -printf '%s %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+          else mv dl gipt.csv; f=gipt.csv; fi
+          echo "dosya: $f"; cd "$GITHUB_WORKSPACE"
+          python3 -u scripts/merge_gem.py --extract "/tmp/gem/$f" --country "$A3" --out "data/gem/gipt-$A3.json" ${REL:+--release "$REL"}
+      - name: Birleştir
+        run: |
+          ls data/gem/gipt-*.json 2>/dev/null || { echo "Ara dosya yok: GEM bağlantısıyla (url) elle çalıştırın"; echo "SKIP=1" >> "$GITHUB_ENV"; exit 0; }
+          for f in data/gem/gipt-*.json; do python3 -u scripts/merge_gem.py --apply "$f" public/data/plants; done
+      - name: Commit
+        if: ${{ env.SKIP != '1' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/new && cp -r data/gem /tmp/new/gem && cp public/data/plants/*.json /tmp/new/
+          git fetch -q origin "${GITHUB_REF_NAME}" && git reset -q --hard "origin/${GITHUB_REF_NAME}"
+          mkdir -p data && rm -rf data/gem && cp -r /tmp/new/gem data/gem
+          for f in data/gem/gipt-*.json; do a3=$(basename "$f" .json); a3=${a3#gipt-}; cp "/tmp/new/$a3.json" public/data/plants/; done
+          cp /tmp/new/index.json /tmp/new/world.json public/data/plants/
+          git add -A data/gem public/data/plants
+          if git diff --cached --quiet; then echo "Değişiklik yok"; else git commit -m "GEM santral verisi birleştirildi"; git push origin "HEAD:${GITHUB_REF_NAME}"; fi
