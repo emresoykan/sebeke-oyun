@@ -15,7 +15,7 @@ import { maybeEvent } from "./events.js";
 import { checkMissions } from "./missions.js";
 import { dayFx, celebrate, toast } from "./ui/fx.js";
 import { initWx, stepWx, forecast, sampleWx, clearFactor, setSeason } from "./weather.js";
-import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate } from "./calendar.js";
+import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate, doyOf } from "./calendar.js";
 import { MREF, siteWx, clock } from "./wxsite.js";
 import { RENEW, production, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
@@ -29,7 +29,7 @@ const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: 
 
 export function newDay(){
   // takvim ve mevsim: gün uzunluğu, güneş yüksekliği, hava sistemlerinin enlemi ve talep
-  const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl);
+  const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl,doyOf(CAL.date));
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
   if(fresh)rivalsDay();

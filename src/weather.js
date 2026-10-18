@@ -23,7 +23,7 @@ const KINDS={
 };
 // Mevsim: güneşin eğimi (derece). Kışın kuzey yarımkürede alçak basınç kuşağı güneye iner (Akdeniz'e yağmur getirir),
 // yazın kuzeye çekilir; sıcak hava kütleleri yaz yaşanan yarımkürede doğar. Oyun her gün başında ayarlar.
-let DECL=0;export const setSeason=d=>{DECL=d;};
+let DECL=0,DOY=80;export const setSeason=(d,doy=DOY)=>{DECL=d;DOY=doy;};
 // Türkiye ve Avrupa çevresinde (batısında) daha sık sistem doğsun ki oyunun odak bölgesinde hava hareketli olsun
 function spawn(wx,type){
   const k=KINDS[type],focus=rand(wx)<(type==="low"?0.22:type==="storm"?0.2:0.35);
@@ -96,11 +96,22 @@ export function sampleWx(wx,lat,lon,base){
 }
 
 // Sahanın iklim tabanı: bulutluluk enleme ve güneş potansiyeline, ortalama rüzgâr hızı rüzgâr potansiyeline bağlı
-export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),speed:(4+8.5*(t.wind||0.4))*windSeason(t.lat,t.lon)}); // ortalama rüzgâr hızı 4-12 m/s
+export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),speed:(4+8.5*(t.wind||0.4))*windSeason(t.lat,t.lon,t.mreg,t.a3)}); // ortalama rüzgâr hızı 4-12 m/s
 // Mevsimsel rüzgâr: orta enlemlerde kış rüzgârlı, yaz sakin; Ege'de yaz poyrazı (meltem/etezyen) tersine yazın güçlenir
-export function windSeason(lat,lon){
+// Aylık rüzgâr hızı çarpanı (Ocak…Aralık, ay ortası; arada doğrusal; yıllık ortalama 1). Her ülkenin 2025 aylık rüzgâr
+// üretimi ve kurulu gücünden hesaplanan aylık kapasite faktörüne göre ayarlandı (docs/kalibrasyon.md):
+//  TUR: TEİAŞ (yaz poyrazıyla Ağustos en rüzgârlı, Ekim en sakin), DEU: ENTSO-E (Kasım tahmini, Aralık 2024; kış rüzgârlı,
+//  ilkbahar ve yaz sakin), ESP: ENTSO-E (kış rüzgârlı, Ağustos–Eylül sakin). Avrupa'nın diğer ülkeleri DEU ve ESP ortalaması.
+export const WIND_MONTH={TUR:[1.044,1.052,0.984,0.913,0.97,1.052,1.029,1.021,1.002,0.963,0.97,1],DEU:[1.386,1.137,0.861,0.733,0.712,0.719,0.704,0.745,0.936,1.2,1.408,1.459],ESP:[1.177,1.105,1.043,0.955,0.868,0.927,0.925,0.817,0.814,0.983,1.179,1.208]};
+const E_MONTH=WIND_MONTH.DEU.map((v,i)=>(v+WIND_MONTH.ESP[i])/2);
+const inTR=(lat,lon)=>lat>35.5&&lat<42.5&&lon>25.5&&lon<45;
+function monthly(tab){const x=(DOY-15.5)/30.44,i=Math.floor(x),f=x-i,a=tab[(i%12+12)%12],b=tab[((i+1)%12+12)%12];return a+(b-a)*f;}
+export function windSeason(lat,lon,m,a3){
+  if(inTR(lat,lon))return monthly(WIND_MONTH.TUR);
+  if(WIND_MONTH[a3])return monthly(WIND_MONTH[a3]);
   const w=(Math.sign(lat)||1)*DECL/23.44; // +1 yaz ortası, −1 kış ortası (o yarımküre için)
   if(lat>34&&lat<41.5&&lon>22&&lon<30.5)return 1+0.22*Math.max(0,w)-0.04*Math.max(0,-w);
+  if(m==="E")return monthly(E_MONTH);
   return Math.abs(lat)>30?1-0.12*w:1;
 }
 // Soğuk mu (yağış kar olarak düşer): kış yaşanan yarımkürede yüksek enlem ya da dağ
@@ -111,7 +122,20 @@ export const sunRel=(w,b)=>Math.min(1.25,clearFactor(w.c)/clearFactor(b.cloud));
 // Açık gökyüzü oranı: tam kapalı havada panel üretimi ~%20'ye iner
 export const clearFactor=c=>1-0.8*c;
 // Türbin güç eğrisi: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde güvenlik için durur (kesme hızı)
-export const powerCurve=v=>v<3?0:v<12?(v**3-27)/(1728-27):v<=25?1:0;
+// Türbin güç eğrisi (kurulu güce oran): 3 m/s'de devreye girer, 11 m/s'de tam güce ulaşır, 25 m/s'de durur. Oyundaki
+// standart türbin gibi büyük rotorlu (düşük özgül güçlü) modern bir türbinin yaklaşık eğrisidir; arası küp yasasıyla.
+export const powerCurve=v=>v<3?0:v<11?(v**3-27)/(1331-27):v<=25?1:0;
+// Sahanın yıllık ortalama göbek hızından (m/s) beklenen net kapasite faktörü: oyunun saatlik rüzgâr dağılımına uyan
+// Weibull (k=2,2, ortalama taban hızın 1,03 katı) ve yukarıdaki güç eğrisi, ~%3,5 arıza payı düşülerek. 365 günlük
+// simülasyonlarla doğrulandı (docs/kalibrasyon.md); tek bir yılda hava nedeniyle ±%10 sapabilir.
+const CF_TAB=(()=>{const k=2.2,g=1.03/0.8856,out=[];for(let i=0;i<=150;i++){const S=i/10,c=S*g;let e=0;
+  if(c>0)for(let v=0.05;v<30;v+=0.1)e+=powerCurve(v)*(k/c)*(v/c)**(k-1)*Math.exp(-((v/c)**k))*0.1;out.push(e*0.965);}return out;})();
+export function expectedCF(S){const x=clamp(S*10,0,149.999),i=Math.floor(x);return CF_TAB[i]+(CF_TAB[i+1]-CF_TAB[i])*(x-i);}
+// sahanın rüzgâr puanından yıllık ortalama göbek hızı (siteBase ile aynı; mevsim çarpanlarının yıllık ortalaması 1)
+export const windSpeedOf=t=>4+8.5*(t.wind||0);
+// rüzgâr sınıfı (paneldeki nokta sayısı, potansiyel haritasının kademesi) beklenen kapasite faktörüne göre:
+// 0 <%12, 1 %12–20, 2 %20–27, 3 %27–34 (Türkiye filo ortalaması ~%33), 4 %34–41, 5 ≥%41
+export const windClass=cf=>cf<0.12?0:cf<0.2?1:cf<0.27?2:cf<0.34?3:cf<0.41?4:5;
 
 const DIRS=["K","KD","D","GD","G","GB","B","KB"];
 export const dirName=d=>DIRS[Math.round(d/45)%8];
