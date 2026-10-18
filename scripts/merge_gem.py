@@ -42,7 +42,12 @@ def norm_head(h): return re.sub(r"[^a-z0-9]", "", str(h or "").lower())
 def read_table(path):
     """(başlıklar, satır üreteci): xlsx'te en çok satırı olan sayfa, csv'de dosyanın kendisi"""
     if path.lower().endswith((".csv", ".csv.gz")):
-        f = open(path, newline="", encoding="utf-8-sig"); r = csv.reader(f); head = next(r); return head, r
+        # Excel'in Türkçe ayarıyla kaydedilen csv: ";" ayraçlı ve Windows-1254 kodlu olabilir
+        raw = open(path, "rb").read()
+        try: txt = raw.decode("utf-8-sig")
+        except UnicodeDecodeError: txt = raw.decode("cp1254")
+        dl = ";" if txt.split("\n", 1)[0].count(";") > txt.split("\n", 1)[0].count(",") else ","
+        r = csv.reader(txt.splitlines(), delimiter=dl); head = next(r); return head, r
     import openpyxl
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = max(wb.worksheets, key=lambda s: s.max_row or 0)
