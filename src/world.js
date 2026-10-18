@@ -75,10 +75,19 @@ export const wind100At=(lat,lon)=>sample(WG,lat,lon)*1.102;
 const sunOf=(lat,lon)=>Math.max(0.12,Math.min(1,ghiAt(lat,lon)/9));
 // Rüzgâr puanı oyunun hava modelindeki ortalama göbek hızına çevrilir: hız = 4 + 8,5 × puan (weather.js siteBase).
 // 0,5°'lik veri sırt ve boğazlardaki yerel hızlanmayı ortalar; dağlık arazide +0,8 m/s, kıyıda +0,3 m/s eklenir, ormanda
-// pürüzlülük nedeniyle 0,5 m/s düşülür.
+// pürüzlülük nedeniyle 0,5 m/s düşülür. Karada hız ayrıca ülkeye (yoksa piyasaya) göre bir katsayıyla çarpılır; katsayı,
+// oyunun o ülkedeki rüzgâr santrali filosunun yıllık kapasite faktörünü 2025 gerçekleşmesine eşitler (docs/kalibrasyon.md):
+//  TUR (T): işletmedeki santrallerin il dağılımı (EPDK) ile TEİAŞ (~%33). Santraller hücre ortalamasından rüzgârlı sırt ve
+//      tepelere kurulur; veri bunu ortaladığı için katsayı 1'in biraz üstünde.
+//  DEU: ENTSO-E aylık üretim ve kurulu güç (~%20); ESP: ENTSO-E (~%20,5). Veri bu ülkelerde gerçeğin üstünde kalıyor.
+//  Avrupa'nın diğer ülkeleri DEU ve ESP ortalaması; diğer piyasalar kalibre edilmedi (1).
+export const LAND_K={T:1.02,E:0.83}, LAND_KC={DEU:0.73,ESP:0.925};
+const landK=(m,a3)=>LAND_KC[a3]??LAND_K[m]??1;
 const windScore=v=>Math.max(0.05,Math.min(0.95,(v-4)/8.5));
-const windOf=(lat,lon,ter,coastNear)=>windScore(wind100At(lat,lon)+(ter==="m"?0.8:0)+(coastNear?0.3:0)-(ter==="f"?0.5:0));
-const seaWindOf=(lat,lon)=>windScore(wind100At(lat,lon));
+const windOf=(lat,lon,ter,coastNear,m,a3)=>windScore(landK(m,a3)*(wind100At(lat,lon)+(ter==="m"?0.8:0)+(coastNear?0.3:0)-(ter==="f"?0.5:0)));
+// Deniz: SEA_K aynı yöntemle; E: Almanya deniz üstü rüzgârı (ENTSO-E 2025, ~%31). Diğer piyasalarda veri yok (1).
+export const SEA_K={E:0.725};
+const seaWindOf=(lat,lon,m)=>windScore((SEA_K[m]??1)*wind100At(lat,lon));
 function landTer(c,lat,lon){const park=protectedAt(lat,lon);return {park,ter:(c.m==="G"||c.m==="X")?"i":park?"p":(terrainAt(lon,lat)||(forestRule(c.a3,lat)?"f":"pl"))};}
 // Potansiyel haritası için: şehir araması olmadan yalnızca puanlar. Kurulamayan yer (buz örtüsü, Antarktika, derin deniz,
 // piyasa dışı) null döner. Korunan alanlarda puan döner ama p=1 işaretlenir (izin neredeyse çıkmaz).
@@ -86,9 +95,9 @@ export function potentialAt(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
   const c=countryAt(lon,lat);
   if(c){if(c.m==="G"||c.m==="X"||!MARKETS.includes(c.m)||urbanAt(lat,lon)===true)return null;const {park,ter}=landTer(c,lat,lon);
-    return {s:sunOf(lat,lon),w:windOf(lat,lon,ter,coastKm(lon,lat)<=COAST_KM),p:park?1:0};}
+    return {s:sunOf(lat,lon),w:windOf(lat,lon,ter,coastKm(lon,lat)<=COAST_KM,c.m,c.a3),p:park?1:0};}
   const n=nearestCountry(lon,lat,SHALLOW_KM);
-  return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66&&urbanAt(lat,lon)!==true?{s:0,w:seaWindOf(lat,lon),p:0}:null;
+  return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66&&urbanAt(lat,lon)!==true?{s:0,w:seaWindOf(lat,lon,n.m),p:0}:null;
 }
 
 export function describe(lat,lon){
@@ -99,13 +108,13 @@ export function describe(lat,lon){
     const {park,ter}=landTer(c,lat,lon);if(park)t.park=park;t.ter=ter;
     t.mreg=MARKETS.includes(c.m)?c.m:null;
     const coastNear=coastKm(lon,lat)<=COAST_KM;
-    t.solar=sunOf(lat,lon);t.wind=windOf(lat,lon,t.ter,coastNear);
+    t.solar=sunOf(lat,lon);t.wind=windOf(lat,lon,t.ter,coastNear,c.m,c.a3);
     t.hydro=t.ter==="m"?0.8:0;
     t.geo=t.ter==="i"?0:geoAt(lat,lon);t.bio=BIO[t.ter]??0;
   }else{
     t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.wind=seaWindOf(lat,lon);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
   }
   const ct=nearestCity(lat,lon);t.city=ct.n;t.cityKm=Math.round(ct.km);
   // yerleşim alanı: kentsel alan poligonu (urban.js) ya da büyük bir şehrin merkezine 2 km'den yakın; arazi satın alınamaz.

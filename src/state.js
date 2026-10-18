@@ -11,7 +11,7 @@ export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:0,resV:2};}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:0,resV:3};}
 export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
 // Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
 // (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
@@ -20,7 +20,10 @@ function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.topup1){o.mo
   // kaynak modeli v2 (NASA POWER verisi): eski kayıtlardaki sahaların güneş/rüzgâr puanları bir kez yeniden hesaplanır
   if((o.resV||1)<2){Object.values(o.sites).forEach(t=>{const d=describe(t.lat,t.lon);if(!t.sea)t.solar=d.solar;if(d.wind!=null)t.wind=d.wind;});
     if(Object.keys(o.sites).length)o.log=[`Gün ${o.dayNo}: Güneş ve rüzgâr kaynakları gerçek iklim verisine (NASA POWER) göre güncellendi; sahalarının puanları değişmiş olabilir.`,...(o.log||[])].slice(0,8);}
-  o.resV=2;return o;}
+  // rüzgâr modeli v3 (güç eğrisi ve TEİAŞ / ENTSO-E 2025 kalibrasyonu): sahaların rüzgâr puanı bir kez yeniden hesaplanır
+  if((o.resV||1)<3){const v2=(o.resV||1)===2;Object.values(o.sites).forEach(t=>{const d=describe(t.lat,t.lon);if(d.wind!=null)t.wind=d.wind;if(d.a3)t.a3=d.a3;});
+    if(v2&&Object.keys(o.sites).length)o.log=[`Gün ${o.dayNo}: Rüzgâr üretimi gerçek filo verisine (TEİAŞ, ENTSO-E 2025) göre kalibre edildi; sahalarının rüzgâr değerleri değişmiş olabilir.`,...(o.log||[])].slice(0,8);}
+  o.resV=3;return o;}
 let frozen=false;
 // Kayıt dosyası yüklenirken sayfa yenilenene kadar mevcut durum kaydın üzerine yazılmaz
 export function freezeSave(){frozen=true;}

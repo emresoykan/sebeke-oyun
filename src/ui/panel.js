@@ -3,7 +3,7 @@ import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMI
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed } from "../rules.js";
 import { slopeOf } from "../slope.js";
-import { fillRes, ghiAt, wind100At } from "../world.js";
+import { fillRes, ghiAt } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build, undoFor, undoLast } from "../actions.js";
@@ -11,7 +11,7 @@ import { plantStatus, statusText } from "../plantstatus.js";
 import { flyToSite, orbitSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
 import { siteWx, siteForecast } from "../wxsite.js";
-import { wxLabel, dirName } from "../weather.js";
+import { wxLabel, dirName, expectedCF, windSpeedOf, windClass } from "../weather.js";
 import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 
@@ -80,10 +80,13 @@ export function renderPanel(){
   const u=o&&undoFor(id);
   if(u)html+=`<div class="undo" role="status"><span>${u.kind==="land"?(t.sea?"Deniz alanı kiralandı":"Arazi alındı"):`+${BLOCK} MW ${TECH[u.k].n} kuruldu`} (${fmt$(u.c)}). Yanlışlıkla mı? Birkaç saniye içinde tam iadeyle geri alabilirsin.</span><button data-a="undo">Geri al</button></div>`;
   fillRes(t);
-  // noktaların yanında ölçülen değer: yıllık ortalama ışınım ve 100 m'de ortalama rüzgâr (NASA POWER, yaklaşık 50-100 km çözünürlük)
-  const ghi=`<small class="rv">${ghiAt(t.lat,t.lon).toFixed(1).replace(".",",")} kWh/m²/gün</small>`,ws=`<small class="rv">${wind100At(t.lat,t.lon).toFixed(1).replace(".",",")} m/s</small>`;
-  html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${dots(t.wind)} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
-    `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${dots(t.wind)} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
+  // noktaların yanında değer: yıllık ortalama ışınım (NASA POWER) ve rüzgârda göbek yüksekliğinde (100 m) yıllık ortalama hız
+  // ile beklenen kapasite faktörü (KF). Rüzgâr noktaları KF sınıfıdır: ●●●○○ Türkiye filo ortalaması (~%33) düzeyidir.
+  const ghi=`<small class="rv">${ghiAt(t.lat,t.lon).toFixed(1).replace(".",",")} kWh/m²/gün</small>`,wv=windSpeedOf(t),cf=expectedCF(wv),wc=windClass(cf),
+    wd="●".repeat(wc)+"○".repeat(5-wc),
+    ws=`<small class="rv" title="Kapasite faktörü (KF): yıllık üretimin, santral tam güçte çalışsaydı üreteceğine oranı. Türkiye filo ortalaması ~%33 (TEİAŞ 2025).">${wv.toFixed(1).replace(".",",")} m/s • KF ≈%${Math.round(cf*100)}</small>`;
+  html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
+    `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
     `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`+
     `<span>Eğim</span><span>${slopeRow(t)}</span>`)+`</div>`;
   measureSlope(t,id);

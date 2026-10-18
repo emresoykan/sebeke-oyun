@@ -3,6 +3,7 @@
 // görünen değer) tek renkli bir yoğunluk ölçeğiyle boyanır; koyu/saydam düşük, parlak/opak yüksek puandır.
 // Puanlar ayrı bir işçide (potential.worker.js) karo karo hesaplanır ve önbelleğe alınır; iki harita da
 // (MapLibre özel protokolle, Apple TileOverlay ile) aynı karo görüntülerini kullanır.
+import { expectedCF, windClass } from "../weather.js";
 const KEY="sebeke-pot", N=24, MAXZ=13;
 // tek renk tonu, beş kademe (paneldeki nokta sayısı): saydamlık arttıkça koyu harita üstünde ton parlaklaşır
 // rüzgâr için açık camgöbeği: lacivert deniz ve uydu görüntüsü üstünde mavi kaybolur
@@ -49,7 +50,9 @@ function grid(z,x,y,cb){
 // 256 piksellik karo: (N+2)² ızgara renklenir, kenar payı kırpılarak yumuşatmayla büyütülür
 function paint(g,kind){
   const m=N+2,src=document.createElement("canvas");src.width=src.height=m;const sg=src.getContext("2d"),im=sg.createImageData(m,m),px=im.data,v=g[kind],[r,gr,b]=HUE[kind];
-  for(let k=0;k<m*m;k++){const a=v[k]<0?0:ALPHA[Math.max(1,Math.min(5,Math.round(v[k]*5)))];px[k*4]=r;px[k*4+1]=gr;px[k*4+2]=b;px[k*4+3]=Math.round(a*255);}
+  // rüzgâr kademesi paneldeki gibi beklenen kapasite faktörü sınıfıdır (weather.js windClass); güneşte puan × 5
+  const lv=kind==='w'?x=>windClass(expectedCF(4+8.5*x)):x=>Math.round(x*5);
+  for(let k=0;k<m*m;k++){const a=v[k]<0?0:ALPHA[Math.max(1,Math.min(5,lv(v[k])))];px[k*4]=r;px[k*4+1]=gr;px[k*4+2]=b;px[k*4+3]=Math.round(a*255);}
   sg.putImageData(im,0,0);
   const c=document.createElement("canvas");c.width=c.height=256;const cg=c.getContext("2d");cg.imageSmoothingEnabled=true;cg.imageSmoothingQuality="high";
   cg.drawImage(src,1,1,N,N,0,0,256,256);return c;
@@ -84,7 +87,7 @@ function legend(){
   const el=document.getElementById("potLegend");if(!el)return;el.hidden=mode==="off";if(mode==="off")return;
   const [r,g,b]=HUE[mode];
   el.innerHTML=`<b>${NAME[mode]} potansiyeli</b><div class="pl-scale">${[1,2,3,4,5].map(n=>`<span><i style="background:rgba(${r},${g},${b},${ALPHA[n]+0.12})"></i>${"●".repeat(n)}</span>`).join("")}</div>
-    <small>Kaynak puanı (panelde ●●●○○), NASA POWER yıllık ortalamalarından (~50 km çözünürlük). Boş alanlarda kurulum yapılamaz. Tam değer için haritaya dokun.</small>`;
+    <small>${mode==="w"?"Rüzgâr: beklenen kapasite faktörü sınıfı (panelde ●●●○○ ≈ Türkiye filo ortalaması %33), NASA POWER yıllık ortalamalarından, TEİAŞ ve ENTSO-E 2025 ile kalibre":"Güneş: kaynak puanı (panelde ●●●○○), NASA POWER yıllık ortalamalarından"} (~50 km çözünürlük). Boş alanlarda kurulum yapılamaz. Tam değer için haritaya dokun.</small>`;
 }
 function label(btn){
   btn.innerHTML=ICON[mode];btn.setAttribute("aria-pressed",String(mode!=="off"));
