@@ -1,0 +1,66 @@
+/* Vaka çalışması sayfaları (TR: vaka/, EN: case-study/) için ortak stil; oyunun renk token'larıyla aynı */
+:root{
+  --bg:#EEF2F3; --surface:#FFFFFF; --ink:#1D2B36; --muted:#5B6B77; --line:#D3DCE0;
+  --solar:#E59E00; --wind:#2F7FC1; --neg:#C2364A; --pos:#1F9D74; --warn:#D9A400; --base:#8A9AA6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
+    --solar:#F2B42C; --wind:#5AA2E0; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --base:#6B7C88;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
+  --solar:#F2B42C; --wind:#5AA2E0; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --base:#6B7C88;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;line-height:1.55;-webkit-font-smoothing:antialiased}
+main{max-width:820px;margin:0 auto;padding:24px 16px 48px}
+a{color:var(--wind)}
+a:focus-visible{outline:3px solid var(--wind);outline-offset:2px;border-radius:4px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;font-size:.9rem}
+.top .brand{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--ink);text-decoration:none}
+.top .brand img{width:28px;height:28px;border-radius:22%}
+.top nav{display:flex;gap:12px}
+.kicker{color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
+h1{font-size:clamp(1.6rem,4.5vw,2.3rem);line-height:1.12;letter-spacing:-.02em;margin:0 0 10px;font-weight:800}
+.lede{font-size:1.08rem;color:var(--muted);margin:0 0 20px}
+h2{font-size:1.3rem;margin:36px 0 10px;letter-spacing:-.01em}
+h3{font-size:1.05rem;margin:22px 0 8px}
+p,li{font-size:.98rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.tldr{border-left:4px solid var(--pos)}
+.tldr ul{margin:0;padding-left:1.2em}.tldr li{margin:4px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi small{display:block;color:var(--muted);font-size:.78rem}
+.kpi b{display:block;font-size:1.35rem;font-weight:800;letter-spacing:-.01em}
+.kpi span{color:var(--muted);font-size:.8rem}
+.tw{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--muted);font-size:.8rem;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.l,th.l{text-align:left}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.mut{color:var(--muted)}
+.note{color:var(--muted);font-size:.85rem}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);vertical-align:2px}
+/* yatay çubuk grafik: güneş fiyat oranı */
+.bars{display:grid;gap:10px;margin:12px 0}
+.bars .g{font-weight:600;font-size:.9rem;margin-top:6px}
+.bar{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:8px;font-size:.85rem}
+.bar .t{height:14px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.bar .t i{display:block;height:100%;border-radius:3px}
+.bar .v{text-align:right;font-weight:600}
+.i-real{background:var(--ink)}.i-old{background:var(--base)}.i-new{background:var(--solar)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-x:auto;white-space:pre}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.btn{display:inline-flex;align-items:center;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:var(--surface);padding:10px 14px;font-weight:600;text-decoration:none}
+.btn.sec{background:var(--surface);color:var(--ink);border-color:var(--line)}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem}
+@media (max-width:560px){.bar{grid-template-columns:104px 1fr 46px}}

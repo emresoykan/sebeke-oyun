@@ -30,6 +30,35 @@ service cloud.firestore {
       allow delete: if signedIn() && saveCodeOk();
     }
 
+    // Pilot geri bildirimi: feedback/{uid}. Oyuncu yalnızca kendi yanıtını yazar (en fazla 30 sn'de bir değiştirir);
+    // oyundan hiç kimse okuyamaz, yanıtlar Firebase konsolundan okunur. Alanlar ve metin boyları sınırlıdır.
+    match /feedback/{uid} {
+      function sc(d, k) { return !(k in d) || (d[k] is int && d[k] >= 1 && d[k] <= 5); }
+      function tx(d, k) { return !(k in d) || (d[k] is string && d[k].size() >= 1 && d[k].size() <= 600); }
+      function validFeedback(d) {
+        return d.keys().hasOnly(['v', 'role', 'exp', 'r1', 'r2', 'r3', 'u1', 'l1', 'nps', 't1', 't2', 't3',
+                                  'day', 'plants', 'mw', 'techs', 'mk', 'dev', 'at'])
+          && d.keys().hasAll(['v', 'role', 'exp', 'at'])
+          && d.v is int && d.v >= 1 && d.v <= 100
+          && d.role in ['fin', 'mkt', 'eng', 'stu', 'oth']
+          && d.exp in ['0', '3', '6', '10']
+          && sc(d, 'r1') && sc(d, 'r2') && sc(d, 'r3') && sc(d, 'u1') && sc(d, 'l1')
+          && (!('nps' in d) || (d.nps is int && d.nps >= 0 && d.nps <= 10))
+          && tx(d, 't1') && tx(d, 't2') && tx(d, 't3')
+          && (!('day' in d) || (d.day is int && d.day >= 1 && d.day <= 1000000))
+          && (!('plants' in d) || (d.plants is int && d.plants >= 0 && d.plants <= 10000))
+          && (!('mw' in d) || (d.mw is int && d.mw >= 0 && d.mw <= 1000000))
+          && (!('techs' in d) || (d.techs is string && d.techs.size() <= 80))
+          && (!('mk' in d) || (d.mk is string && d.mk.size() <= 20))
+          && (!('dev' in d) || d.dev in ['d', 'm'])
+          && d.at == request.time;
+      }
+      allow get, list, delete: if false;
+      allow create: if signedIn() && request.auth.uid == uid && validFeedback(request.resource.data);
+      allow update: if signedIn() && request.auth.uid == uid && validFeedback(request.resource.data)
+        && request.time > resource.data.at + duration.value(30, 's');
+    }
+
     match /leagues/{code} {
       match /players/{uid} {
         function validPlayer(d) {

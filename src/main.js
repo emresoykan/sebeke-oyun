@@ -16,6 +16,7 @@ import { initAmbient } from "./ui/ambient.js";
 import { initGfxToggle } from "./ui/quality.js";
 import { initLeague } from "./league.js";
 import { initLeagueUI } from "./ui/league.js";
+import { initFeedback } from "./ui/feedback.js";
 import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
 import { initSaveFile } from "./ui/savefile.js";
 import { initCloud } from "./cloud.js";
@@ -45,7 +46,7 @@ document.getElementById("deskBtn").onclick=()=>openDesk(true);
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
   if(force||await confirmBox("Yeniden başla","Tüm ilerleme silinsin mi? Bu işlem geri alınamaz.","Sil",true)){setS(fresh());save();newDay();location.reload();}}
 document.getElementById("resetBtn").onclick=reset;
-initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));
+initSaveFile(document.getElementById("saveExport"),document.getElementById("saveImport"));initFeedback(document.getElementById("fbBtn"));
 initCloudUI();initCloud();
 // yerleşim alanları arka planda yüklenir; gelince seçili noktanın paneli yenilenir
 loadUrban().then(ok=>{if(ok){clearSelCache();renderPanel();}});
