@@ -40,7 +40,7 @@ def query(s, w, n, e):
     b = f"({s},{w},{n},{e})"
     # alanlar için merkez ve sınır kutusu ayrı çıktılar (alan büyüklüğü güneş eleğinde kullanılır)
     return (f'[out:json][timeout:240];nwr["power"="plant"]{b}->.p;'
-            f'node.p out tags center;(way.p;rel.p;)->.a;.a out tags center;.a out ids bb;'
+            f'node.p;out tags center;(way.p;rel.p;)->.a;.a out tags center;.a out ids bb;'
             f'nwr["power"="generator"]["generator:source"="wind"]{b};out tags center;')
 
 def fetch(q):
@@ -56,7 +56,8 @@ def fetch(q):
             except urllib.error.HTTPError as e:
                 print(f"    {url}: HTTP {e.code}", file=sys.stderr)
                 if e.code == 429: time.sleep(60); continue
-                if e.code in (400,): raise
+                if e.code == 400:  # sözdizimi hatası: sunucunun açıklamasını yaz
+                    print(re.sub(r"<[^>]+>", " ", e.read().decode("utf-8", "replace"))[:800], file=sys.stderr); raise
                 if e.code == 504: return None
                 time.sleep(15)
             except Exception as e:
