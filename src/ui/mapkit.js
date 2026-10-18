@@ -16,7 +16,7 @@ import { PROTECTED } from "../data/protected.js";
 import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
-import { realTileURL, onRealChange, realOn } from "./realplants.js";
+import { realTileURL, onRealChange, realOn, setRealView } from "./realplants.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -149,9 +149,13 @@ export async function initMapKit(el,h){
   // haritaya dokunma: işarete dokunulduysa ("select") nokta seçimi yapılmaz
   // koordinat dokunma anında çevrilir: 40 ms içinde harita kayarsa (açılış animasyonu, savrulma) nokta kaymasın
   map.addEventListener("single-tap",e=>{const p=e.pointOnPage;if(!p){stopIntro();return;}const c=map.convertPointOnPageToCoordinate(p);stopIntro();
-    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y))return;
+    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y,c.latitude,((c.longitude+540)%360)-180))return;
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
+  // gerçek santraller: görünen ülkelerin dosyaları görünüme göre yüklenir (yakınlık kamera uzaklığından)
+  const realView=()=>{if(!map)return;const r=map.region,c=r.center,sp=r.span;
+    setRealView({w:c.longitude-sp.longitudeDelta/2,e:c.longitude+sp.longitudeDelta/2,s:c.latitude-sp.latitudeDelta/2,n:c.latitude+sp.latitudeDelta/2,z:Math.log2(2.6e7/map.cameraDistance),lat:c.latitude,lon:c.longitude});};
+  map.addEventListener("region-change-end",realView);
   map.addEventListener("region-change-start",()=>{if(F)facLoop();});
   map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();});
   // korunan alanlar
