@@ -16,6 +16,7 @@ import { PROTECTED } from "../data/protected.js";
 import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
+import { realTileURL, onRealChange, realOn } from "./realplants.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -147,7 +148,7 @@ export async function initMapKit(el,h){
   map.addEventListener("map-type-change",()=>{try{localStorage.setItem(PREF,map.mapType);}catch(e){}});
   // haritaya dokunma: işarete dokunulduysa ("select") nokta seçimi yapılmaz
   map.addEventListener("single-tap",e=>{stopIntro();const p=e.pointOnPage;if(!p)return;
-    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;const c=map.convertPointOnPageToCoordinate(p);
+    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y))return;const c=map.convertPointOnPageToCoordinate(p);
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
   map.addEventListener("region-change-start",()=>{if(F)facLoop();});
@@ -167,7 +168,10 @@ export async function initMapKit(el,h){
   let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)pot.reload();};
   P.onPotTile(()=>{if(!map||P.potMode()==="off"||potT)return;
     potT=setTimeout(reloadPot,P.potPending()===0?150:Math.max(150,1200-(performance.now()-potLast)));});
-  map.addTileOverlays([night,pot,clouds]);
+  // gerçek santraller (realplants.js): karo görüntüsü olarak çizilir; açılıp kapanınca yenilenir
+  const real=new mk.TileOverlay((x,y,z)=>realTileURL(z,x,y),{opacity:realOn()?1:0});
+  onRealChange(on=>{if(!map)return;real.opacity=on?1:0;real.reload();});
+  map.addTileOverlays([night,pot,real,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
   updateWeather(true);wxTimer=setInterval(()=>{if(!document.hidden)updateWeather(false);},400);onRegion();
