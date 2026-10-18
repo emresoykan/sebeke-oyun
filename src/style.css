@@ -530,6 +530,13 @@ a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
 .reallegend td{text-align:right;padding:1px 0;white-space:nowrap}
 .reallegend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px;box-shadow:0 0 0 1px rgba(10,15,25,.8)}
 .reallegend small{display:block;color:#C9D3DB;line-height:1.35}
+.reallegend td button{all:unset;cursor:pointer;display:inline-flex;align-items:center;min-height:22px}
+.reallegend td button:focus-visible,.rlf button:focus-visible{outline:2px solid #5AA2E0;outline-offset:1px;border-radius:4px}
+.reallegend tr.off td{opacity:.45}
+.reallegend tr.off i{background:transparent!important;box-shadow:inset 0 0 0 1.5px #C9D3DB}
+.rlf{display:flex;gap:6px;margin:2px 0 6px}
+.rlf button{font:inherit;font-size:.72rem;font-weight:600;min-height:0;height:auto;line-height:1.2;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#E5ECF0;cursor:pointer}
+.rlf button[aria-pressed="true"]{background:#E5ECF0;color:#111}
 /* potansiyel lejantı açıksa onun üstüne çıkar */
 .potlegend:not([hidden]) ~ .reallegend{bottom:170px}
 @media (max-width:599px){.reallegend{right:10px;width:calc(100% - 74px);font-size:.7rem}}
