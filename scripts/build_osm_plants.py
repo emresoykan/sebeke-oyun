@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Dünyadaki elektrik santralleri — OpenStreetMap (Overpass API) → public/data/plants/
+"""Dünyadaki elektrik santralleri — OpenStreetMap → public/data/plants/
+
+Kaynak iki yoldan okunabilir: Geofabrik kıta çıkarımı (osmium tags-filter ile süzülmüş PBF, --pbf; GitHub Actions'ta
+kullanılan yol) ya da Overpass API (karo karo sorgu; küçük alanlar için). Aşağıdaki 1. adım Overpass yolunu anlatır; PBF
+yolunda aynı nesneler (power=plant, rüzgâr türbinleri) dosyadan okunur ve 2–5. adımlar aynıdır.
+
 
 Veri: OpenStreetMap katkıcıları, ODbL 1.0 (https://www.openstreetmap.org/copyright). Oyunun "Gerçek santraller" katmanı
 için. GitHub Actions'ta çalışır (.github/workflows/osm-plants.yml); bu oturumun ağından Overpass'a erişilemiyor.
@@ -22,9 +27,13 @@ için. GitHub Actions'ta çalışır (.github/workflows/osm-plants.yml); bu otur
    e batarya depolama, x diğer
 
 Kullanım: python3 scripts/build_osm_plants.py public/data/plants [--bbox güney,batı,kuzey,doğu]
-Gerekenler: shapely (pip install shapely)
+  bölge işi:  python3 scripts/build_osm_plants.py --bbox -60,10,80,40 --raw raw-3.json.gz --harvest-only --budget 300
+  kıta (PBF): osmium tags-filter europe-latest.osm.pbf nwr/power=plant n/generator:source=wind -o plants.osm.pbf
+              python3 scripts/build_osm_plants.py --pbf plants.osm.pbf --raw raw-europe.json.gz --harvest-only
+  birleştir:  python3 scripts/build_osm_plants.py public/data/plants --merge raw-*.json.gz
+Gerekenler: shapely (birleştirme), osmium (PBF okuma) (pip install shapely osmium)
 """
-import argparse, json, math, os, re, sys, time, urllib.parse, urllib.request
+import argparse, gzip, json, math, os, re, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
@@ -71,11 +80,16 @@ def tiles(s, w, n, e, step):
         while x < e: yield (y, x, min(n, y + step), min(e, x + step)); x += step
         y += step
 
-def harvest(bbox):
-    """karoları sırayla sorgular; başarısız karoyu dörde böler. (öğeler sözlüğü, başarısız karolar)"""
+KEEP = {"power", "plant:source", "plant:output:electricity", "generator:source", "generator:output:electricity", "name", "name:tr", "name:en"}
+
+def harvest(bbox, budget=None):
+    """karoları sırayla sorgular; başarısız karoyu dörde böler. Süre bütçesi (dk) dolarsa kalan karolar başarısız sayılır
+    (o ana kadar toplanan veri korunur). (öğeler sözlüğü, başarısız karolar)"""
     els, failed, stack = {}, [], list(tiles(*bbox, TILE))[::-1]
-    i = 0
+    i, t0 = 0, time.time()
     while stack:
+        if budget and time.time() - t0 > budget * 60:
+            failed += [list(t) for t in stack]; print(f"  süre bütçesi doldu: {len(stack)} karo kaldı"); break
         s, w, n, e = stack.pop(); i += 1
         r = fetch(query(s, w, n, e)); time.sleep(1.5)
         if r is None:
@@ -84,6 +98,7 @@ def harvest(bbox):
                 print(f"  [{i}] {s},{w},{n},{e}: bölünüyor"); continue
             failed.append([s, w, n, e]); print(f"  [{i}] {s},{w},{n},{e}: BAŞARISIZ"); continue
         for el in r:
+            if "tags" in el: el["tags"] = {kk: v for kk, v in el["tags"].items() if kk in KEEP}  # yalnızca gereken etiketler
             k = (el["type"], el["id"]); o = els.get(k)
             if o: o.update({kk: v for kk, v in el.items() if kk not in o})  # merkez ve sınır kutusu birleşir
             else: els[k] = el
@@ -202,18 +217,70 @@ def assign(plants, countries_path):
         if hit is None: lost += 1
     return lost
 
+def from_pbf(path):
+    """Geofabrik çıkarımından süzülmüş PBF (osmium tags-filter) → Overpass biçiminde öğeler. Noktalar konumla; alanlar
+    (kapalı yol ya da çokgen ilişki) dış halkalarının ortalama noktası ve sınır kutusuyla; açık yollar düğümlerinin
+    ortalamasıyla. pyosmium gerekir (pip install osmium)."""
+    import osmium
+    els = {}
+    def tg(o): return {t.k: t.v for t in o.tags if t.k in KEEP}
+    def put(typ, oid, tags, pts):
+        if not pts: return
+        la = [p[0] for p in pts]; lo = [p[1] for p in pts]
+        els[(typ, oid)] = {"type": typ, "id": oid, "tags": tags, "center": {"lat": sum(la) / len(la), "lon": sum(lo) / len(lo)},
+                           "bounds": {"minlat": min(la), "maxlat": max(la), "minlon": min(lo), "maxlon": max(lo)}}
+    class H(osmium.SimpleHandler):
+        def node(self, n):
+            t = n.tags
+            if t.get("power") == "plant" or (t.get("power") == "generator" and t.get("generator:source") == "wind"):
+                if n.location.valid(): els[("node", n.id)] = {"type": "node", "id": n.id, "lat": n.location.lat, "lon": n.location.lon, "tags": tg(n)}
+        def way(self, w):
+            if w.tags.get("power") != "plant" or w.is_closed(): return  # kapalı yollar alan olarak gelir
+            put("way", w.id, tg(w), [(x.location.lat, x.location.lon) for x in w.nodes if x.location.valid()])
+        def area(self, a):
+            if a.tags.get("power") != "plant": return
+            pts = [(x.location.lat, x.location.lon) for ring in a.outer_rings() for x in ring if x.location.valid()]
+            put("way" if a.from_way() else "relation", a.orig_id(), tg(a), pts)
+    H().apply_file(path, locations=True)
+    return els
+
+def opn(path, mode):
+    return gzip.open(path, mode + "t", encoding="utf-8") if path.endswith(".gz") else open(path, mode, encoding="utf-8")
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("out", nargs="?", default="public/data/plants")
-    ap.add_argument("--bbox", help="güney,batı,kuzey,doğu (deneme için)"); ap.add_argument("--raw", help="ham öğeleri bu dosyaya yaz / oradan oku")
+    ap.add_argument("--bbox", help="güney,batı,kuzey,doğu (bölge ya da deneme)"); ap.add_argument("--raw", help="ham öğeleri bu dosyaya yaz / oradan oku (.gz olabilir)")
+    ap.add_argument("--harvest-only", action="store_true", help="yalnızca sorgula ve --raw dosyasına yaz (bölge işi)")
+    ap.add_argument("--merge", nargs="+", help="bölge işlerinin ham dosyalarını birleştirip işle")
+    ap.add_argument("--budget", type=float, help="sorgu süre bütçesi (dk)")
+    ap.add_argument("--pbf", help="Overpass yerine süzülmüş PBF dosyasından oku (Geofabrik + osmium tags-filter)")
     ap.add_argument("--countries", default="src/data/countries.json"); a = ap.parse_args()
     bbox = tuple(map(float, a.bbox.split(","))) if a.bbox else (LAT0, -180, LAT1, 180)
-    if a.raw and os.path.exists(a.raw):
-        d = json.load(open(a.raw)); els = {(e["type"], e["id"]): e for e in d["elements"]}; failed = d.get("failed", [])
+    if a.merge:
+        els, failed = {}, []
+        for f in a.merge:
+            d = json.load(opn(f, "r")); failed += d.get("failed", [])
+            for e in d["elements"]:
+                k = (e["type"], e["id"]); o = els.get(k)
+                if o: o.update({kk: v for kk, v in e.items() if kk not in o})
+                else: els[k] = e
+            print(f"Ham veri: {f}: {len(d['elements'])} öğe")
+        bbox = (LAT0, -180, LAT1, 180)
+    elif a.pbf:
+        t0 = time.time(); els, failed = from_pbf(a.pbf), []
+        print(f"PBF okundu: {a.pbf}: {len(els)} öğe, {round(time.time() - t0)} sn")
+        if a.raw:
+            with opn(a.raw, "w") as f: json.dump({"elements": list(els.values()), "failed": [], "src": a.pbf}, f)
+        if a.harvest_only: return
+    elif a.raw and os.path.exists(a.raw) and not a.harvest_only:
+        d = json.load(opn(a.raw, "r")); els = {(e["type"], e["id"]): e for e in d["elements"]}; failed = d.get("failed", [])
         print(f"Ham veri okundu: {len(els)} öğe")
     else:
-        print(f"Overpass sorgulanıyor, alan {bbox}…"); t0 = time.time(); els, failed = harvest(bbox)
+        print(f"Overpass sorgulanıyor, alan {bbox}…"); t0 = time.time(); els, failed = harvest(bbox, a.budget)
         print(f"  {len(els)} öğe, {len(failed)} başarısız karo, {round((time.time() - t0) / 60)} dk")
-        if a.raw: json.dump({"elements": list(els.values()), "failed": failed}, open(a.raw, "w"))
+        if a.raw:
+            with opn(a.raw, "w") as f: json.dump({"elements": list(els.values()), "failed": failed, "bbox": bbox}, f)
+        if a.harvest_only: return
     plants, st = process(els); lost = assign(plants, a.countries); st["no_country"] = lost
     print("Özet:", json.dumps(st, ensure_ascii=False))
     fetched = datetime.now(timezone.utc).strftime("%Y-%m-%d"); os.makedirs(a.out, exist_ok=True)
@@ -237,10 +304,11 @@ def main():
     world.sort(key=lambda r: -(r[3] or 0))
     json.dump({"p": world}, open(f"{a.out}/world.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     meta = {"source": "OpenStreetMap katkıcıları", "license": "ODbL 1.0", "fetched": fetched, "worldMW": WORLD_MW, "minMW": MIN_MW,
-            "minSolarM2": MIN_SOLAR_M2, "failedTiles": failed, "stats": st, "bbox": bbox}
+            "minSolarM2": MIN_SOLAR_M2, "failedTiles": failed, "stats": st, "bbox": bbox,
+            "sources": [os.path.basename(f) for f in a.merge] if a.merge else None}
     json.dump({"meta": meta, "c": index}, open(f"{a.out}/index.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     # artık santrali kalmayan ülke dosyalarını sil (yalnızca tüm dünya sorgulandıysa)
-    if not a.bbox:
+    if not a.bbox or a.merge:
         for f in os.listdir(a.out):
             if re.fullmatch(r"[A-Z]{3}\.json", f) and f not in keep: os.remove(f"{a.out}/{f}")
     tot = sum(v["n"] for v in index.values())

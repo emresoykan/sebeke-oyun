@@ -1,15 +1,13 @@
-# Dünyadaki santralleri OpenStreetMap'ten (Overpass API) çekip public/data/plants/ altına ülke dosyaları olarak yazar ve
-# aynı dala commit eder ("Gerçek santraller" harita katmanı). Elle (workflow_dispatch) ya da betik veya bu dosya değişince
-# çalışır. Tüm dünya birkaç saat sürebilir. Veri: © OpenStreetMap katkıcıları, ODbL 1.0.
+# Dünyadaki santralleri OpenStreetMap'ten çekip public/data/plants/ altına ülke dosyaları olarak yazar ve aynı dala commit
+# eder ("Gerçek santraller" harita katmanı). Overpass API'nin ortak sunucuları dünya taraması için güvenilir değil (18.10.2026
+# denemesinde 6 saat boyunca çoğunlukla HTTP 502/500/504 döndü); bu yüzden Geofabrik'in kıta çıkarımları indirilir ve
+# osmium ile yalnızca santraller ve rüzgâr türbinleri süzülür. Her kıta ayrı işte işlenir (en çok 4 iş aynı anda), ham
+# sonucunu yükler; son iş hepsini birleştirip ülke dosyalarını üretir. Başarısız bir kıta diğerlerini engellemez.
+# Elle (workflow_dispatch) ya da betik veya bu dosya değişince çalışır. Veri: © OpenStreetMap katkıcıları, ODbL 1.0.
 name: OSM santral verisi
 
 on:
   workflow_dispatch:
-    inputs:
-      bbox:
-        description: "Yalnızca bu alan (güney,batı,kuzey,doğu); boşsa tüm dünya"
-        required: false
-        default: ""
   push:
     branches: [claude/vite-modular-game-hi6q24]
     paths: [scripts/build_osm_plants.py, .github/workflows/osm-plants.yml]
@@ -22,18 +20,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  extract:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        region: [africa, asia, australia-oceania, central-america, europe, north-america, russia, south-america]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Disk alanı aç (Avrupa ~30 GB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          df -h .
+      - run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool && pip install osmium==4.3.1
+      - name: İndir ve süz
+        run: |
+          curl -fL --retry 5 --retry-delay 30 -o region.osm.pbf "https://download.geofabrik.de/${{ matrix.region }}-latest.osm.pbf"
+          ls -la region.osm.pbf
+          osmium tags-filter region.osm.pbf nwr/power=plant n/generator:source=wind -o plants.osm.pbf --overwrite
+          rm region.osm.pbf; ls -la plants.osm.pbf
+      - run: python3 -u scripts/build_osm_plants.py --pbf plants.osm.pbf --raw raw-${{ matrix.region }}.json.gz --harvest-only
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw-${{ matrix.region }}
+          path: raw-${{ matrix.region }}.json.gz
+          retention-days: 7
+
+  build:
+    needs: extract
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install shapely==2.1.2
-      - run: python3 scripts/build_osm_plants.py public/data/plants ${BBOX:+--bbox "$BBOX"}
-        env:
-          BBOX: ${{ github.event.inputs.bbox }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw-*
+          merge-multiple: true
+      - run: ls -la raw-*.json.gz && python3 -u scripts/build_osm_plants.py public/data/plants --merge raw-*.json.gz
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
