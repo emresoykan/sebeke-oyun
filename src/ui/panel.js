@@ -14,6 +14,8 @@ import { siteWx, siteForecast } from "../wxsite.js";
 import { wxLabel, dirName, expectedCF, windSpeedOf, windClass } from "../weather.js";
 import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
+import { loanTerms, NEW_GEAR } from "../loans.js";
+import { pf } from "../finance.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -27,6 +29,14 @@ function wxHtml(t){
 }
 const pctTxt=v=>"%"+(Math.round(v*1000)/10).toLocaleString("tr-TR");
 
+// Banka kredisi açıklaması (standart kademe için): borç oranı, onu sınırlayan kural, faiz, vade ve taksit
+const pc=v=>v.toLocaleString("tr-TR",{maximumFractionDigits:2});
+function loanNote(t,k){
+  const L=loanTerms(S.sel.id,k,"std");if(!L||L.debt<=0)return "";
+  const why=L.bind==="new"?`ilk projede gerçekleşmiş üretim verisi yok, banka en çok %${Math.round(NEW_GEAR*100)} verir; bu piyasada bu teknolojide 3 günlük üretimden sonra nakit akışına göre boyutlandırılır`
+    :L.bind==="gear"?`üst sınır %${pf.gear}; gerçekleşen nakit akışıyla DSCR ${pc(L.dscr)}`:`DSCR ${pc(pf.dscrM)} hedefi bağlıyor (gerçekleşen günlük nakit akışı ${fmt$(L.cfads)})`;
+  return `<div class="eqnote loannote"><b>Banka kredisi:</b> borç %${Math.round(L.gear*100)} (${why}). Faiz yıllık %${pc(L.R*100)}, vade ${pf.tenor} yıl (oyunda ${L.n} gün). İlk ${L.g} gün ödemesiz: yalnızca faiz, günde ${fmt$(L.dsG)}; sonra günlük taksit ${fmt$(L.ds)}. Oyunda yatırımlar gerçeğin ~1/63'ü olduğundan 1 ekonomik yıl ≈ 5,8 oyun günü sayılır. Taksit gün sonunda nakitten düşer; ödenemezse iflas kuralı işler.</div>`;
+}
 // Ekipman seçimi: teknoloji sekmeleri ve her kademe için bir kart (marka, özellik, üretim, arıza riski, maliyet)
 function buildHtml(t){
   const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
@@ -35,10 +45,11 @@ function buildHtml(t){
     const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>2 saat</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
-      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button></div>`;}).join("")+`</div>`;
+      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button>${(()=>{const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
+  h+=loanNote(t,tab);
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
@@ -122,7 +133,7 @@ export function renderPanel(){
   }
   el.innerHTML=html;
   el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id);
-    else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
+    else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }
 export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>SITE_LIMIT||locked(b.dataset.k)))d=true;b.disabled=d;});}

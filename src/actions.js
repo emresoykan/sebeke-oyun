@@ -11,6 +11,7 @@ import { checkMissions } from "./missions.js";
 import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
 import { rivalNear } from "./rivals.js";
+import { loanTerms, openLoan, dropLoan } from "./loans.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -33,7 +34,7 @@ export function undoLast(){
   if(!undoValid())return;const u=U;U=null;clearTimeout(uT);S.money+=u.c;
   if(u.kind==="land"){const o=S.sites[u.id];delete S.sites[u.id];S.sel={id:null,lat:o.lat,lon:o.lon};
     addLog(`${o.sea?"Deniz alanı tahsisi":"Arazi alımı"} geri alındı: ${placeName(o)}. ${fmt$(u.c)} iade edildi.`);}
-  else{const i=S.plants.findIndex(x=>x.t===u.id&&x.k===u.k&&x.q===u.q),p=S.plants[i];p.mw-=BLOCK;p.cost=(p.cost||0)-u.c;if(p.mw<=0)S.plants.splice(i,1);
+  else{const i=S.plants.findIndex(x=>x.t===u.id&&x.k===u.k&&x.q===u.q),p=S.plants[i];p.mw-=BLOCK;p.cost=(p.cost||0)-(u.cost??u.c);if(p.mw<=0)S.plants.splice(i,1);if(u.loan)dropLoan(u.loan);
     addLog(`${placeName(S.sites[u.id])}: +${BLOCK} MW ${TECH[u.k].n} geri alındı. ${fmt$(u.c)} iade edildi.`);}
   refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));
 }
@@ -43,8 +44,11 @@ export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if
   const id="s"+(S.nextId++),sl=slopeCached(t.lat,t.lon);S.sites[id]={...t,permit:"none"};if(sl)S.sites[id].slope=sl;S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
 export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();window.dispatchEvent(new CustomEvent("sebeke:permit"));}
-// Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer
-export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id)+BLOCK>SITE_LIMIT||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=c;
+// Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer.
+// loan: yatırımın bir kısmı banka kredisiyle (loans.js); nakitten yalnızca özsermaye payı düşer, borç portföy değerinden çıkar
+export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):null;if(loan&&!(lt&&lt.debt>0))return;
+  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||siteMW(id)+BLOCK>SITE_LIMIT||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
+  const L=lt?openLoan(id,k,q,lt):null;
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
   if(k==="jes"&&o.well==null){o.well=+(0.55+Math.random()*0.55).toFixed(2);
@@ -55,6 +59,6 @@ export function build(id,k,q="std"){const c=capexOf(k,q);if(S.money<c||siteMW(id
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);
   sfx("build");
-  addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")}).`);
-  if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c});
+  addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}.`);
+  if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null});
   refresh();window.dispatchEvent(new CustomEvent("sebeke:build"));}

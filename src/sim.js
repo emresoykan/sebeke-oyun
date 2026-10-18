@@ -1,5 +1,6 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
 import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE } from "./config.js";
+import { payLoans, totalDebt } from "./loans.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
 import { permitProb, rejectWhy, landCost } from "./rules.js";
@@ -134,6 +135,8 @@ export function endDay(){
     p.wet=0.75*(p.wet??0.35)+0.25*Math.min(1.4,(p.wetAcc||0)/24*3+m);p.wetAcc=0;});
   Object.values(S.sites).forEach(o=>{if(o.snowDays>0)o.snowDays--;});
   rollOutages();ageMods();
+  // banka kredisi taksitleri (loans.js): gün sonunda nakitten düşer, iflas denetiminden önce
+  S.last.loan=payLoans();
   S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();
   // iflas: gün sonu nakit (görev ve rozet ödüllerinden sonra) art arda BANKRUPT_DAYS gün eksi kalırsa şirket batar
   let warn=0;
@@ -169,7 +172,7 @@ export function awardAch(){
   renderProfileChip();
 }
 
-export function netWorth(){let v=S.money;Object.values(S.sites).forEach(o=>v+=landCost(o));S.plants.forEach(p=>v+=p.cost??TECH[p.k].capex*p.mw/BLOCK);return v;}
+export function netWorth(){let v=S.money-totalDebt();Object.values(S.sites).forEach(o=>v+=landCost(o));S.plants.forEach(p=>v+=p.cost??TECH[p.k].capex*p.mw/BLOCK);return v;}
 export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p.mw,0);}
 
 // Günün net kazancı: satış gelirleri (destek primleri dahil) − dengesizlik + batarya − işletme − tahmin servisi − yakıt

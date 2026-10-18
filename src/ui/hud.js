@@ -93,6 +93,7 @@ export function renderReport(){
   <tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
   ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}
   ${L.fee>0?`<tr><td>Tahmin servisi</td><td></td><td class="neg">−${fmt$(L.fee)}</td><td></td></tr>`:""}
-  <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr></table></div><div class="note">${note}</div>`;
+  <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr>
+  ${L.loan&&L.loan.paid>0?`<tr><td>Kredi taksiti <small class="mut">faiz ${fmt$(L.loan.int)}</small></td><td></td><td class="neg">−${fmt$(L.loan.paid)}</td><td></td></tr>`:""}</table></div><div class="note">${note}</div>`;
   const tr=document.getElementById("trend");tr.innerHTML="";S.hist.forEach(v=>{const d=document.createElement("div");d.style.height=clamp(v,0,1.2)/1.2*100+"%";d.title=Math.round(v*100)+"%";tr.appendChild(d);});
 }
