@@ -8,12 +8,18 @@ name: OSM santral verisi
 
 on:
   workflow_dispatch:
+    inputs:
+      reuse_run:
+        description: "Kıta verisini bu çalıştırmanın ham dosyalarından al (çalıştırma kimliği); boşsa yeniden indir"
+        required: false
+        default: ""
   push:
     branches: [claude/vite-modular-game-hi6q24]
     paths: [scripts/build_osm_plants.py, .github/workflows/osm-plants.yml]
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: osm-plants
@@ -21,6 +27,7 @@ concurrency:
 
 jobs:
   extract:
+    if: ${{ !inputs.reuse_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
@@ -51,9 +58,10 @@ jobs:
           path: raw-${{ matrix.region }}.json.gz
           retention-days: 7
 
+  # iptal edilen çalıştırmada birleştirme yapılmaz (eksik veri commit edilmesin); 8 kıtanın hepsi yoksa commit edilmez
   build:
     needs: extract
-    if: always()
+    if: ${{ !cancelled() && (needs.extract.result == 'success' || inputs.reuse_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -66,6 +74,11 @@ jobs:
         with:
           pattern: raw-*
           merge-multiple: true
+          run-id: ${{ inputs.reuse_run || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sekiz kıta da var mı
+        run: |
+          n=$(ls raw-*.json.gz | wc -l); echo "ham dosya: $n"; test "$n" -eq 8
       - run: ls -la raw-*.json.gz && python3 -u scripts/build_osm_plants.py public/data/plants --merge raw-*.json.gz
       - name: Commit
         run: |
@@ -74,4 +87,10 @@ jobs:
           git rm -q --ignore-unmatch public/data/plants-tr.json
           git add -A public/data/plants
           du -sh public/data/plants; ls -S public/data/plants | head -5
-          if git diff --cached --quiet; then echo "Değişiklik yok"; else git commit -m "OSM santral verisi güncellendi (dünya)"; git pull --rebase -q origin "${GITHUB_REF_NAME}"; git push origin "HEAD:${GITHUB_REF_NAME}"; fi
+          # veri dosyaları baştan üretildiği için dalın son hâlinin üstüne kopyalanır (rebase çakışması olmaz)
+          cp -r public/data/plants /tmp/plants-new
+          git fetch -q origin "${GITHUB_REF_NAME}" && git reset -q --hard "origin/${GITHUB_REF_NAME}"
+          rm -rf public/data/plants && cp -r /tmp/plants-new public/data/plants
+          git rm -q --ignore-unmatch public/data/plants-tr.json
+          git add -A public/data/plants
+          if git diff --cached --quiet; then echo "Değişiklik yok"; else git commit -m "OSM santral verisi güncellendi (dünya)"; git push origin "HEAD:${GITHUB_REF_NAME}"; fi
