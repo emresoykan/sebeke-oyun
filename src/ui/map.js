@@ -53,8 +53,16 @@ function mapNote(msg){
   const w=document.getElementById("mapwrap");if(!w)return;const d=document.createElement("div");d.className="mapnote";d.textContent=msg;
   w.appendChild(d);setTimeout(()=>d.remove(),9000);
 }
-// Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita zorlanabilir
-const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&new URLSearchParams(location.search).get("map")!=="maplibre";
+// Yazılımla çizim (GPU yok: SwiftShader, llvmpipe, uzak masaüstü, sanal makine): Apple haritasında uydu karoları, etiketler
+// ve dokunulan nokta birbirinden kayabiliyor (test raporu: Çanakkale'ye dokununca Sırbistan seçildi). Bu durumda düz harita
+// kullanılır; düz harita aynı ortamda doğru nokta seçiyor (Playwright, SwiftShader).
+function softwareGL(){
+  try{const g=document.createElement("canvas").getContext("webgl");if(!g)return false;const x=g.getExtension("WEBGL_debug_renderer_info");
+    return /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(x?g.getParameter(x.UNMASKED_RENDERER_WEBGL):"");}catch(e){return false;}
+}
+// Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita, ?map=apple ile Apple haritası zorlanır
+const MAP_Q=new URLSearchParams(location.search).get("map"),SOFT_GL=!!import.meta.env.VITE_MAPKIT_TOKEN&&!MAP_Q&&softwareGL();
+const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&MAP_Q!=="maplibre"&&!SOFT_GL;
 let mk=null;
 
 // Kameranın bulunduğu nokta (ortam sesi için); 3D pencere açıksa onun kamerası
@@ -268,7 +276,7 @@ function mapCenter(){
 function panPx(dx,dy){if(mk)mk.panBy(dy,dx);else if(map)map.panBy([dx,dy],{duration:reducedMotion.matches?0:200});}
 let annT=0;
 function announce(){clearTimeout(annT);annT=setTimeout(()=>{const c=mapCenter(),el=document.getElementById("mapStatus");if(!c||!el)return;
-  const t=describe(c.lat,c.lon),where=t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
+  const t=describe(c.lat,c.lon),where=t.urban?`${t.country||t.city}, yerleşim alanı, ${t.city}`:t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
   el.textContent=`İmleç: ${where}. Seçmek için Enter.`;},500);}
 // Klavye modu yalnızca haritaya klavyeyle (Tab) gelinince açılır; fareyle tıklayınca kapanır. Böylece fareyle oynayan
 // birinin boşluk tuşu oyunu duraklatmaya devam eder. Seçim yalnızca Enter ile yapılır (boşluk her zaman duraklatır).
@@ -304,6 +312,7 @@ export async function initMap(){
       mk=m;ready=true;drawMap();setGameClock(S.hour);return;
     }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();mapNote("Apple Haritalar açılamadı ("+e.message+"); düz harita kullanılıyor.");}
   }
+  if(SOFT_GL)mapNote("Bu tarayıcıda grafik işlemci kullanılmıyor; Apple haritası yerine düz harita açıldı (Apple için adrese ?map=apple ekleyin).");
   await initFlat();
 }
 async function initFlat(){

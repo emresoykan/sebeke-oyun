@@ -25,22 +25,24 @@ import { loadUrban } from "./urban.js";
 import { initGuide, restartGuide } from "./ui/guide.js";
 import { showLose } from "./ui/hud.js";
 
-let timer=null, speed=1, paused=false, held=false; // held: olay kartı açıkken oyun bekler
+let timer=null, speed=1, paused=false, held=0; // held: açık bekletici pencere sayısı (olay kartı, GÖP masası, oyun sonu)
 
 // Zaman ilk arazi alınana kadar işlemez: oyuncu haritayı incelerken gün ilerlemez
 const waiting=()=>!Object.keys(S.sites).length;
 function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(tick,500/speed);}
 window.addEventListener("sebeke:land",loop);
-window.addEventListener("sebeke:hold",()=>{held=true;loop();});
-window.addEventListener("sebeke:release",()=>{held=false;loop();});
+// held bir sayaçtır: pencere sırası ve kazanma/kaybetme ekranı ayrı ayrı bekletebilir; biri kapanınca diğeri açıkken oyun sürmesin
+window.addEventListener("sebeke:hold",()=>{held++;loop();});
+window.addEventListener("sebeke:release",()=>{held=Math.max(0,held-1);loop();});
 initSound(document.getElementById("soundBtn"));initAmbient();initGfxToggle(document.getElementById("gfxBtn"));initLeagueUI(document.getElementById("leagueBtn"));initWeatherToggle(document.getElementById("wxBtn"));initMap3DUI();
 const pauseBtn=document.getElementById("pauseBtn"),speedBtn=document.getElementById("speedBtn");
 const ICON={pause:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>',
   play:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L4.9 1.7a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>'};
 function setPaused(v){paused=v;pauseBtn.innerHTML=paused?ICON.play:ICON.pause;pauseBtn.setAttribute("aria-pressed",String(paused));pauseBtn.setAttribute("aria-label",paused?"Devam et":"Duraklat");loop();}
-function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribute("aria-label",`Oyun hızı: ${speed}x`);loop();}
+const nextSpeed=v=>v===1?3:v===3?8:1;
+function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribute("aria-label",`Oyun hızı: ${speed}x`);speedBtn.title=`Oyun hızı ${speed}x • tıkla: ${nextSpeed(speed)}x (klavye: 1, 3, 8)`;loop();}
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
-speedBtn.onclick=()=>setSpeed(speed===1?3:speed===3?8:1);
+speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
 // iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;

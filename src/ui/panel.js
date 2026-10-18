@@ -15,7 +15,7 @@ import { wxLabel, dirName, expectedCF, windSpeedOf, windClass } from "../weather
 import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 
-const coord=(v,p,n)=>Math.abs(v).toFixed(2)+"°"+(v>=0?p:n);
+const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
 let tab=null; // ekipman kartlarında seçili teknoloji
 
@@ -32,10 +32,10 @@ function buildHtml(t){
   const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
   let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="--c:var(${TECH[k].c})" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
   h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
-    const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
+    const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>2 saat</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
-      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW • ${fmt$(c)}</button></div>`;}).join("")+`</div>`;
+      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button></div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
@@ -71,12 +71,12 @@ export function renderPanel(){
   const ps=document.getElementById("peekSum");
   if(ps)ps.textContent=t.sea&&!t.shallow?"Açık deniz":t.reg==="X"?"Antarktika":t.reg==="G"?"Grönland buz örtüsü":
     o?`${o.city} • ${siteMW(id)?siteMW(id)+" MW":"santral yok"} • ${{ok:"izinli",pending:"izin bekliyor",rejected:"izin reddedildi"}[o.permit]||"izin yok"}`:
-    `${t.sea?"Sığ deniz":TER_N[t.ter]} • ${near(t)} • ${fmt$(landCost(t))}`;
-  if(t.sea&&!t.shallow){el.innerHTML=`<h3>Açık deniz</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)}</div><div class="status bad">Derin deniz: sabit tabanlı türbin kurulamaz. Kıyıya en fazla 200 km mesafedeki sığ sulara bak.</div>`;return;}
-  if(t.reg==="X"){el.innerHTML=`<h3>Antarktika</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Antarktika Antlaşması gereği ticari enerji tesisi kurulamaz. Arazi satışa kapalı.</div>`;return;}
-  if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS}, ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}
-  title=t.sea?`${t.country} • Sığ deniz`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
-  html+=`<h3>${title}</h3><div class="loc">${latS}, ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
+    `${t.urban?"Yerleşim alanı":t.sea?"Sığ deniz":TER_N[t.ter]} • ${near(t)} • ${fmt$(landCost(t))}`;
+  if(t.sea&&!t.shallow){el.innerHTML=`<h3>Açık deniz</h3><div class="loc">${latS} ${lonS} • En yakın şehir: ${near(t)}</div><div class="status bad">Derin deniz: sabit tabanlı türbin kurulamaz. Kıyıya en fazla 200 km mesafedeki sığ sulara bak.</div>`;return;}
+  if(t.reg==="X"){el.innerHTML=`<h3>Antarktika</h3><div class="loc">${latS} ${lonS}</div><div class="status bad">Antarktika Antlaşması gereği ticari enerji tesisi kurulamaz. Arazi satışa kapalı.</div>`;return;}
+  if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS} ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}
+  title=t.urban&&!o?`${t.country} • Yerleşim alanı`:t.sea?`${t.country} • Sığ deniz`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
+  html+=`<h3>${title}</h3><div class="loc">${latS} ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
   const u=o&&undoFor(id);
   if(u)html+=`<div class="undo" role="status"><span>${u.kind==="land"?(t.sea?"Deniz alanı kiralandı":"Arazi alındı"):`+${BLOCK} MW ${TECH[u.k].n} kuruldu`} (${fmt$(u.c)}). Yanlışlıkla mı? Birkaç saniye içinde tam iadeyle geri alabilirsin.</span><button data-a="undo">Geri al</button></div>`;
   fillRes(t);
@@ -102,15 +102,18 @@ export function renderPanel(){
   }else if(!o){
     if(steepTxt(t))html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
-    html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}">${t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
+    // eğim ölçülmeden arazi satılmaz: eğim uyarısı satın almadan önce görünsün (ölçüm başarısızsa düğme açılır)
+    const sw=!t.sea&&slopeOfSite(t)===undefined;
+    html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}"${sw?' data-wait="1" disabled':""}>${sw?"Eğim ölçülüyor…":t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
   }else if(o.permit==="none"||o.permit==="rejected"){
+    if(steepTxt(t))html+=`<div class="status wait">${steepTxt(t)}</div>`;
     if(o.permit==="rejected")html+=`<div class="status bad">İzin reddedildi: ${o.why}. Tekrar başvurabilirsin; ihtimal değişmez.</div>`;
     else html+=`<div class="status">Arazi senin. ${ministry(t)} izni olmadan kurulum yapılamaz. İzin ihtimali: <b>${oddsTxt(p)}</b>.</div>`;
     html+=`<div class="actions"><button class="pri" data-a="permit" data-c="${permitFee(t)}">İzin başvurusu yap (${fmt$(permitFee(t))})</button></div>`;
   }else if(o.permit==="pending"){
     html+=`<div class="status wait">İzin inceleniyor: yaklaşık ${o.days} gün kaldı.</div>`;
   }else{
-    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
+    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
     html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${SITE_LIMIT} MW kurulu${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
@@ -122,4 +125,4 @@ export function renderPanel(){
     else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q);};});
   updateButtons();
 }
-export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>SITE_LIMIT||locked(b.dataset.k)))d=true;b.disabled=d;});}
+export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>SITE_LIMIT||locked(b.dataset.k)))d=true;b.disabled=d;});}

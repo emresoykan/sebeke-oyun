@@ -11,7 +11,8 @@ function show(n){
   it.classList.remove("in");void it.offsetWidth; // animasyonu yeniden başlat
   it.innerHTML=`<span class="tk-i" aria-hidden="true">${n.i}</span><span class="tk-d">Gün ${n.d}</span> ${esc(n.t)}`;it.classList.add("in");
 }
-function rotate(){const L=S.news||[];if(!L.length)return;idx=(idx+1)%Math.min(L.length,6);show(L[idx]);}
+// yalnızca son iki günün haberleri döner (eskiler dokununca açılan listede kalır); yeni haber yoksa en yenisi durur
+function rotate(){const L=(S.news||[]).filter(n=>S.dayNo-n.d<=1).slice(0,6);if(L.length<2)return;idx=(idx+1)%L.length;show(L[idx]);}
 function renderList(){
   const ul=el()?.querySelector(".tk-list");if(!ul)return;
   ul.innerHTML=(S.news||[]).map(n=>`<li><span aria-hidden="true">${n.i}</span><span class="tk-d">Gün ${n.d}</span> ${esc(n.t)}</li>`).join("")||"<li>Henüz haber yok.</li>";

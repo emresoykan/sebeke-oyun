@@ -147,8 +147,9 @@ export async function initMapKit(el,h){
   box=el;el.classList.add("mk-map");
   map.addEventListener("map-type-change",()=>{try{localStorage.setItem(PREF,map.mapType);}catch(e){}});
   // haritaya dokunma: işarete dokunulduysa ("select") nokta seçimi yapılmaz
-  map.addEventListener("single-tap",e=>{stopIntro();const p=e.pointOnPage;if(!p)return;
-    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y))return;const c=map.convertPointOnPageToCoordinate(p);
+  // koordinat dokunma anında çevrilir: 40 ms içinde harita kayarsa (açılış animasyonu, savrulma) nokta kaymasın
+  map.addEventListener("single-tap",e=>{const p=e.pointOnPage;if(!p){stopIntro();return;}const c=map.convertPointOnPageToCoordinate(p);stopIntro();
+    setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y))return;
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
   map.addEventListener("region-change-start",()=>{if(F)facLoop();});
