@@ -31,7 +31,7 @@ export const TECH={
   res:{n:"RES",long:"Rüzgâr karada (RES)",capex:140000,opex:250,c:"--wind"},
   off:{n:"Offshore",long:"Rüzgâr denizde (offshore RES)",capex:260000,opex:500,c:"--wind"},
   hes:{n:"HES",long:"Hidroelektrik (HES)",capex:180000,opex:200,c:"--hydro"},
-  batt:{n:"Batarya",long:"Batarya depolama (BESS) 5 MW / 10 MWh",capex:12000,opex:50,c:"--batt"},
+  batt:{n:"Batarya",long:"Batarya depolama (BESS) 5 MW / 10 MWh",capex:30000,opex:50,c:"--batt"},
   jes:{n:"JES",long:"Jeotermal (JES)",capex:320000,opex:1000,c:"--geo"},
   bes:{n:"Biyokütle",long:"Biyokütle ve biyogaz santrali",capex:150000,opex:400,c:"--bio"},
   mar:{n:"Deniz",long:"Deniz enerjisi (gelgit ve dalga)",capex:420000,opex:900,c:"--marine"}
