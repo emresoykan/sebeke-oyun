@@ -312,7 +312,10 @@ def main():
         json.dump({"a3": a3, "meta": meta, "p": rows}, open(f"{a.out}/{a3}.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
         keep.add(f"{a3}.json")
         la = [r[0] for r in rows]; lo = [r[1] for r in rows]
-        index[a3] = {"n": len(rows), "counts": counts, "mw": mws, "bb": [min(lo), min(la), max(lo), max(la)]}
+        # santral bulunan 5°'lik hücreler (harita görünen ülkeleri bununla seçer; sınır kutusu Rusya, Fransa gibi
+        # ülkelerde denizaşırı topraklar yüzünden çok geniş): (enlem//5 + 18) × 72 + (boylam//5 + 36)
+        cells = sorted({(int(math.floor(r[0] / 5)) + 18) * 72 + int(math.floor(r[1] / 5)) + 36 for r in rows})
+        index[a3] = {"n": len(rows), "counts": counts, "mw": mws, "bb": [min(lo), min(la), max(lo), max(la)], "g": cells}
         world += [r + [a3] for r in rows if (r[3] or 0) >= WORLD_MW]
     world.sort(key=lambda r: -(r[3] or 0))
     json.dump({"p": world}, open(f"{a.out}/world.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))

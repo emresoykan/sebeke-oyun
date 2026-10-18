@@ -51,21 +51,29 @@ function loadCountry(a3){
 let wanted=new Set();
 function visibleCountries(){
   if(!index||view.z<DETAIL_Z)return [];const {w,s,e,n}=view,out=[];
-  for(const [a3,c] of Object.entries(index.c)){const [x0,y0,x1,y1]=c.bb;if(y1<s||y0>n)continue;
-    if(!(e-w>=360||[0,360,-360].some(d=>x1+d>=w&&x0+d<=e)))continue;
-    out.push([a3,Math.hypot((x0+x1)/2-view.lon,(y0+y1)/2-view.lat)]);}
+  // görünümün 5°'lik hücreleri (build_osm_plants.py ile aynı numara); santrali bu hücrelerde olan ülkeler seçilir
+  const cells=new Set(),all=e-w>=360;
+  for(let la=Math.floor(Math.max(-90,s)/5);la<=Math.floor(Math.min(89.9,n)/5);la++)
+    for(let lo=Math.floor((all?-180:w)/5);lo<=Math.floor((all?179.9:e)/5);lo++){const L=((lo+36)%72+72)%72;cells.add((la+18)*72+L);}
+  for(const [a3,c] of Object.entries(index.c)){
+    const [x0,y0,x1,y1]=c.bb;
+    if(c.g){if(!c.g.some(k=>cells.has(k)))continue;}
+    else if(y1<s||y0>n||!(all||[0,360,-360].some(d=>x1+d>=w&&x0+d<=e)))continue;
+    // sıralama: ülkenin görünümdeki hücre sayısı çok olan ve merkeze yakın olan önce
+    const inView=c.g?c.g.filter(k=>cells.has(k)).length:1;
+    out.push([a3,-inView*1000+Math.hypot((x0+x1)/2-view.lon,(y0+y1)/2-view.lat)]);}
   return out.sort((a,b)=>a[1]-b[1]).slice(0,MAX_LOAD).map(x=>x[0]);
 }
 // haritanın görünümü değişti (map.js, mapkit.js): {w,s,e,n,z,lat,lon}
 export function setRealView(v){
   view=v;const c=countryAt(((v.lon+540)%360)-180,v.lat),f=c?c.a3:null,moved=f!==focusA3;focusA3=f;
   if(!on||!index)return;
-  const vis=visibleCountries();wanted=new Set(vis);vis.forEach(loadCountry);
-  if((v.z>=DETAIL_Z)!==active.detail)changed();else if(moved)legend();
+  const vis=visibleCountries(),same=vis.length===wanted.size&&vis.every(a=>wanted.has(a));wanted=new Set(vis);vis.forEach(loadCountry);
+  if((v.z>=DETAIL_Z)!==active.detail||!same)changed();else if(moved)legend();
 }
 // etkin liste: dünya görünümündeki büyük santraller; yaklaşınca yüklü ülkelerin tüm santralleri onların yerini alır
 function rebuild(){
-  const detail=view.z>=DETAIL_Z,loaded=detail?[...C.keys()]:[],L=new Set(loaded),list=[];
+  const detail=view.z>=DETAIL_Z,loaded=detail?[...C.keys()].filter(a=>wanted.has(a)):[],L=new Set(loaded),list=[];
   if(world)for(const p of world)if(!L.has(p[6])&&shown(p))list.push(p);
   for(const a3 of loaded)for(const p of C.get(a3))if(shown(p))list.push(p);
   active=list;active.detail=detail;
@@ -103,18 +111,28 @@ export function realGeoJSON(){
 
 // Apple haritası için karo görüntüsü (256 px, Web Mercator); önbellekli, sürüm değişince temizlenir
 const tiles=new Map();
+// karo biçimi: WebP kodlaması PNG'den çok hızlı (yazılımla çizen Chromium'da 256 px karo: PNG ~1 sn, WebP ~25 ms);
+// tarayıcı WebP kodlayamıyorsa (Safari) PNG
+let fmt=null;const FMT=()=>fmt||(fmt=(()=>{try{const c=document.createElement("canvas");c.width=c.height=1;return c.toDataURL("image/webp").startsWith("data:image/webp")?"image/webp":"image/png";}catch(e){return "image/png";}})());
 const lon2x=(lon,z)=>(lon+180)/360*256*2**z,lat2y=(lat,z)=>{const s=Math.sin(lat*Math.PI/180);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*256*2**z;};
 const x2lon=(x,z)=>x/2**z*360-180,y2lat=(y,z)=>Math.atan(Math.sinh(Math.PI*(1-2*y/2**z)))*180/Math.PI;
 export function realTileURL(z,x,y){
   if(!on||!active.length)return null;const key=`${ver}/${z}/${x}/${y}`;if(tiles.has(key))return tiles.get(key);
   const m=0.15*360/2**z;// kenara taşan noktalar için pay
   const pts=z<3?active:inBox(y2lat(y+1,z)-m,x2lon(x,z)-m,y2lat(y,z)+m,x2lon(x+1,z)+m);
-  const x0=x*256,y0=y*256,sc=z<5?0.7:z<7?0.85:1,cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d");let n=0;
-  // büyükten küçüğe sıralı listeyi tersten çiz: büyük santraller üstte kalır
+  const x0=x*256,y0=y*256,sc=z<5?0.7:z<7?0.85:1,cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d",{willReadFrequently:true});let n=0;
+  // renge göre tek yolda çizilir (her nokta için ayrı fill/stroke binlerce noktada saniyeler sürüyordu); kenar çizgisi
+  // yalnızca yakında (z ≥ 5). Önce küçükler, sonra büyükler: büyük santraller üstte kalır
+  const by=new Map();
   for(let i=pts.length-1;i>=0;i--){const p=pts[i],px=lon2x(p[1],z)-x0,py=lat2y(p[0],z)-y0,r=radiusOf(p[3])*sc;
-    if(px<-r||py<-r||px>256+r||py>256+r)continue;
-    g.beginPath();g.arc(px,py,r,0,Math.PI*2);g.fillStyle=kindOf(p[2])[1];g.globalAlpha=0.85;g.fill();g.globalAlpha=1;g.lineWidth=1;g.strokeStyle="rgba(10,15,25,.85)";g.stroke();n++;}
-  const u=n?cv.toDataURL("image/png"):null;tiles.set(key,u);if(tiles.size>400)tiles.delete(tiles.keys().next().value);return u;
+    if(px<-r||py<-r||px>256+r||py>256+r)continue;const k=(r>6?"b":"s")+kindOf(p[2])[1];let a=by.get(k);if(!a)by.set(k,a=[]);a.push(px,py,r);n++;}
+  const keys=[...by.keys()].sort((a,b)=>a[0]===b[0]?0:a[0]==="s"?-1:1);
+  g.lineWidth=1;g.strokeStyle="rgba(10,15,25,.85)";
+  // küçük noktalar (yarıçap < 3 px) kare çizilir: yazılımla çizen tarayıcıda yay çizmek karoyu saniyeye çıkarıyordu
+  for(const k of keys){const a=by.get(k);g.fillStyle=k.slice(1);g.globalAlpha=0.85;g.beginPath();let arcs=0;
+    for(let j=0;j<a.length;j+=3){const r=a[j+2];if(r<3){g.rect(a[j]-r,a[j+1]-r,2*r,2*r);}else{g.moveTo(a[j]+r,a[j+1]);g.arc(a[j],a[j+1],r,0,Math.PI*2);arcs++;}}
+    g.fill();g.globalAlpha=1;if(z>=5)g.stroke();}
+  const u=n?cv.toDataURL(FMT()):null;tiles.set(key,u);if(tiles.size>400)tiles.delete(tiles.keys().next().value);return u;
 }
 
 // --- Düğme ve lejant ---
