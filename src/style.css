@@ -518,3 +518,18 @@ a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
 .pfin input{width:90px;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .pfin input:focus-visible{outline:3px solid var(--wind);outline-offset:1px}
 .pfreset{font-size:.82rem;padding:6px 10px}
+/* gerçek santraller katmanı (OSM) */
+.reallegend{position:absolute;z-index:3;right:12px;bottom:36px;width:min(320px,calc(100% - 140px));padding:8px 10px;border-radius:12px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.74rem}
+.reallegend summary{cursor:pointer;font-weight:700;font-size:.82rem;min-height:24px}
+.reallegend summary small{display:inline;font-weight:400;color:#C9D3DB}
+.reallegend[open] summary{margin-bottom:4px}
+.reallegend[hidden]{display:none}
+.reallegend table{width:100%;border-collapse:collapse;margin-bottom:4px}
+.reallegend th{font-weight:600;color:#C9D3DB;text-align:right;font-size:.68rem}
+.reallegend th:first-child,.reallegend td:first-child{text-align:left}
+.reallegend td{text-align:right;padding:1px 0;white-space:nowrap}
+.reallegend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px;box-shadow:0 0 0 1px rgba(10,15,25,.8)}
+.reallegend small{display:block;color:#C9D3DB;line-height:1.35}
+/* potansiyel lejantı açıksa onun üstüne çıkar */
+.potlegend:not([hidden]) ~ .reallegend{bottom:170px}
+@media (max-width:599px){.reallegend{right:10px;width:calc(100% - 74px);font-size:.7rem}}

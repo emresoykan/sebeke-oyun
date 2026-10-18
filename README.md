@@ -74,6 +74,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | `public/vaka/`, `public/case-study/` | Vaka çalışması sayfaları (Türkçe, İngilizce) |
 | `scripts/sim_year.cjs` | Oyunu ekransız N gün simüle edip fiyat, capture oranı, kapasite faktörü ve proje ekonomisini yazdırır |
 | `scripts/calib_wind.py`, `scripts/wind_fleet.cjs` | Rüzgâr kalibrasyonu: TEİAŞ, EPDK ve ENTSO-E 2025'ten filo kapasite faktörü hedefleri; oyunun filo kapasite faktörünü ölçen simülasyon |
+| `src/ui/realplants.js`, `public/data/plants-tr.json`, `scripts/build_osm_plants.py`, `.github/workflows/osm-plants.yml` | Gerçek santraller katmanı: OSM verisi (Actions'ta üretilir), düz ve Apple haritası çizimi, ipucu, kapsama lejantı |
 | `src/slope.js` | Arazi eğimi: seçilen noktanın 250 m çevresinin ortalama eğimi ve baktığı yön, AWS Terrain Tiles yükseklik karolarından (12. yakınlık, ~30 m) |
 | `src/urban.js`, `public/data/urban.bin` | Yerleşim alanları: kentsel alan poligonları (Natural Earth, üretilmiş; `scripts/build_urban.py`), açılışta arka planda yüklenir; nokta sorgusu |
 | `src/data/resource.js` | Güneş ışınımı ve rüzgâr hızı ızgarası (NASA POWER, üretilmiş; `scripts/build_resource.py`) |
@@ -269,7 +270,14 @@ Ayarlar → "Bulut kaydı aç". Lig ile aynı Firebase projesini kullanır (anon
 
 **Kurulum:** Lig için yapılan kurulum yeterli; yalnızca güncel `firebase/firestore.rules` içeriği Firebase konsolunda Firestore → Rules sekmesine yapıştırılıp **Publish** edilmeli (yoksa sunucu bulut kaydı reddeder ve oyunda "Sunucu isteği reddetti" yazar).
 
-## Vaka çalışması ve pilot geri bildirim
+## Gerçek santraller katmanı (Türkiye, OpenStreetMap)
+
+Harita düğmelerindeki santral simgesi Türkiye'deki gerçek elektrik santrallerini gösterir. Noktalar teknoloji renginde ve gücün kareköküyle büyür; 8. yakınlıktan itibaren ad ve güç yazılır. Bir noktaya dokununca adı, türü, gücü ve (rüzgârda) türbin sayısı ipucu olarak görünür; oyundaki seçim değişmez. Lejant, OSM'de gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranını (kapsama) gösterir. Düz haritada GeoJSON çember katmanı, Apple haritasında karo görüntüsü olarak çizilir (`src/ui/realplants.js`). Veri ilk açılışta yüklenir (~90 KB).
+
+- **Veri:** `public/data/plants-tr.json`, `scripts/build_osm_plants.py` ile Overpass API'den üretilir: `power=plant` nesneleri ve rüzgâr türbinleri (`power=generator`, `generator:source=wind`). Türbinler 2 km komşulukla kümelenir; küme 3 km içinde bir rüzgâr santraline bağlanır (gücü yoksa türbin güçleri toplanır), değilse ayrı santral olarak eklenir. Bu oturumun ağından Overpass'a erişilemediği için betik GitHub Actions'ta çalışır (`.github/workflows/osm-plants.yml`, elle ya da betik değişince) ve sonucu aynı dala commit eder.
+- **Lisans:** © OpenStreetMap katkıcıları, ODbL 1.0 (atıf lejantta ve Ayarlar alt bilgisinde).
+- **Kapsama (18.10.2026 verisi):** 1.922 santral. OSM'de gücü yazılı toplam, TEİAŞ 2025 kurulu gücüne göre: hidro %83, kömür ~%100, doğalgaz %115, rüzgâr %55, jeotermal %24, güneş %17, biyokütle %15. Lisanssız GES'ler ve gücü yazılmamış santraller eksik. %100'ün üstü, OSM'de kapanmış ya da çift yakıtlı santrallerin de bulunmasından gelebilir. Akkuyu (4.800 MW) TEİAŞ'ın 2025 kurulu gücünde yer almaz.
+
 
 - **Vaka çalışması:** `public/vaka/` (Türkçe) ve `public/case-study/` (İngilizce), yayında `…/sebeke-oyun/vaka/` ve `…/sebeke-oyun/case-study/`. Fiyat modelinin EPİAŞ ve ENTSO-E 2025 verisiyle kalibrasyonunu, aynı modelle 5 MW GES ve RES için Türkiye ve Avrupa'da LCOE, NPV, IRR sonuçlarını ve WACC duyarlılığını anlatır. Sayılar `scripts/sim_year.cjs` ile üretildi (Türkiye 2, Avrupa 3 bağımsız 365 günlük koşu); koşudan koşuya fark hava modeli ve rastgelelikten gelir. Oyundan Ayarlar → "Vaka çalışması" ile açılır.
 - **Geri bildirim formu** (`src/ui/feedback.js`): Ayarlar → "Geri bildirim ver". Anonimdir: alan, deneyim bandı, beş 1–5 puanlık soru (fiyat, proje ekonomisi ve saha kurallarının gerçekçiliği; tablonun anlaşılırlığı; capture oranının öğretilmesi), 0–10 tavsiye puanı ve üç kısa metin. İsteğe bağlı oyun özeti (oyun günü, santral sayısı ve türleri, MW, piyasalar, masaüstü/mobil) eklenir; profil adı ve şirket adı eklenmez. Metinde e-posta ya da telefon numarası görünürse gönderim durdurulur.

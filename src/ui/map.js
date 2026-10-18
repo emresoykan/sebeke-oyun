@@ -14,6 +14,7 @@ import { siteMW } from "../sim.js";
 import { render } from "./hud.js";
 import { renderPanel } from "./panel.js";
 import { rivalSites, RIVALS } from "../rivals.js";
+import { initRealButton, onRealChange, realOn, realData, realGeoJSON, realAt, infoText } from "./realplants.js";
 import { gfx, onGfx, LEVELS } from "./quality.js";
 import { plantStatus, isLive } from "../plantstatus.js";
 import { openSheet, collapseSheet, renderMySites, sheetState } from "./sheet.js";
@@ -72,6 +73,14 @@ function addGameLayers(){
   map.addSource("sites",{type:"geojson",data:fc([])});
   map.addSource("rivals",{type:"geojson",data:fc([])});
   map.addSource("sel",{type:"geojson",data:fc([])});
+  // gerçek santraller (OSM, realplants.js): oyun işaretlerinin altında, teknoloji renginde, gücüyle büyüyen noktalar
+  map.addSource("realpl",{type:"geojson",data:realOn()?realGeoJSON():fc([])});
+  const vis=realOn()?"visible":"none";
+  map.addLayer({id:"realpl",type:"circle",source:"realpl",layout:{visibility:vis},paint:{"circle-radius":["interpolate",["linear"],["zoom"],3,["*",["get","r"],0.7],6,["*",["get","r"],0.85],9,["*",["get","r"],1.25]],
+    "circle-color":["get","c"],"circle-opacity":0.85,"circle-stroke-color":"rgba(10,15,25,.85)","circle-stroke-width":1}});
+  map.addLayer({id:"realpl-labels",type:"symbol",source:"realpl",minzoom:8,layout:{visibility:vis,"text-field":["case",[">",["get","mw"],0],["concat",["get","n"]," ",["to-string",["round",["get","mw"]]]," MW"],["get","n"]],
+    "text-font":FONT.m,"text-size":11,"text-offset":[0,1],"text-anchor":"top","text-optional":true},paint:{"text-color":["get","c"],"text-halo-color":HALO,"text-halo-width":1.5}});
+  onRealChange(on=>{if(!map)return;map.getSource("realpl").setData(on?realGeoJSON():fc([]));["realpl","realpl-labels"].forEach(l=>map.setLayoutProperty(l,"visibility",on?"visible":"none"));});
   RIVALS.forEach(r=>map.addImage("dia-"+r.id,diamondImg(r.c),{pixelRatio:2}));
   const lbl={"text-halo-color":HALO,"text-halo-width":1.5};
   map.addLayer({id:"rivals",type:"symbol",source:"rivals",layout:{"icon-image":["concat","dia-",["get","r"]],"icon-allow-overlap":true,"icon-size":["interpolate",["linear"],["zoom"],2,0.8,8,1.2]},
@@ -198,6 +207,8 @@ function siteAt(lat,lon){
   Object.entries(S.sites).forEach(([k,o])=>{const d=km(lat,lon,o.lat,o.lon);if(d<bd){bd=d;id=k;}});
   return id;
 }
+// gerçek santrale dokunulduysa bilgisi ipucu olarak gösterilir, nokta seçilmez (x, y: haritaya göre ya da sayfa koordinatı)
+function realTap(x,y,proj){const p=realAt(x,y,proj,10);if(!p)return false;hint(p[0],p[1],infoText(p));return true;}
 // Tıklanan yerin yanında kısa süreli ipucu
 function hint(lat,lon,text){
   const mw=document.getElementById("mapwrap"),p=pagePoint(lat,lon);if(!mw||!p)return;
@@ -217,6 +228,7 @@ function onClick(e){
   const d=f=>{const p=map.project(f.geometry.coordinates);return (p.x-x)**2+(p.y-y)**2;},f=fs.sort((a,b)=>d(a)-d(b))[0];
   if(f&&f.layer.id==="rivals"){const [lon,lat]=f.geometry.coordinates;selectRival(lat,lon);}
   else if(f&&f.layer.id==="sites"&&S.sites[f.properties.id])selectSite(f.properties.id);
+  else if(realTap(x,y,(la,lo)=>{const q=map.project([lo,la]);return {x:q.x,y:q.y};}))return;
   else{const {lat,lng}=e.lngLat.wrap();tapPoint(lat,lng);}
 }
 
@@ -283,12 +295,12 @@ function initMapKeys(){
   el.addEventListener("blur",()=>wrap.classList.remove("kbd","kbdtip"));
 }
 export async function initMap(){
-  initMapButtons();initMapKeys();initPotButton();initSearch(goTo);renderMySites(focusSite);
+  initMapButtons();initMapKeys();initPotButton();initRealButton();initSearch(goTo);renderMySites(focusSite);
   const el=document.getElementById("map");
   if(MAPKIT){
     try{
       const m=await import("./mapkit.js");
-      await m.initMapKit(el,{selectPoint:tapPoint,selectSite,selectRival,fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mapNote("Apple Haritalar kapandı ("+e.message+"); düz harita kullanılıyor.");mk=null;ready=false;el.replaceChildren();initFlat();}});
+      await m.initMapKit(el,{selectPoint:tapPoint,selectSite,selectRival,realTap:(x,y)=>realTap(x,y,(la,lo)=>m.pagePoint(la,lo)),fail:e=>{console.warn("Apple Haritalar kapandı, düz haritaya geçiliyor:",e);mapNote("Apple Haritalar kapandı ("+e.message+"); düz harita kullanılıyor.");mk=null;ready=false;el.replaceChildren();initFlat();}});
       mk=m;ready=true;drawMap();setGameClock(S.hour);return;
     }catch(e){console.warn("Apple Haritalar açılamadı, düz harita kullanılıyor:",e);el.replaceChildren();mapNote("Apple Haritalar açılamadı ("+e.message+"); düz harita kullanılıyor.");}
   }
@@ -320,7 +332,7 @@ async function initFlat(){
   if(ONLINE)setTimeout(()=>{if(!vectorOk)useFallback(true);},8000);
   addNight();addPotential();addGameLayers();initWeatherLayer(map);pulseLoop();map.on("zoomend",syncFacilities);map.on("zoom",rescaleFacilities);
   map.on("click",onClick);
-  ["rivals","sites"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
+  ["rivals","sites","realpl"].forEach(l=>{map.on("mouseenter",l,()=>map.getCanvas().style.cursor="pointer");map.on("mouseleave",l,()=>map.getCanvas().style.cursor="");});
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);
   if(!reducedMotion.matches)map.flyTo({...end,duration:4500,curve:1.6,essential:false});
   if(new URLSearchParams(location.search).has("fps"))fpsMeter();
