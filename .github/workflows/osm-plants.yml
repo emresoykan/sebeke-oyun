@@ -1,10 +1,15 @@
-# Türkiye'deki santralleri OpenStreetMap'ten (Overpass API) çekip public/data/plants-tr.json dosyasına yazar ve aynı dala
-# commit eder ("Gerçek santraller" harita katmanı). Elle (workflow_dispatch) ya da betik veya bu dosya değişince çalışır.
-# Veri: © OpenStreetMap katkıcıları, ODbL 1.0.
+# Dünyadaki santralleri OpenStreetMap'ten (Overpass API) çekip public/data/plants/ altına ülke dosyaları olarak yazar ve
+# aynı dala commit eder ("Gerçek santraller" harita katmanı). Elle (workflow_dispatch) ya da betik veya bu dosya değişince
+# çalışır. Tüm dünya birkaç saat sürebilir. Veri: © OpenStreetMap katkıcıları, ODbL 1.0.
 name: OSM santral verisi
 
 on:
   workflow_dispatch:
+    inputs:
+      bbox:
+        description: "Yalnızca bu alan (güney,batı,kuzey,doğu); boşsa tüm dünya"
+        required: false
+        default: ""
   push:
     branches: [claude/vite-modular-game-hi6q24]
     paths: [scripts/build_osm_plants.py, .github/workflows/osm-plants.yml]
@@ -14,21 +19,26 @@ permissions:
 
 concurrency:
   group: osm-plants
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 scripts/build_osm_plants.py public/data/plants-tr.json
+      - run: pip install shapely==2.1.2
+      - run: python3 scripts/build_osm_plants.py public/data/plants ${BBOX:+--bbox "$BBOX"}
+        env:
+          BBOX: ${{ github.event.inputs.bbox }}
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/plants-tr.json
-          if git diff --cached --quiet; then echo "Değişiklik yok"; else git commit -m "OSM santral verisi güncellendi (Türkiye)"; git push; fi
+          git rm -q --ignore-unmatch public/data/plants-tr.json
+          git add -A public/data/plants
+          du -sh public/data/plants; ls -S public/data/plants | head -5
+          if git diff --cached --quiet; then echo "Değişiklik yok"; else git commit -m "OSM santral verisi güncellendi (dünya)"; git pull --rebase -q origin "${GITHUB_REF_NAME}"; git push origin "HEAD:${GITHUB_REF_NAME}"; fi
