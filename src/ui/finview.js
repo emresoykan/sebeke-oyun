@@ -5,7 +5,7 @@ import { S, save } from "../state.js";
 import { loanDSCR, prepay, totalDebt, dailyDS, dueOf, ECON_YEAR } from "../loans.js";
 import { fmt$ } from "../utils.js";
 import { render } from "./hud.js";
-import { TECH } from "../config.js";
+import { TECH, BLOCK } from "../config.js";
 import { placeName } from "../world.js";
 import { eqName, tierOf } from "../equipment.js";
 import { FIN, DEGR, MIN_H, SHORT_DAYS, wacc, setWacc, plantFinance, projectFinance, pf, setPf, resetPf, PF_SRC } from "../finance.js";
@@ -68,6 +68,11 @@ function pfInputs(){
     <button type="button" class="pfreset">Varsayılanlara dön</button>`;
 }
 
+// oyundaki yatırımın gerçek dünya yatırımına oranı (5 MW blok başına), kurulu teknolojiler için
+function scaleNote(){
+  const ks=[...new Set(S.plants.map(p=>p.k))].filter(k=>FIN[k]&&k!=="batt");if(!ks.length)ks.push("ges");
+  return ks.map(k=>`${TECH[k].n} ~1/${Math.round(FIN[k].capex*1000*BLOCK/TECH[k].capex)}`).join(", ");
+}
 function assumptions(){
   const tr=Object.entries(FIN).map(([k,f])=>`<tr><td>${TECH[k].n}</td><td>${f.capex.toLocaleString("tr-TR")}</td><td>${f.opex}</td><td>${f.life}</td><td style="text-align:left">${f.src}</td></tr>`).join("");
   return `<details class="findet"><summary>Varsayımlar, hesap yöntemi ve kısaltmalar</summary>
@@ -116,7 +121,8 @@ export function renderFin(){
   const el=document.getElementById("fin");if(!el)return;
   if(!el.dataset.init){el.dataset.init="1";
     el.innerHTML=`<label class="finw">İskonto oranı (WACC): <b id="finW"></b><input type="range" min="4" max="16" step="0.5" value="${wacc*100}" aria-label="İskonto oranı (WACC), yüzde"></label>
-      <div style="overflow-x:auto"><table class="fint"><thead><tr><th>Santral</th><th>CF</th><th>Ort. satış fiyatı</th><th>Yatırım</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Geri ödeme</th><th>Veri</th></tr></thead><tbody id="finRows"></tbody></table></div>
+      <p class="mut pfnote"><b>Bu tablo gerçek dünya ölçeğindedir (M$).</b> Aynı santral gerçekte kurulsaydı yatırım ve getirisi ne olurdu, onu gösterir; oyundaki bütçen (b$) bu tutarların çok küçük bir kesridir (${scaleNote()}). Üretim ve satış fiyatı oyunda gerçekleşen değerlerdir. Oyun parası yalnızca aşağıdaki Banka kredileri bölümündedir.</p>
+      <div style="overflow-x:auto"><table class="fint"><thead><tr><th>Santral</th><th>CF</th><th>Ort. satış fiyatı</th><th title="Gerçek dünya karşılığı">Yatırım (gerçek)</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Geri ödeme</th><th>Veri</th></tr></thead><tbody id="finRows"></tbody></table></div>
       ${assumptions()}
       <h3 class="pfh">Proje finansmanı <small class="mut">borç, vergi ve satış sözleşmesi</small></h3>
       <p class="mut pfnote">Her santral iki yapıyla: <b>Spot</b>, tüm üretimi piyasaya satar; <b>PPA</b>, ilk yıllarda sabit fiyatla satar, karşılığında banka daha çok borç verir. Alttaki stres satırları spot fiyatın %${STRESS*100} düştüğü kötü senaryodur (borç baz senaryoyla boyutlanır).</p>

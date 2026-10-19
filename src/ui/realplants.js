@@ -5,7 +5,8 @@
 // dosyaları yüklenir. Düz haritada (map.js) GeoJSON çember katmanı, Apple haritasında (mapkit.js) bu modülün çizdiği karo
 // görüntüleri kullanılır. Noktalar teknoloji renginde, gücün kareköküyle büyür; dokununca ad ve güç görünür.
 // OSM gönüllü verisidir: santrallerin bir kısmı eksik ya da gücü yazılmamış olabilir. Lejant haritanın ortasındaki ülkenin
-// özetini gösterir; Türkiye'de OSM'de kayıtlı gücü TEİAŞ'ın 2025 kurulu gücüyle karşılaştırır. Lejanttaki satırlara
+// özetini gösterir; Türkiye'de kayıtlı gücü TEİAŞ'ın 2025 kurulu gücüyle karşılaştırır. GEM ile birleştirilen ülkelerde
+// (scripts/merge_gem.py) satırın sonunda kaynak bilgisi bulunur (ülke dosyasında 7., dünya dosyasında 8. öğe). Lejanttaki satırlara
 // dokununca o tür gizlenir/gösterilir; seçim tarayıcıda saklanır.
 import { countryAt } from "../world.js";
 import countries from "../data/countries.json";
@@ -15,8 +16,9 @@ export const DETAIL_Z=4.5; // bu yakınlıktan sonra ülke dosyaları yüklenir 
 const MAX_LOAD=8,CACHE=24;
 export const KINDS={w:["Rüzgâr","#5AA2E0"],s:["Güneş","#F2B42C"],h:["Hidro","#A58BEA"],g:["Doğalgaz","#9FB1BD"],c:["Kömür","#B08968"],
   o:["Petrol","#D98BB6"],j:["Jeotermal","#E8755A"],b:["Biyokütle, atık","#A6C44E"],n:["Nükleer","#F2E94C"],e:["Batarya depolama","#3CC495"],x:["Diğer, bilinmiyor","#D7DEE2"]};
-// TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı
-export const TEIAS_2025={w:14792,s:25927,h:32299,g:20027,c:21216,j:1758,b:2405,o:119};
+// TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı. Doğalgaz = tek yakıtlı 20.027 + sıvı ve gaz çok yakıtlı
+// 4.066 (çok yakıtlıların çoğu doğalgaz kombine çevrimi; varsayım). Kaynak: TEİAŞ kurulu güç tablosu 9 (2006–2025)
+export const TEIAS_2025={w:14792,s:25927,h:32299,g:24093,c:21216,j:1758,b:2405,o:119};
 const NAME=Object.fromEntries(countries.features.map(f=>[f.properties.a3,f.properties.n]));
 
 let on=(()=>{try{return localStorage.getItem(KEY)==="1";}catch(e){return false;}})();
@@ -92,8 +94,9 @@ function inBox(s,w,n,e){const out=[];
 export const radiusOf=mw=>mw?Math.min(14,2.5+0.55*Math.sqrt(mw)):2.5;
 export const kindOf=k=>KINDS[k]||KINDS.x;
 export function infoText(p){
-  const [,,k,mw,name,t]=p,[n]=kindOf(k);
-  return `${name||`Adı yazılmamış ${n.toLowerCase()} santrali`} • ${n}${mw?` • ${mw>=10?Math.round(mw).toLocaleString("tr-TR"):mw.toLocaleString("tr-TR",{maximumFractionDigits:1})} MW`:" • gücü yazılmamış"}${t?` • ${t} türbin`:""} (OpenStreetMap)`;
+  const [,,k,mw,name,t]=p,[n]=kindOf(k),x=[p[6],p[7]].find(v=>v&&typeof v==="object"); // GEM ile birleştirilmiş satırın kaynak bilgisi
+  const src=!x?"OpenStreetMap":x.s==="g"?"Global Energy Monitor":"OpenStreetMap; güç: Global Energy Monitor";
+  return `${name||`Adı yazılmamış ${n.toLowerCase()} santrali`} • ${n}${mw?` • ${mw>=10?Math.round(mw).toLocaleString("tr-TR"):mw.toLocaleString("tr-TR",{maximumFractionDigits:1})} MW`:" • gücü yazılmamış"}${t?` • ${t} türbin`:""}${x&&x.y?` • işletmeye giriş ${x.y}`:""}${x&&x.ow?` • Sahibi: ${x.ow}`:""} (${src})`;
 }
 // sayfa koordinatına en yakın santral (pagePoint: (lat,lon) → {x,y}); en çok maxPx uzaklıkta. lat/lon verilirse yalnızca
 // çevresindeki ızgara hücrelerine bakılır (Apple haritasında her nokta için dönüşüm pahalı)
@@ -142,20 +145,23 @@ function legend(){
   const mw=document.getElementById("mapwrap");if(!mw)return;let el=document.getElementById("realLegend");
   if(!on){if(el)el.hidden=true;return;}
   // açılır kutu: masaüstünde açık, dar ekranda kapalı başlar (haritayı kapatmasın)
-  if(!el){el=document.createElement("details");el.id="realLegend";el.className="reallegend";el.open=!matchMedia("(max-width:599px)").matches;mw.appendChild(el);}
+  if(!el){el=document.createElement("details");el.id="realLegend";el.className="reallegend";
+    // varsayılan kapalı (haritayı kapatmasın); açık/kapalı seçimi saklanır
+    try{el.open=localStorage.getItem(KEY+"-legend")==="1";}catch(e){}
+    el.addEventListener("toggle",()=>{try{localStorage.setItem(KEY+"-legend",el.open?"1":"0");}catch(e){}});mw.appendChild(el);}
   el.hidden=false;
   if(!index){el.innerHTML=`<summary>Gerçek santraller</summary><small>${loading?"Yükleniyor…":"Veri yüklenemedi."}</small>`;return;}
   // kapsam: haritanın ortasındaki ülke; denizdeyse ya da ülkede santral yoksa dünya toplamı
   const c=focusA3&&index.c[focusA3],tot={n:0,counts:{},mw:{}};
   if(!c)for(const v of Object.values(index.c)){tot.n+=v.n;for(const k in v.counts){tot.counts[k]=(tot.counts[k]||0)+v.counts[k];tot.mw[k]=(tot.mw[k]||0)+(v.mw[k]||0);}}
-  const sc=c||tot,tr=focusA3==="TUR",rows=Object.keys(KINDS).filter(k=>sc.counts[k]).sort((a,b)=>(sc.mw[b]||0)-(sc.mw[a]||0));
+  const sc=c||tot,tr=focusA3==="TUR",gem=c&&c.gem&&index.meta.gem,rows=Object.keys(KINDS).filter(k=>sc.counts[k]).sort((a,b)=>(sc.mw[b]||0)-(sc.mw[a]||0));
   const where=c?NAME[focusA3]||focusA3:`Dünya, ${Object.keys(index.c).length} ülke`,busy=pend.size?" • yükleniyor…":"";
   const note=view.z<DETAIL_Z?`Bu uzaklıkta yalnızca ${index.meta.worldMW} MW ve üstü santraller çizilir; yaklaşınca ülkenin tüm santralleri yüklenir.`:"";
-  el.innerHTML=`<summary>Gerçek santraller, ${where} <small>${sc.n.toLocaleString("tr-TR")} santral${busy}</small></summary><table><thead><tr><th></th><th>Santral</th><th title="OSM'de gücü yazılı santrallerin toplamı">OSM MW</th>${tr?`<th title="OSM'de gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranı">Kapsama</th>`:""}</tr></thead><tbody>${rows.map(k=>{
+  el.innerHTML=`<summary>Gerçek santraller, ${where} <small>${sc.n.toLocaleString("tr-TR")} santral${busy}</small></summary><table><thead><tr><th></th><th>Santral</th><th title="${gem?"Gücü yazılı santrallerin toplamı (OSM ve GEM birleşik)":"OSM'de gücü yazılı santrallerin toplamı"}">${gem?"MW":"OSM MW"}</th>${tr?`<th title="Gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranı">Kapsama</th>`:""}</tr></thead><tbody>${rows.map(k=>{
     const [n,col]=KINDS[k],t=TEIAS_2025[k],cov=tr&&t&&sc.mw[k]?Math.round(sc.mw[k]/t*100):null;
     return `<tr class="${hidden.has(k)?"off":""}"><td><button type="button" data-k="${k}" aria-pressed="${!hidden.has(k)}" title="Göster / gizle"><i style="background:${col}"></i>${n}</button></td><td>${sc.counts[k].toLocaleString("tr-TR")}</td><td>${fmtN(sc.mw[k])}</td>${tr?`<td>${cov==null?"—":"%"+cov}</td>`:""}</tr>`;}).join("")}</tbody></table>
     <div class="rlf"><button type="button" data-f="renew" aria-pressed="${[...hidden].sort().join()===NONRENEW.slice().sort().join()}">Yalnızca yenilenebilir</button><button type="button" data-f="all" aria-pressed="${hidden.size===0}">Hepsi</button></div>
-    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${tr?" Kapsama, OSM'de gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranıdır.":""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.</small>`;
+    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${gem?" Büyük santrallerin gücü ve OSM'de olmayan santraller Global Energy Monitor'dan.":""}${tr?` Kapsama, gücü yazılı santrallerin TEİAŞ 2025 yıl sonu kurulu gücüne oranıdır${gem?"; GEM verisi daha yeni olduğundan 2026'da açılan santraller oranı %100'ün üstüne çıkarabilir":""}.`:""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.${gem?` Global Integrated Power Tracker, Global Energy Monitor, ${gem.release} (CC BY 4.0).`:""}</small>`;
 }
 // lejant düğmeleri: tür aç/kapa, kısayollar (olay yetkisi bir kez kutuya bağlanır)
 function onLegendClick(e){const b=e.target.closest("button");if(!b)return;
