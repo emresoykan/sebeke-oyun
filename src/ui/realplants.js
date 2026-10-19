@@ -16,8 +16,9 @@ export const DETAIL_Z=4.5; // bu yakınlıktan sonra ülke dosyaları yüklenir 
 const MAX_LOAD=8,CACHE=24;
 export const KINDS={w:["Rüzgâr","#5AA2E0"],s:["Güneş","#F2B42C"],h:["Hidro","#A58BEA"],g:["Doğalgaz","#9FB1BD"],c:["Kömür","#B08968"],
   o:["Petrol","#D98BB6"],j:["Jeotermal","#E8755A"],b:["Biyokütle, atık","#A6C44E"],n:["Nükleer","#F2E94C"],e:["Batarya depolama","#3CC495"],x:["Diğer, bilinmiyor","#D7DEE2"]};
-// TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı
-export const TEIAS_2025={w:14792,s:25927,h:32299,g:20027,c:21216,j:1758,b:2405,o:119};
+// TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı. Doğalgaz = tek yakıtlı 20.027 + sıvı ve gaz çok yakıtlı
+// 4.066 (çok yakıtlıların çoğu doğalgaz kombine çevrimi; varsayım). Kaynak: TEİAŞ kurulu güç tablosu 9 (2006–2025)
+export const TEIAS_2025={w:14792,s:25927,h:32299,g:24093,c:21216,j:1758,b:2405,o:119};
 const NAME=Object.fromEntries(countries.features.map(f=>[f.properties.a3,f.properties.n]));
 
 let on=(()=>{try{return localStorage.getItem(KEY)==="1";}catch(e){return false;}})();
@@ -160,7 +161,7 @@ function legend(){
     const [n,col]=KINDS[k],t=TEIAS_2025[k],cov=tr&&t&&sc.mw[k]?Math.round(sc.mw[k]/t*100):null;
     return `<tr class="${hidden.has(k)?"off":""}"><td><button type="button" data-k="${k}" aria-pressed="${!hidden.has(k)}" title="Göster / gizle"><i style="background:${col}"></i>${n}</button></td><td>${sc.counts[k].toLocaleString("tr-TR")}</td><td>${fmtN(sc.mw[k])}</td>${tr?`<td>${cov==null?"—":"%"+cov}</td>`:""}</tr>`;}).join("")}</tbody></table>
     <div class="rlf"><button type="button" data-f="renew" aria-pressed="${[...hidden].sort().join()===NONRENEW.slice().sort().join()}">Yalnızca yenilenebilir</button><button type="button" data-f="all" aria-pressed="${hidden.size===0}">Hepsi</button></div>
-    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${gem?" Büyük santrallerin gücü ve OSM'de olmayan santraller Global Energy Monitor'dan.":""}${tr?" Kapsama, gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranıdır.":""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.${gem?` Global Integrated Power Tracker, Global Energy Monitor, ${gem.release} (CC BY 4.0).`:""}</small>`;
+    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${gem?" Büyük santrallerin gücü ve OSM'de olmayan santraller Global Energy Monitor'dan.":""}${tr?` Kapsama, gücü yazılı santrallerin TEİAŞ 2025 yıl sonu kurulu gücüne oranıdır${gem?"; GEM verisi daha yeni olduğundan 2026'da açılan santraller oranı %100'ün üstüne çıkarabilir":""}.`:""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.${gem?` Global Integrated Power Tracker, Global Energy Monitor, ${gem.release} (CC BY 4.0).`:""}</small>`;
 }
 // lejant düğmeleri: tür aç/kapa, kısayollar (olay yetkisi bir kez kutuya bağlanır)
 function onLegendClick(e){const b=e.target.closest("button");if(!b)return;

@@ -27,12 +27,13 @@ from datetime import datetime, timezone
 
 WORLD_MW = 100
 COUNTRY_NAMES = {"TUR": {"turkey", "turkiye", "türkiye"}}
-# TEİAŞ 2025 yıl sonu kurulu güç (MW; src/ui/realplants.js TEIAS_2025 ile aynı)
-TEIAS_2025 = {"w": 14792, "s": 25927, "h": 32299, "g": 20027, "c": 21216, "j": 1758, "b": 2405, "o": 119}
+# TEİAŞ 2025 yıl sonu kurulu güç (MW; src/ui/realplants.js TEIAS_2025 ile aynı). Doğalgaz: tek yakıtlı 20.027 + sıvı ve gaz
+# çok yakıtlı 4.066 (çok yakıtlıların çoğu doğalgaz kombine çevrimidir; varsayım). Kaynak: TEİAŞ, Kurulu güç tablosu 9 (2006–2025)
+TEIAS_2025 = {"w": 14792, "s": 25927, "h": 32299, "g": 24093, "c": 21216, "j": 1758, "b": 2405, "o": 119}
 # başlık adayları (küçük harf, yalnızca harf/rakam)
 COLS = {"country": ["countryarea", "country"], "plant": ["plantprojectname", "projectname", "plantname"],
         "unit": ["unitphasename", "phasename", "unitname"], "loc": ["gemlocationid", "locationid"],
-        "uid": ["gemunitphaseid", "gemunitid", "unitphaseid"], "type": ["type"], "tech": ["technology"], "fuel": ["fuel"],
+        "uid": ["gemunitphaseid", "gemunitid", "unitphaseid"], "type": ["type"], "tech": ["technology"], "fuel": ["fuel", "fuelcombustiononly"],
         "mw": ["capacitymw", "capacity"], "status": ["status"], "owner": ["owners", "owner"], "start": ["startyear"],
         "lat": ["latitude", "lat"], "lon": ["longitude", "lon", "lng"], "acc": ["locationaccuracy"]}
 OPERATING, CLOSED = {"operating"}, {"retired", "mothballed"}
@@ -82,7 +83,7 @@ def extract(a):
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     json.dump({"source": "Global Integrated Power Tracker, Global Energy Monitor", "license": "CC BY 4.0",
                "release": release, "extracted": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "country": a.country,
-               "units": out}, open(a.out, "w", encoding="utf-8"), ensure_ascii=False, indent=0, default=str)
+               "units": out}, open(a.out, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"), default=str)
     print(f"Yazıldı: {a.out}")
 
 # --- birleştirme ---
@@ -107,16 +108,27 @@ TR_MAP = str.maketrans("çğıöşüâîûİI", "cgiosuaiuii")
 STOP = set("""res ges hes jes des dgkc dgks tes ruzgar gunes enerji enerjisi santrali santral santralı elektrik uretim
 hidroelektrik baraji baraj regulator regulatoru termik dogalgaz kombine cevrim jeotermal biyokutle biyogaz wind farm power
 plant station solar pv park project phase hydroelectric hydropower dam thermal combined cycle gas geothermal biomass
-biogas nuclear coal fired energy i ii iii iv v 1 2 3 4 5 ve and of the""".split())
+biogas nuclear coal fired energy unite unit ve and of the""".split())
 
 def toks(s):
     s = str(s or "").lower().translate(TR_MAP); return [t for t in re.findall(r"[a-z0-9]+", s) if t not in STOP]
 
+# santral ya da ünite ayırıcıları: Roma ve Arap rakamları, tek harf (Kovada I / Kovada II, Soma A / Soma B)
+DESIG = re.compile(r"^(?:[ivx]{1,4}|\d{1,3}|[a-h])$")
+
 def sim(a, b):
     """ad benzerliği 0…1: ortak anlamlı sözcük oranı (biri ötekinin en az 4 harflik öneki olan sözcükler de sayılır);
-    ortak sözcük yoksa yalnızca yazımı çok yakın adlar (ör. Türkçe/İngilizce harf farkı)"""
-    ta, tb = set(toks(a)), set(toks(b))
+    ortak sözcük yoksa yalnızca yazımı çok yakın adlar (ör. Türkçe/İngilizce harf farkı). İki adda da ayırıcı varsa ve
+    farklıysa (Kovada I ile Kovada II) benzerlik en çok 0,4 olur; yalnızca birinde varsa (GEM "Soma", OSM "Soma B")
+    düşürülmez, çünkü GEM aynı konumdaki santralleri tek kayıtta toplar."""
+    wa, wb = set(toks(a)), set(toks(b))
+    da, db = {t for t in wa if DESIG.match(t)}, {t for t in wb if DESIG.match(t)}
+    ta, tb = wa - da, wb - db
     if not ta or not tb: return 0.0
+    v = _sim(ta, tb)
+    return min(v, 0.4) if da and db and da != db else v
+
+def _sim(ta, tb):
     hit = lambda t, other: any(t == u or (min(len(t), len(u)) >= 4 and (t.startswith(u) or u.startswith(t))) for u in other)
     ov = min(sum(hit(t, tb) for t in ta), sum(hit(t, ta) for t in tb)) / min(len(ta), len(tb))
     if ov: return ov
@@ -163,8 +175,9 @@ def strip(rows, gone=()):
         x = r[6] if len(r) > 6 and isinstance(r[6], dict) else None
         if not x: out.append(r); continue
         if x.get("s") == "g": continue
-        out.append(r[:3] + [x.get("om")] + r[4:6]); out += [list(f) for f in x.get("f", [])]
-    return out
+        out.append(r[:3] + [x.get("om"), x.get("on", r[4]), r[5]]); out += [list(f) for f in x.get("f", [])]
+    # sıra eşleştirmede eşitlikleri bozar: her çalıştırmada aynı olsun (betik aynı dosyada tekrar çalışınca aynı sonuç)
+    return sorted(out, key=lambda r: (-(r[3] or 0), r[0], r[1], r[2], r[4] or ""))
 
 def candidates(gem, osm):
     pairs = []
@@ -175,6 +188,12 @@ def candidates(gem, osm):
             d = km(g["lat"], g["lon"], o["lat"], o["lon"])
             if d > 3 * R: continue
             s = sim(g["n"], o["n"])
+            # gücü birebir aynı (%3 içinde, en az 20 MW) ise ad farklı olsa da aynı santral sayılır (ör. OSM "Acwa Power
+            # Kırıkkale", GEM "Yahsihan power station", ikisi de 927,4 MW, 8 km)
+            cap = bool(o["mw"] and g["mw"] >= 20 and abs(o["mw"] - g["mw"]) <= 0.03 * g["mw"])
+            if cap: s = max(s, 0.6)
+            # adı benzemiyor ve gücü üç kattan çok farklı: büyük olasılıkla yan yana iki ayrı santral
+            if s < 0.3 and o["mw"] and not (1 / 3 <= g["mw"] / o["mw"] <= 3): continue
             ok = (d <= R and (s >= 0.3 or d <= R / 2 or not o["n"])) if exact else (d <= R and s >= 0.3)
             if not ok and d <= 3 * R and s >= 0.6: ok = True  # konum farklı ama ad aynı (ör. baraj gövdesi ile santral binası)
             if ok: pairs.append((d / R - s, gi, o["i"], d, s))
@@ -186,11 +205,12 @@ def merge(rows, gem, closed=()):
     for _, gi, oi, d, s in pairs:
         if gi in gm or oi in om: continue
         gm[gi] = oi; om[oi] = gi
-    # aynı santralin parçası olan diğer OSM kayıtları (eşleşen GEM santralinin yarıçapında, adı çok benzer)
+    # aynı santralin parçası olan diğer OSM kayıtları (eşleşen GEM santralinin iki yarıçap içinde, adı çok benzer;
+    # GEM aynı konumdaki santralleri tek kayıtta toplar: Afşin-Elbistan A ve B)
     fold = {}
     for _, gi, oi, d, s in pairs:
         if oi in om or oi in fold or gi not in gm: continue
-        if s >= 0.6 and d <= RADIUS.get(gem[gi]["k"], 3): fold[oi] = gi
+        if s >= 0.6 and d <= 2 * RADIUS.get(gem[gi]["k"], 3): fold[oi] = gi
     # GEM'de kapanmış (emekli, bekletmede) bir santrale yakın ve adı benzer olup işletmedeki hiçbir GEM santraliyle
     # eşleşmeyen OSM kayıtları çıkarılır (OSM'de kapanan santraller çoğu zaman silinmez); ad şartı daha sıkı
     gone, used = set(), set()
@@ -209,6 +229,7 @@ def merge(rows, gem, closed=()):
         if o["i"] in fold or o["i"] in gone: continue
         if o["i"] in om:
             g = gem[om[o["i"]]]; x = {"s": "m", "om": r[3]}
+            if not r[4] and g["n"]: x["on"] = r[4]  # OSM'de adsız: GEM adı yazılır, eski hâli saklanır
             if extra.get(om[o["i"]]): x["f"] = extra[om[o["i"]]]
             if g.get("ow"): x["ow"] = str(g["ow"])[:120]
             if g.get("y"): x["y"] = g["y"]
