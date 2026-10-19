@@ -55,7 +55,7 @@ function paint(g,kind){
   for(let k=0;k<m*m;k++){const a=v[k]<0?0:ALPHA[Math.max(1,Math.min(5,lv(v[k])))];px[k*4]=r;px[k*4+1]=gr;px[k*4+2]=b;px[k*4+3]=Math.round(a*255);}
   sg.putImageData(im,0,0);
   const c=document.createElement("canvas");c.width=c.height=256;const cg=c.getContext("2d");cg.imageSmoothingEnabled=true;cg.imageSmoothingQuality="high";
-  cg.drawImage(src,1,1,N,N,0,0,256,256);return c;
+  cg.drawImage(src,1,1,N,N,0,0,256,256);src.width=src.height=0;return c;
 }
 // büyük yakınlıkta üst karonun bir parçası büyütülür (hesap yükü sabit kalır)
 function norm(z,x,y){const n=2**z;if(y<0||y>=n)return null;x=((x%n)+n)%n;if(z<=MAXZ)return {z,x,y,sub:null};
@@ -76,7 +76,8 @@ export function tileURL(z,x,y){
   if(mode==="off")return null;const t=norm(z,x,y);if(!t)return null;
   const key=`${mode}/${z}/${x}/${y}`;let u=urls.get(key);if(u)return u;
   const g=grid(t.z,t.x,t.y,()=>{});if(!g)return null;
-  u=crop(paint(g,mode),t.sub).toDataURL();if(urls.size>500)urls.clear();urls.set(key,u);return u;
+  const p=paint(g,mode),c=crop(p,t.sub);u=c.toDataURL();p.width=p.height=0;c.width=c.height=0; // tuvaller hemen bırakılır (iOS)
+  if(urls.size>500)urls.clear();urls.set(key,u);return u;
 }
 
 // --- Düğme ve lejant ---

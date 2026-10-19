@@ -117,6 +117,17 @@
 <dialog id="confirmDlg" class="confirm" aria-label="Onay"></dialog>
 <dialog id="winDlg" class="windlg" aria-label="Hedefe ulaştın"></dialog>
 <dialog id="fbDlg" aria-label="Geri bildirim"></dialog>
+<script>
+// Açılış koruması: iOS Safari bellek yetmeyince sekmeyi kapatıp sayfayı yeniden açar ("A problem repeatedly occurred").
+// Açılış işaretlenir; sayfa 10 sn sorunsuz çalışınca ya da normal kapanınca (pagehide) silinir (main.js). İşaret duruyorsa
+// önceki açılış çökmüştür: 1. kez gerçek santraller ve potansiyel katmanları kapatılır, 2. kez düz haritaya (MapLibre)
+// geçilir. ?safe=1 ikisini birden elle yapar.
+(function(){try{var q=new URLSearchParams(location.search),K="sebeke-boot",n=+(localStorage.getItem(K)||0)+(q.has("safe")?2:0);
+  localStorage.setItem(K,String(Math.min(n,2)+1));window.__safeBoot=Math.min(n,2);
+  if(n>=1){localStorage.setItem("sebeke-realpl","0");localStorage.setItem("sebeke-pot","off");}
+  if(n>=2&&!q.get("map")){q.set("map","maplibre");q.delete("safe");history.replaceState(null,"",location.pathname+"?"+q+location.hash);}
+}catch(e){}})();
+</script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

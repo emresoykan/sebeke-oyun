@@ -13,7 +13,7 @@ import countries from "../data/countries.json";
 
 const KEY="sebeke-realpl",HKEY="sebeke-realpl-hide",DIR=`${import.meta.env.BASE_URL}data/plants/`;
 export const DETAIL_Z=4.5; // bu yakınlıktan sonra ülke dosyaları yüklenir (altında yalnızca büyük santraller)
-const MAX_LOAD=8,CACHE=24;
+const MAX_LOAD=8,CACHE=24,TILE_CACHE=matchMedia("(pointer:coarse)").matches?150:400;
 export const KINDS={w:["Rüzgâr","#5AA2E0"],s:["Güneş","#F2B42C"],h:["Hidro","#A58BEA"],g:["Doğalgaz","#9FB1BD"],c:["Kömür","#B08968"],
   o:["Petrol","#D98BB6"],j:["Jeotermal","#E8755A"],b:["Biyokütle, atık","#A6C44E"],n:["Nükleer","#F2E94C"],e:["Batarya depolama","#3CC495"],x:["Diğer, bilinmiyor","#D7DEE2"]};
 // TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı. Doğalgaz = tek yakıtlı 20.027 + sıvı ve gaz çok yakıtlı
@@ -135,7 +135,8 @@ export function realTileURL(z,x,y){
   for(const k of keys){const a=by.get(k);g.fillStyle=k.slice(1);g.globalAlpha=0.85;g.beginPath();let arcs=0;
     for(let j=0;j<a.length;j+=3){const r=a[j+2];if(r<3){g.rect(a[j]-r,a[j+1]-r,2*r,2*r);}else{g.moveTo(a[j]+r,a[j+1]);g.arc(a[j],a[j+1],r,0,Math.PI*2);arcs++;}}
     g.fill();g.globalAlpha=1;if(z>=5)g.stroke();}
-  const u=n?cv.toDataURL(FMT()):null;tiles.set(key,u);if(tiles.size>400)tiles.delete(tiles.keys().next().value);return u;
+  // tuval hemen bırakılır (iOS Safari tuval belleğini çöp toplamayı beklemeden doldurup sekmeyi kapatabiliyor)
+  const u=n?cv.toDataURL(FMT()):null;cv.width=cv.height=0;tiles.set(key,u);if(tiles.size>TILE_CACHE)tiles.delete(tiles.keys().next().value);return u;
 }
 
 // --- Düğme ve lejant ---

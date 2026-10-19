@@ -8,7 +8,7 @@ import { initProfile } from "./ui/profile.js";
 import { PROFILE_KEY } from "./profile.js";
 import { skipDone } from "./missions.js";
 import { renderMission } from "./ui/mission.js";
-import { initSound } from "./ui/fx.js";
+import { initSound, toast } from "./ui/fx.js";
 import { clock } from "./wxsite.js";
 import { initWeatherToggle } from "./ui/wxflat.js";
 import { openDesk } from "./ui/desk.js";
@@ -45,6 +45,9 @@ function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribut
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
 speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
+// açılış koruması (index.html): sayfa 10 sn çalıştıysa ya da normal kapandıysa açılış başarılı sayılır
+{const ok=()=>{try{localStorage.removeItem("sebeke-boot");}catch(e){}};setTimeout(ok,10000);addEventListener("pagehide",ok);
+  if(window.__safeBoot)setTimeout(()=>toast("Güvenli açılış",window.__safeBoot>=2?"Önceki açılışlar tamamlanamadı: düz harita açıldı, gerçek santraller ve potansiyel katmanları kapatıldı.":"Önceki açılış tamamlanamadı: gerçek santraller ve potansiyel katmanları kapatıldı. Harita düğmelerinden yeniden açabilirsin."),1500);}
 // takvimin yanındaki "×3": dokununca açıklama açılır (fareyle üzerine gelmek telefonda olmadığı için)
 {const b=document.getElementById("calX"),t=document.getElementById("calTip");
   const set=v=>{t.hidden=!v;b.setAttribute("aria-expanded",String(v));};
