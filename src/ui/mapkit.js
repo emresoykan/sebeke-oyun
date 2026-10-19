@@ -16,7 +16,7 @@ import { PROTECTED } from "../data/protected.js";
 import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
-import { realTileURL, onRealChange, realOn, setRealView } from "./realplants.js";
+import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -176,6 +176,7 @@ export async function initMapKit(el,h){
   // gerçek santraller (realplants.js): karo görüntüsü olarak çizilir; açılıp kapanınca yenilenir
   const real=new mk.TileOverlay((x,y,z)=>realTileURL(z,x,y),{opacity:realOn()?1:0});
   onRealChange(on=>{if(!map)return;real.opacity=on?1:0;real.reload();});
+  onRealTile(()=>{if(map&&realOn())real.reload();}); // arka planda çizilen karolar hazır oldukça
   map.addTileOverlays([night,pot,real,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
