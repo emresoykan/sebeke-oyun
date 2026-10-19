@@ -45,6 +45,12 @@ function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribut
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
 speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
+// takvimin yanındaki "×3": dokununca açıklama açılır (fareyle üzerine gelmek telefonda olmadığı için)
+{const b=document.getElementById("calX"),t=document.getElementById("calTip");
+  const set=v=>{t.hidden=!v;b.setAttribute("aria-expanded",String(v));};
+  b.onclick=e=>{e.stopPropagation();set(t.hidden);};
+  document.addEventListener("click",e=>{if(!t.hidden&&!t.contains(e.target))set(false);});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")set(false);});}
 // iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
   const r=force?{ok:true,checked:false}:await confirmBox("Yeniden başla","Oyundaki tüm ilerleme (para, sahalar, santraller, krediler, rozetler) silinsin mi? Bu işlem geri alınamaz. Şirket profilin (ad, şirket, renk, uzmanlık) korunur; aşağıdan onu da silebilirsin.","Sil",true,"Şirket profilini de sil ve kurulum ekranını yeniden aç");

@@ -25,6 +25,9 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
 h1{font-size:1.5rem;font-weight:800;margin:0;letter-spacing:-.02em;line-height:1.1}
 h1 .logo{width:1.35em;height:1.35em;border-radius:22%;vertical-align:-.3em;margin-right:.35em;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .sub{color:var(--muted);font-size:.85rem;margin-top:2px}
+.calwrap{position:relative;display:inline-block}
+.calx{margin-left:4px;padding:0 5px;min-height:20px;border:1px solid var(--line,#C9D3DB);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:.74rem;font-weight:700;cursor:pointer;vertical-align:1px}
+.caltip{position:absolute;z-index:40;left:0;top:calc(100% + 6px);width:min(280px,80vw);padding:8px 10px;border-radius:10px;background:rgba(18,26,34,.95);color:#E5ECF0;font-size:.78rem;line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .cash{text-align:right}
 .cash b{display:block;font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
 .cash span{color:var(--muted);font-size:.8rem}

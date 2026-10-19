@@ -28,7 +28,9 @@ export const REG={
 export const MARKETS=["T","E","N","S","F","M","A","O"];
 export const TECH={
   ges:{n:"GES",long:"Güneş (GES)",capex:55000,opex:100,c:"--solar"},
-  res:{n:"RES",long:"Rüzgâr karada (RES)",capex:140000,opex:250,c:"--wind"},
+  // RES: IRENA 2024 1.041 $/kW × 5 MW = 5,21 M$, GES ile aynı ölçek (1/63) → 83 b$ (önceden 140 b$, ölçek 1/37: rüzgâr
+  // gerçeğe göre 1,7 kat pahalı kalıyordu)
+  res:{n:"RES",long:"Rüzgâr karada (RES)",capex:83000,opex:250,c:"--wind"},
   off:{n:"Offshore",long:"Rüzgâr denizde (offshore RES)",capex:260000,opex:500,c:"--wind"},
   hes:{n:"HES",long:"Hidroelektrik (HES)",capex:180000,opex:200,c:"--hydro"},
   batt:{n:"Batarya",long:"Batarya depolama (BESS) 5 MW / 10 MWh",capex:30000,opex:50,c:"--batt"},
