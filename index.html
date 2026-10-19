@@ -19,7 +19,7 @@
 <body>
 <main>
   <header>
-    <div><h1><img class="logo" src="/icons/logo-64.png" alt="" width="32" height="32">Wattlas</h1><div class="sub">Dünya • <span id="dayLbl">Gün 1</span> • <span id="clockTop">00:00</span></div>
+    <div><h1><img class="logo" src="/icons/logo-64.png" alt="" width="32" height="32">Wattlas</h1><div class="sub">Dünya • <span id="dayLbl"></span><span class="calwrap"><button type="button" id="calX" class="calx" aria-expanded="false" aria-controls="calTip" title="Takvim neden hızlı?">×3</button><span id="calTip" class="caltip" role="note" hidden>Takvim oyun gününden 3 kat hızlı akar: her oyun günü takvimi 3 gün ilerletir, böylece mevsimler 120 oyun gününde döner. Üretim ve gelir her oyun gününde bir günlüktür.</span></span> • <span id="dayNo">Gün 1</span> • <span id="clockTop">00:00</span></div>
       <button class="pchip" id="profileBtn" aria-haspopup="dialog" aria-label="Oyuncu profili"></button></div>
     <div class="hright"><div class="clockbtns"><button id="pauseBtn" aria-pressed="false" aria-label="Duraklat">⏸</button><button id="speedBtn" aria-label="Oyun hızı">1x</button></div>
       <div class="cash"><b id="cash">–</b><span>Nakit</span></div></div>
@@ -117,6 +117,17 @@
 <dialog id="confirmDlg" class="confirm" aria-label="Onay"></dialog>
 <dialog id="winDlg" class="windlg" aria-label="Hedefe ulaştın"></dialog>
 <dialog id="fbDlg" aria-label="Geri bildirim"></dialog>
+<script>
+// Açılış koruması: iOS Safari bellek yetmeyince sekmeyi kapatıp sayfayı yeniden açar ("A problem repeatedly occurred").
+// Açılış işaretlenir; sayfa 10 sn sorunsuz çalışınca ya da normal kapanınca (pagehide) silinir (main.js). İşaret duruyorsa
+// önceki açılış çökmüştür: 1. kez gerçek santraller ve potansiyel katmanları kapatılır, 2. kez düz haritaya (MapLibre)
+// geçilir. ?safe=1 ikisini birden elle yapar.
+(function(){try{var q=new URLSearchParams(location.search),K="sebeke-boot",n=+(localStorage.getItem(K)||0)+(q.has("safe")?2:0);
+  localStorage.setItem(K,String(Math.min(n,2)+1));window.__safeBoot=Math.min(n,2);
+  if(n>=1){localStorage.setItem("sebeke-realpl","0");localStorage.setItem("sebeke-pot","off");}
+  if(n>=2&&!q.get("map")){q.set("map","maplibre");q.delete("safe");history.replaceState(null,"",location.pathname+"?"+q+location.hash);}
+}catch(e){}})();
+</script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

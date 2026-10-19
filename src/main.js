@@ -8,7 +8,7 @@ import { initProfile } from "./ui/profile.js";
 import { PROFILE_KEY } from "./profile.js";
 import { skipDone } from "./missions.js";
 import { renderMission } from "./ui/mission.js";
-import { initSound } from "./ui/fx.js";
+import { initSound, toast } from "./ui/fx.js";
 import { clock } from "./wxsite.js";
 import { initWeatherToggle } from "./ui/wxflat.js";
 import { openDesk } from "./ui/desk.js";
@@ -45,6 +45,15 @@ function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribut
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
 speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
+// açılış koruması (index.html): sayfa 10 sn çalıştıysa ya da normal kapandıysa açılış başarılı sayılır
+{const ok=()=>{try{localStorage.removeItem("sebeke-boot");}catch(e){}};setTimeout(ok,10000);addEventListener("pagehide",ok);
+  if(window.__safeBoot)setTimeout(()=>toast("Güvenli açılış",window.__safeBoot>=2?"Önceki açılışlar tamamlanamadı: düz harita açıldı, gerçek santraller ve potansiyel katmanları kapatıldı.":"Önceki açılış tamamlanamadı: gerçek santraller ve potansiyel katmanları kapatıldı. Harita düğmelerinden yeniden açabilirsin."),1500);}
+// takvimin yanındaki "×3": dokununca açıklama açılır (fareyle üzerine gelmek telefonda olmadığı için)
+{const b=document.getElementById("calX"),t=document.getElementById("calTip");
+  const set=v=>{t.hidden=!v;b.setAttribute("aria-expanded",String(v));};
+  b.onclick=e=>{e.stopPropagation();set(t.hidden);};
+  document.addEventListener("click",e=>{if(!t.hidden&&!t.contains(e.target))set(false);});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")set(false);});}
 // iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
   const r=force?{ok:true,checked:false}:await confirmBox("Yeniden başla","Oyundaki tüm ilerleme (para, sahalar, santraller, krediler, rozetler) silinsin mi? Bu işlem geri alınamaz. Şirket profilin (ad, şirket, renk, uzmanlık) korunur; aşağıdan onu da silebilirsin.","Sil",true,"Şirket profilini de sil ve kurulum ekranını yeniden aç");
@@ -72,4 +81,4 @@ initSheet({onTab:t=>{if(t==="piyasa")drawChart();}});
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk();initLeague();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();});

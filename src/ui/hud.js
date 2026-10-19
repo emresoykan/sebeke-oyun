@@ -32,8 +32,7 @@ export function drawChart(){
 export function render(){
   const h=Math.min(S.hour,23),k=selMarket(),M=D[k],st=D.st;
   document.getElementById("cash").textContent=fmt$(S.money);
-  const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");dl.textContent=`${sn.i} ${fmtDate(CAL.date)} • Gün ${S.dayNo}`;
-  dl.title="Takvim oyun gününden hızlı akar: her oyun günü takvimi 3 gün ilerletir, bir yıl 120 oyun gününde geçer. Üretim ve gelir her oyun gününde bir günlüktür.";
+  const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");dl.textContent=`${sn.i} ${fmtDate(CAL.date)}`;document.getElementById("dayNo").textContent=`Gün ${S.dayNo}`;
   document.getElementById("clockTop").textContent=String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);

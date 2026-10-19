@@ -13,7 +13,7 @@ import countries from "../data/countries.json";
 
 const KEY="sebeke-realpl",HKEY="sebeke-realpl-hide",DIR=`${import.meta.env.BASE_URL}data/plants/`;
 export const DETAIL_Z=4.5; // bu yakınlıktan sonra ülke dosyaları yüklenir (altında yalnızca büyük santraller)
-const MAX_LOAD=8,CACHE=24;
+const MAX_LOAD=8,CACHE=24,TILE_CACHE=matchMedia("(pointer:coarse)").matches?150:400;
 export const KINDS={w:["Rüzgâr","#5AA2E0"],s:["Güneş","#F2B42C"],h:["Hidro","#A58BEA"],g:["Doğalgaz","#9FB1BD"],c:["Kömür","#B08968"],
   o:["Petrol","#D98BB6"],j:["Jeotermal","#E8755A"],b:["Biyokütle, atık","#A6C44E"],n:["Nükleer","#F2E94C"],e:["Batarya depolama","#3CC495"],x:["Diğer, bilinmiyor","#D7DEE2"]};
 // TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı. Doğalgaz = tek yakıtlı 20.027 + sıvı ve gaz çok yakıtlı
@@ -80,7 +80,7 @@ function rebuild(){
   for(const a3 of loaded)for(const p of C.get(a3))if(shown(p))list.push(p);
   active=list;active.detail=detail;
   grid=new Map();for(const p of list){const k=Math.floor(p[0])*400+Math.floor(p[1]);let g=grid.get(k);if(!g)grid.set(k,g=[]);g.push(p);}
-  ver++;tiles.clear();
+  ver++;queue.clear();
 }
 function changed(){rebuild();emit();legend();}
 export async function setReal(v){on=v;try{localStorage.setItem(KEY,v?"1":"0");}catch(e){}if(v){legend();await loadReal();setRealView(view);}changed();label();}
@@ -112,30 +112,60 @@ export function realGeoJSON(){
     properties:{k:p[2],mw:p[3]||0,r:radiusOf(p[3]),c:kindOf(p[2])[1],n:p[4]||"",i}}))};
 }
 
-// Apple haritası için karo görüntüsü (256 px, Web Mercator); önbellekli, sürüm değişince temizlenir
-const tiles=new Map();
+// Apple haritası için karo görüntüsü (256 px, Web Mercator). Çizim ana iş parçacığını kilitlemesin diye kuyrukta, parça
+// parça yapılır: realTileURL hazır görüntüyü (yoksa eskisini, o da yoksa null) hemen döndürür, eksik karoyu kuyruğa koyar;
+// kuyruk boşalınca ya da 300 ms'de bir onRealTile dinleyicileri (mapkit.js) katmanı yeniler. Önbellek anahtarı karonun
+// içindeki noktaların imzasıdır: ülke yüklenince ya da tür gizlenince yalnızca içeriği değişen karolar yeniden çizilir
+// (önceden her değişiklikte ekrandaki 20–30 karonun hepsi baştan çiziliyordu: karo başına 8–20 ms).
+const tiles=new Map(),queue=new Map(),tileListeners=new Set();
+export const onRealTile=f=>tileListeners.add(f);
 // karo biçimi: WebP kodlaması PNG'den çok hızlı (yazılımla çizen Chromium'da 256 px karo: PNG ~1 sn, WebP ~25 ms);
 // tarayıcı WebP kodlayamıyorsa (Safari) PNG
 let fmt=null;const FMT=()=>fmt||(fmt=(()=>{try{const c=document.createElement("canvas");c.width=c.height=1;return c.toDataURL("image/webp").startsWith("data:image/webp")?"image/webp":"image/png";}catch(e){return "image/png";}})());
 const lon2x=(lon,z)=>(lon+180)/360*256*2**z,lat2y=(lat,z)=>{const s=Math.sin(lat*Math.PI/180);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*256*2**z;};
 const x2lon=(x,z)=>x/2**z*360-180,y2lat=(y,z)=>Math.atan(Math.sinh(Math.PI*(1-2*y/2**z)))*180/Math.PI;
+// karoya düşen noktalar (kenara taşan daireler için pay ile)
+function tilePts(z,x,y){const m=0.15*360/2**z;return z<3?active:inBox(y2lat(y+1,z)-m,x2lon(x,z)-m,y2lat(y,z)+m,x2lon(x+1,z)+m);}
+function sigOf(pts){let h=pts.length;for(const p of pts)h=(Math.imul(h,31)+((p[0]*1e4)|0)+Math.imul((p[1]*1e4)|0,7)+((p[3]||0)*10|0))|0;return h;}
 export function realTileURL(z,x,y){
-  if(!on||!active.length)return null;const key=`${ver}/${z}/${x}/${y}`;if(tiles.has(key))return tiles.get(key);
-  const m=0.15*360/2**z;// kenara taşan noktalar için pay
-  const pts=z<3?active:inBox(y2lat(y+1,z)-m,x2lon(x,z)-m,y2lat(y,z)+m,x2lon(x+1,z)+m);
-  const x0=x*256,y0=y*256,sc=z<5?0.7:z<7?0.85:1,cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d",{willReadFrequently:true});let n=0;
-  // renge göre tek yolda çizilir (her nokta için ayrı fill/stroke binlerce noktada saniyeler sürüyordu); kenar çizgisi
-  // yalnızca yakında (z ≥ 5). Önce küçükler, sonra büyükler: büyük santraller üstte kalır
+  if(!on||!active.length)return null;
+  const key=`${z}/${x}/${y}`,pts=tilePts(z,x,y),sig=sigOf(pts),c=tiles.get(key);
+  if(c&&c.sig===sig)return c.url;
+  if(!pts.length){tiles.set(key,{sig,url:null});return null;}
+  queue.set(key,{z,x,y,pts,sig});pump();
+  return c?c.url:null; // yenisi hazırlanırken eskisi görünür (boş karo yanıp sönmesin)
+}
+// kuyruğu parça parça işle: her adımda bir karo çizilir, araya tarayıcıya nefes payı bırakılır
+let pumping=false,lastNote=0;
+function pump(){if(pumping)return;pumping=true;setTimeout(step,0);}
+async function step(){
+  const it=queue.entries().next();
+  if(it.done){pumping=false;note(true);return;}
+  const [key,t]=it.value;queue.delete(key);
+  const old=tiles.get(key);if(!(old&&old.sig===t.sig)){const url=await draw(t);setTile(key,{sig:t.sig,url});}
+  note(false);setTimeout(step,0);
+}
+function note(done){const now=performance.now();if(done||now-lastNote>300){lastNote=now;tileListeners.forEach(f=>f());}}
+function setTile(key,v){const o=tiles.get(key);tiles.delete(key);tiles.set(key,v);
+  if(o&&o.url&&o.url!==v.url)setTimeout(()=>URL.revokeObjectURL(o.url),5000); // harita eski adresi yüklüyor olabilir
+  while(tiles.size>TILE_CACHE){const [k,e]=tiles.entries().next().value;tiles.delete(k);if(e.url)setTimeout(()=>URL.revokeObjectURL(e.url),5000);}}
+// renge göre tek yolda çizilir (her nokta için ayrı fill/stroke binlerce noktada saniyeler sürüyordu); kenar çizgisi
+// yalnızca yakında (z ≥ 5). Önce küçükler, sonra büyükler: büyük santraller üstte kalır. Görüntü toBlob ile kodlanır
+// (eşzamansız; toDataURL ana iş parçacığını bekletiyordu) ve blob adresi olarak verilir; tuval hemen bırakılır (iOS)
+async function draw({z,x,y,pts}){
+  const x0=x*256,y0=y*256,sc=z<5?0.7:z<7?0.85:1,cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d",{willReadFrequently:true});let n=0; // işlemci tuvali: yazılımla çizen tarayıcıda GPU tuvalinden hızlı
   const by=new Map();
   for(let i=pts.length-1;i>=0;i--){const p=pts[i],px=lon2x(p[1],z)-x0,py=lat2y(p[0],z)-y0,r=radiusOf(p[3])*sc;
     if(px<-r||py<-r||px>256+r||py>256+r)continue;const k=(r>6?"b":"s")+kindOf(p[2])[1];let a=by.get(k);if(!a)by.set(k,a=[]);a.push(px,py,r);n++;}
+  if(!n){cv.width=cv.height=0;return null;}
   const keys=[...by.keys()].sort((a,b)=>a[0]===b[0]?0:a[0]==="s"?-1:1);
   g.lineWidth=1;g.strokeStyle="rgba(10,15,25,.85)";
   // küçük noktalar (yarıçap < 3 px) kare çizilir: yazılımla çizen tarayıcıda yay çizmek karoyu saniyeye çıkarıyordu
-  for(const k of keys){const a=by.get(k);g.fillStyle=k.slice(1);g.globalAlpha=0.85;g.beginPath();let arcs=0;
-    for(let j=0;j<a.length;j+=3){const r=a[j+2];if(r<3){g.rect(a[j]-r,a[j+1]-r,2*r,2*r);}else{g.moveTo(a[j]+r,a[j+1]);g.arc(a[j],a[j+1],r,0,Math.PI*2);arcs++;}}
+  for(const k of keys){const a=by.get(k);g.fillStyle=k.slice(1);g.globalAlpha=0.85;g.beginPath();
+    for(let j=0;j<a.length;j+=3){const r=a[j+2];if(r<3){g.rect(a[j]-r,a[j+1]-r,2*r,2*r);}else{g.moveTo(a[j]+r,a[j+1]);g.arc(a[j],a[j+1],r,0,Math.PI*2);}}
     g.fill();g.globalAlpha=1;if(z>=5)g.stroke();}
-  const u=n?cv.toDataURL(FMT()):null;tiles.set(key,u);if(tiles.size>400)tiles.delete(tiles.keys().next().value);return u;
+  const blob=await new Promise(res=>{try{cv.toBlob(res,FMT());}catch(e){res(null);}});cv.width=cv.height=0;
+  return blob?URL.createObjectURL(blob):null;
 }
 
 // --- Düğme ve lejant ---
