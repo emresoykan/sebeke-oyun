@@ -231,7 +231,12 @@ function selectPoint(lat,lon){
   S.sel=id?{id,lat:S.sites[id].lat,lon:S.sites[id].lon}:{id:null,lat:+lat.toFixed(4),lon:+lon.toFixed(4)};afterSelect();
 }
 // dokunma alanı işaretin çevresinde ~44 px: en yakın işaret seçilir
+const TAPDBG=new URLSearchParams(location.search).has("tapdebug");
+function tapDot(x,y,c){const d=document.createElement("div");Object.assign(d.style,{position:"fixed",left:x-6+"px",top:y-6+"px",width:"12px",height:"12px",borderRadius:"50%",background:c,zIndex:9999,pointerEvents:"none",border:"2px solid #fff"});document.body.appendChild(d);setTimeout(()=>d.remove(),4000);}
 function onClick(e){
+  // ?tapdebug=1: tıklanan nokta kırmızı, seçilen koordinatın haritadaki yeri yeşil (mapkit.js ile aynı)
+  if(TAPDBG){const r=map.getContainer().getBoundingClientRect(),q=map.project(e.lngLat);tapDot(e.originalEvent.clientX,e.originalEvent.clientY,"#E5484D");tapDot(r.left+q.x,r.top+q.y,"#30A46C");
+    console.log("tapdebug",{client:[e.originalEvent.clientX,e.originalEvent.clientY],lat:e.lngLat.lat,lon:e.lngLat.lng});}
   const {x,y}=e.point,fs=map.queryRenderedFeatures([[x-16,y-16],[x+16,y+16]],{layers:["rivals","sites"]});
   const d=f=>{const p=map.project(f.geometry.coordinates);return (p.x-x)**2+(p.y-y)**2;},f=fs.sort((a,b)=>d(a)-d(b))[0];
   if(f&&f.layer.id==="rivals"){const [lon,lat]=f.geometry.coordinates;selectRival(lat,lon);}

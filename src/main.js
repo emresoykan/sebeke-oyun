@@ -81,4 +81,4 @@ initSheet({onTab:t=>{if(t==="piyasa")drawChart();}});
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk();initLeague();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();});

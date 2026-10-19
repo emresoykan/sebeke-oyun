@@ -15,11 +15,13 @@ let fastNote=false;
 const hasBatt=()=>S.plants.some(p=>p.k==="batt");
 
 // force: oyuncu düğmeyle açtıysa otomatik moddayken de açılır
-export function openDesk(force=false){
+// quiet: oyun açılışında masa kendiliğinden açılmaz (açılışta haritayı kapatıyordu); teklif son ayarlarla gider
+export function openDesk(force=false,quiet=false){
   if(!S.desk)S.desk=deskDefaults();
   if(!hasRenew()&&!(force&&hasBatt()))return;
   if(S.desk.auto&&!force)return;
   // hızlı oyunda (3x, 8x) masa her gün açılıp oyunu durdurmasın: teklif son ayarlarla gönderilir (otomatik mod gibi)
+  if(!force&&quiet){toast("GÖP teklifi son ayarlarınla gönderildi","Değiştirmek için GÖP düğmesine bas.");return;}
   if(!force&&clock.ms<500){if(!fastNote){fastNote=true;toast("GÖP teklifi otomatik gönderiliyor","Hızlı oyunda teklif son ayarlarınla verilir. Masayı GÖP düğmesiyle açabilirsin.");}return;}
   enqueue(done=>show(done));
 }

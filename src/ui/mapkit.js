@@ -169,7 +169,16 @@ export async function initMapKit(el,h){
   map.addEventListener("map-type-change",()=>{try{localStorage.setItem(PREF,map.mapType);}catch(e){}});
   // haritaya dokunma: işarete dokunulduysa ("select") nokta seçimi yapılmaz
   // koordinat dokunma anında çevrilir: 40 ms içinde harita kayarsa (açılış animasyonu, savrulma) nokta kaymasın
-  map.addEventListener("single-tap",e=>{const p=e.pointOnPage;if(!p){stopIntro();return;}const c=map.convertPointOnPageToCoordinate(p);stopIntro();
+  // dokunma noktası: MapKit'in pointOnPage'i ile tarayıcının işaretçi olayı karşılaştırılır; 24 px'ten çok ayrışırsa
+  // işaretçi olayı kullanılır (MapKit sayfa ölçeği ya da kaydırmayla şaşarsa seçim kaymasın). ?tapdebug=1: tıklanan
+  // nokta kırmızı, seçilen koordinatın haritadaki yeri yeşil işaretlenir, ikisi konsola yazılır
+  let lastPtr=null;el.addEventListener("pointerup",e=>{lastPtr={x:e.clientX+scrollX,y:e.clientY+scrollY,t:performance.now()};},{capture:true,passive:true});
+  const DBG=new URLSearchParams(location.search).has("tapdebug");
+  const dot=(x,y,c)=>{const d=document.createElement("div");Object.assign(d.style,{position:"absolute",left:x-6+"px",top:y-6+"px",width:"12px",height:"12px",borderRadius:"50%",background:c,zIndex:9999,pointerEvents:"none",border:"2px solid #fff"});document.body.appendChild(d);setTimeout(()=>d.remove(),4000);};
+  map.addEventListener("single-tap",e=>{let p=e.pointOnPage;if(!p){stopIntro();return;}
+    if(lastPtr&&performance.now()-lastPtr.t<1000&&Math.hypot(lastPtr.x-p.x,lastPtr.y-p.y)>24){console.warn("MapKit dokunma noktası işaretçiden farklı:",p.x,p.y,"→",lastPtr.x,lastPtr.y);p=new DOMPoint(lastPtr.x,lastPtr.y);}
+    const c=map.convertPointOnPageToCoordinate(p);stopIntro();
+    if(DBG){const q=map.convertCoordinateToPointOnPage(c);dot(p.x,p.y,"#E5484D");dot(q.x,q.y,"#30A46C");console.log("tapdebug",{page:[p.x,p.y],ptr:lastPtr&&[lastPtr.x,lastPtr.y],lat:c.latitude,lon:c.longitude,back:[q.x,q.y]});}
     setTimeout(()=>{if(!map||performance.now()-tapAt<400)return;if(hooks.realTap&&hooks.realTap(p.x,p.y,c.latitude,((c.longitude+540)%360)-180))return;
       hooks.selectPoint(c.latitude,((c.longitude+540)%360)-180);},40);});
   map.addEventListener("region-change-end",onRegion);
