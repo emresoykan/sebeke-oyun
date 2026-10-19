@@ -27,7 +27,29 @@ const reduced=matchMedia("(prefers-reduced-motion: reduce)");
 const zoomToH=z=>2.6e7/2**z;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 let mk=null,map=null,box=null,hooks=null,sel=null,night=null,clouds=null,storms=[],parkLabels=[],lastHour=null,cloudVer=0,tapAt=0,failed=false;
-const sites=new Map(),rivals=new Map(),nightCache=new Map(),cloudCache=new Map();
+const sites=new Map(),rivals=new Map();
+// Karo katmanları (gece, bulut) için eşzamansız önbellek: get() hazır görüntüyü, yoksa eskisini (o da yoksa null) hemen
+// döndürür, eksik karoyu kuyruğa koyar. Kuyruk karo karo çizilir; görüntü toBlob ile kodlanır (toDataURL ana iş
+// parçacığını bekletiyordu: her oyun saatinde gece ve bulut karolarının hepsi baştan kodlanıyor, harita takılıyordu).
+// Hazır oldukça (en çok 500 ms'de bir) ve kuyruk bitince reload çağrılır. ver değişince karolar yeniden çizilir.
+function asyncTiles(draw,reload,max=400){
+  const cache=new Map(),q=new Map();let busy=false,last=0,ver="";
+  const drop=u=>{if(u)setTimeout(()=>URL.revokeObjectURL(u),5000);}; // harita eski adresi hâlâ yüklüyor olabilir
+  async function step(){
+    const it=q.entries().next();if(it.done){busy=false;reload();return;}
+    const [k,t]=it.value;q.delete(k);let url=null;
+    if(t.v===ver){const c=draw(t.x,t.y,t.z);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
+      const o=cache.get(k);cache.delete(k);cache.set(k,{v:t.v,url});if(o&&o.url!==url)drop(o.url);
+      while(cache.size>max){const [ok,ov]=cache.entries().next().value;cache.delete(ok);drop(ov.url);}}
+    const now=performance.now();if(now-last>500){last=now;reload();}setTimeout(step,0);
+  }
+  return {get(x,y,z){const k=`${z}/${x}/${y}`,c=cache.get(k);if(c&&c.v===ver)return c.url;
+      if(!(q.has(k)&&q.get(k).v===ver)){q.set(k,{x,y,z,v:ver});if(!busy){busy=true;setTimeout(step,0);}}return c?c.url:null;},
+    setVer(v){ver=String(v);}};
+}
+// harita kaydırılırken karo katmanları yenilenmez (dokunuşla kaydırma takılmasın); bitince bekleyenler uygulanır
+let moving=false;const afterMove=[];
+const whenStill=f=>{if(moving){if(!afterMove.includes(f))afterMove.push(f);}else f();};
 
 function loadScript(){
   return new Promise((res,rej)=>{
@@ -94,25 +116,22 @@ function syncFac(){
 function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{sites.forEach(sizeFac);facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
 
 // --- Gece tarafı: karo başına güneş yüksekliğinden karanlık (map.js'teki düz harita ile aynı eşikler) ---
-function nightTile(x,y,z){
+function nightDraw(x,y,z){
   const n=2**z;if(lastHour==null||y<0||y>=n)return null;x=((x%n)+n)%n;
-  const key=`${lastHour}/${z}/${x}/${y}`;let u=nightCache.get(key);if(u)return u;
   const N=64,c=document.createElement("canvas");c.width=c.height=N;const g=c.getContext("2d"),im=g.createImageData(N,N),px=im.data;
   const d=CAL.decl*RAD,sd=Math.sin(d),cd=Math.cos(d),sub=(12-(lastHour-3))*15;
   for(let j=0;j<N;j++){const la=Math.atan(Math.sinh(Math.PI*(1-2*(y+(j+0.5)/N)/n))),a=Math.sin(la)*sd,b=Math.cos(la)*cd;
     for(let i=0;i<N;i++){const lon=(x+(i+0.5)/N)/n*360-180,el=Math.asin(clamp(a+b*Math.cos((lon-sub)*RAD),-1,1))/RAD,t=clamp((4-el)/14,0,1),p=(j*N+i)*4;
       px[p]=2;px[p+1]=6;px[p+2]=18;px[p+3]=t*t*(3-2*t)*72;}}
-  g.putImageData(im,0,0);u=c.toDataURL();
-  if(nightCache.size>600)nightCache.clear();nightCache.set(key,u);return u;
+  g.putImageData(im,0,0);return c;
 }
 // --- Bulutlar: düz haritanın Mercator bulut tuvalinden karo kesilir; yakınlaştıkça incelir ---
-function cloudTile(x,y,z){
+function cloudDraw(x,y,z){
   const n=2**z;if(!wxOn()||y<0||y>=n)return null;x=((x%n)+n)%n;
-  const key=`${cloudVer}/${z}/${x}/${y}`;let u=cloudCache.get(key);if(u)return u;
   const cv=cloudCanvas(),sw=cv.width/n,c=document.createElement("canvas");c.width=c.height=256;
-  const g=c.getContext("2d");g.imageSmoothingEnabled=true;g.drawImage(cv,x*sw,y*sw,sw,sw,0,0,256,256);u=c.toDataURL();
-  if(cloudCache.size>300)cloudCache.clear();cloudCache.set(key,u);return u;
+  const g=c.getContext("2d");g.imageSmoothingEnabled=true;g.drawImage(cv,x*sw,y*sw,sw,sw,0,0,256,256);return c;
 }
+let nightT=null,cloudT=null,nightLast=0,nightTimer=0;
 const cloudOpacity=h=>{const z=Math.log2(2.6e7/h);return z<=2?0.9:z<=4?0.9-0.2*(z-2):z<=5?0.5-0.3*(z-4):z<=6?0.2-0.2*(z-5):0;};
 
 function drawStorms(){
@@ -123,13 +142,15 @@ function drawStorms(){
 }
 function updateWeather(force){
   if(!map)return;
-  if(tickClouds(force)){cloudVer++;cloudCache.clear();clouds.reload();drawStorms();}
+  // bulutlar görünmüyorsa (hava kapalı ya da yakın: saydamlık 0) karo üretilmez; görünür olunca onRegion yeniler
+  if(!force&&(moving||!clouds.opacity))return;
+  if(tickClouds(force)){cloudVer++;cloudT.setVer(cloudVer);whenStill(()=>{clouds.reload();drawStorms();});}
 }
 
 // Yakınlığa göre: bulut saydamlığı, etiketlerin görünürlüğü (düz haritadaki eşiklerle)
 function onRegion(){
   if(!map)return;const h=map.cameraDistance,el=box;
-  clouds.opacity=wxOn()?cloudOpacity(h):0;
+  const was=clouds.opacity;clouds.opacity=wxOn()?cloudOpacity(h):0;if(!was&&clouds.opacity)updateWeather(true);
   el.classList.toggle("mk-z3",h<zoomToH(3));el.classList.toggle("mk-z4",h<zoomToH(4));
   const showParks=h<zoomToH(6);parkLabels.forEach(a=>{if(a.visible!==showParks)a.visible=showParks;});
 }
@@ -156,7 +177,8 @@ export async function initMapKit(el,h){
   const realView=()=>{if(!map)return;const r=map.region,c=r.center,sp=r.span;
     setRealView({w:c.longitude-sp.longitudeDelta/2,e:c.longitude+sp.longitudeDelta/2,s:c.latitude-sp.latitudeDelta/2,n:c.latitude+sp.latitudeDelta/2,z:Math.log2(2.6e7/map.cameraDistance),lat:c.latitude,lon:c.longitude});};
   map.addEventListener("region-change-end",realView);
-  map.addEventListener("region-change-start",()=>{if(F)facLoop();});
+  map.addEventListener("region-change-start",()=>{moving=true;if(F)facLoop();});
+  map.addEventListener("region-change-end",()=>{moving=false;afterMove.splice(0).forEach(f=>f());});
   map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
@@ -164,8 +186,9 @@ export async function initMapKit(el,h){
   parkLabels=PROTECTED.map(([n,lat,lon])=>{const m=marker("mk-park",2,null);m.lab.textContent=n;m.a.coordinate=coord(lat,lon);
     m.a.displayPriority=mk.Annotation.DisplayPriority.Low;m.a.collisionMode=mk.Annotation.CollisionMode.Rectangle;m.a.visible=false;return m.a;});
   map.addAnnotations(parkLabels);
-  night=new mk.TileOverlay(nightTile,{opacity:1});
-  clouds=new mk.TileOverlay(cloudTile,{maximumZ:7,opacity:0});
+  nightT=asyncTiles(nightDraw,()=>night&&night.reload(),600);cloudT=asyncTiles(cloudDraw,()=>clouds&&clouds.reload(),300);
+  night=new mk.TileOverlay((x,y,z)=>nightT.get(x,y,z),{opacity:1});
+  clouds=new mk.TileOverlay((x,y,z)=>cloudT.get(x,y,z),{maximumZ:7,opacity:0});
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
   const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1});let potT=0;
   P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;pot.reload();});
@@ -223,7 +246,9 @@ export function draw(){
 
 export function setClock(hour){
   if(!map||hour===lastHour)return;
-  lastHour=hour;nightCache.clear();night.reload();
+  lastHour=hour;
+  const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);whenStill(()=>night.reload());};
+  if(nightTimer)return;const wait=1000-(performance.now()-nightLast);if(wait<=0)go();else nightTimer=setTimeout(go,wait);
 }
 export function camInfo(){
   if(!map)return null;const c=map.center;return {lat:c.latitude,lon:c.longitude,h:map.cameraDistance};
