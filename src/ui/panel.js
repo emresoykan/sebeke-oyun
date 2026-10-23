@@ -1,4 +1,5 @@
 // --- Panel ---
+import { wp } from "../perfmark.js";
 import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed } from "../rules.js";
@@ -74,7 +75,8 @@ function measureSlope(t,id){
     const c=selSite();if(c&&c.lat===t.lat&&c.lon===t.lon)renderPanel();});
 }
 
-export function renderPanel(){
+export function renderPanel(){const t=performance.now();renderPanelImpl();wp("renderPanel (saha paneli)",t);}
+function renderPanelImpl(){
   const t=selSite(),id=S.sel.id,o=id?S.sites[id]:null,el=document.getElementById("panel");
   const latS=coord(t.lat,"K","G"),lonS=coord(t.lon,"D","B");
   let title,html="";

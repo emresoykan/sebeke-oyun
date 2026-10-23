@@ -6,6 +6,7 @@
 // map.js düz MapLibre haritasına döner.
 // Oyun katmanları: sahalar, rakipler ve seçim halkası HTML işaretleri; korunan alanlar ve fırtınalar daire katmanı;
 // gece tarafı ve bulutlar karo katmanı (karolar tarayıcıda tuvalden üretilir).
+import { wp } from "../perfmark.js";
 import { S } from "../state.js";
 import { TECH } from "../config.js";
 import { cssv } from "../utils.js";
@@ -32,13 +33,13 @@ const sites=new Map(),rivals=new Map();
 // döndürür, eksik karoyu kuyruğa koyar. Kuyruk karo karo çizilir; görüntü toBlob ile kodlanır (toDataURL ana iş
 // parçacığını bekletiyordu: her oyun saatinde gece ve bulut karolarının hepsi baştan kodlanıyor, harita takılıyordu).
 // Hazır oldukça (en çok 500 ms'de bir) ve kuyruk bitince reload çağrılır. ver değişince karolar yeniden çizilir.
-function asyncTiles(draw,reload,max=400){
+function asyncTiles(draw,reload,max=400,name="karo"){
   const cache=new Map(),q=new Map();let busy=false,last=0,ver="";
   const drop=u=>{if(u)setTimeout(()=>URL.revokeObjectURL(u),5000);}; // harita eski adresi hâlâ yüklüyor olabilir
   async function step(){
     const it=q.entries().next();if(it.done){busy=false;reload();return;}
     const [k,t]=it.value;q.delete(k);let url=null;
-    if(t.v===ver){const c=draw(t.x,t.y,t.z);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
+    if(t.v===ver){const t0=performance.now(),c=draw(t.x,t.y,t.z);wp(name,t0);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
       const o=cache.get(k);cache.delete(k);cache.set(k,{v:t.v,url});if(o&&o.url!==url)drop(o.url);
       while(cache.size>max){const [ok,ov]=cache.entries().next().value;cache.delete(ok);drop(ov.url);}}
     const now=performance.now();if(now-last>500){last=now;reload();}setTimeout(step,0);
@@ -209,7 +210,7 @@ export async function initMapKit(el,h){
   parkLabels=PROTECTED.map(([n,lat,lon])=>{const m=marker("mk-park",2,null);m.lab.textContent=n;m.a.coordinate=coord(lat,lon);
     m.a.displayPriority=mk.Annotation.DisplayPriority.Low;m.a.collisionMode=mk.Annotation.CollisionMode.Rectangle;m.a.visible=false;return m.a;});
   map.addAnnotations(parkLabels);
-  nightT=asyncTiles(nightDraw,()=>night&&night.reload(),600);cloudT=asyncTiles(cloudDraw,()=>clouds&&clouds.reload(),300);
+  nightT=asyncTiles(nightDraw,()=>night&&night.reload(),600,"Apple: gece karosu");cloudT=asyncTiles(cloudDraw,()=>clouds&&clouds.reload(),300,"Apple: bulut karosu");
   night=new mk.TileOverlay(nightGet,{opacity:1});
   clouds=new mk.TileOverlay((x,y,z)=>cloudT.get(x,y,z),{maximumZ:7,opacity:0});
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
@@ -242,7 +243,8 @@ export function zoomBy(d){
   map.setCameraDistanceAnimated(Math.min(4e7,Math.max(150,map.cameraDistance/2**d)),!reduced.matches);
 }
 
-export function draw(){
+export function draw(){const t=performance.now();drawImpl();wp("Apple: işaretler",t);}
+function drawImpl(){
   if(!map)return;
   const seen=new Set();
   for(const [id,o] of Object.entries(S.sites)){

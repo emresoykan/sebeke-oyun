@@ -8,6 +8,7 @@
 // özetini gösterir; Türkiye'de kayıtlı gücü TEİAŞ'ın 2025 kurulu gücüyle karşılaştırır. GEM ile birleştirilen ülkelerde
 // (scripts/merge_gem.py) satırın sonunda kaynak bilgisi bulunur (ülke dosyasında 7., dünya dosyasında 8. öğe). Lejanttaki satırlara
 // dokununca o tür gizlenir/gösterilir; seçim tarayıcıda saklanır.
+import { wp } from "../perfmark.js";
 import { countryAt } from "../world.js";
 import countries from "../data/countries.json";
 
@@ -74,7 +75,8 @@ export function setRealView(v){
   if((v.z>=DETAIL_Z)!==active.detail||!same)changed();else if(moved)legend();
 }
 // etkin liste: dünya görünümündeki büyük santraller; yaklaşınca yüklü ülkelerin tüm santralleri onların yerini alır
-function rebuild(){
+function rebuild(){const t=performance.now();rebuildImpl();wp("santral listesi (rebuild)",t);}
+function rebuildImpl(){
   const detail=view.z>=DETAIL_Z,loaded=detail?[...C.keys()].filter(a=>wanted.has(a)):[],L=new Set(loaded),list=[];
   if(world)for(const p of world)if(!L.has(p[6])&&shown(p))list.push(p);
   for(const a3 of loaded)for(const p of C.get(a3))if(shown(p))list.push(p);
@@ -153,6 +155,7 @@ function setTile(key,v){const o=tiles.get(key);tiles.delete(key);tiles.set(key,v
 // yalnızca yakında (z ≥ 5). Önce küçükler, sonra büyükler: büyük santraller üstte kalır. Görüntü toBlob ile kodlanır
 // (eşzamansız; toDataURL ana iş parçacığını bekletiyordu) ve blob adresi olarak verilir; tuval hemen bırakılır (iOS)
 async function draw({z,x,y,pts}){
+  const t0=performance.now();
   const x0=x*256,y0=y*256,sc=z<5?0.7:z<7?0.85:1,cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d",{willReadFrequently:true});let n=0; // işlemci tuvali: yazılımla çizen tarayıcıda GPU tuvalinden hızlı
   const by=new Map();
   for(let i=pts.length-1;i>=0;i--){const p=pts[i],px=lon2x(p[1],z)-x0,py=lat2y(p[0],z)-y0,r=radiusOf(p[3])*sc;
@@ -164,6 +167,7 @@ async function draw({z,x,y,pts}){
   for(const k of keys){const a=by.get(k);g.fillStyle=k.slice(1);g.globalAlpha=0.85;g.beginPath();
     for(let j=0;j<a.length;j+=3){const r=a[j+2];if(r<3){g.rect(a[j]-r,a[j+1]-r,2*r,2*r);}else{g.moveTo(a[j]+r,a[j+1]);g.arc(a[j],a[j+1],r,0,Math.PI*2);}}
     g.fill();g.globalAlpha=1;if(z>=5)g.stroke();}
+  wp("santral karosu",t0);
   const blob=await new Promise(res=>{try{cv.toBlob(res,FMT());}catch(e){res(null);}});cv.width=cv.height=0;
   return blob?URL.createObjectURL(blob):null;
 }
