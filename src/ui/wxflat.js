@@ -8,7 +8,9 @@ import { snap, frac } from "../wxsite.js";
 import { CAL } from "../calendar.js";
 import { FONT, MAXLAT } from "./mapstyle.js";
 
-const W=512,H=512,GW=96,GH=64,PREF="sebeke-wx-layer";
+// dokunmatik cihazda (telefon, tablet) doku 256 px: çizim 4 kat az piksel (iPhone'da 512 px çizim 40 ms'ye çıkıyordu);
+// bulutlar yumuşak olduğu için fark gözle zor seçilir
+const W=matchMedia("(pointer:coarse)").matches?256:512,H=W,GW=96,GH=64,PREF="sebeke-wx-layer";
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
 let map=null,on=true,cv=null,img=null,noise=null,cloudKey=null,lastDraw=0,flashT=null;
 try{on=localStorage.getItem(PREF)!=="0";}catch(e){}
@@ -23,7 +25,8 @@ for(let y=0;y<H;y++){const gy=Math.min(GH-1.001,Math.max(0,(y+0.5)/H*GH-0.5)),j0
 // Yatayda kendini tekrarlayan bulut dokusu (değer gürültüsü)
 function makeNoise(){
   const n=new Float32Array(W*H),rnd=(x,y,s)=>{const h=Math.sin(x*127.1+y*311.7+s*74.7)*43758.5453;return h-Math.floor(h);};
-  for(let o=0,amp=0.5,cell=32;o<5;o++,amp*=0.55,cell/=2){const cx=W/cell,cy=H/cell;
+  // hücre boyu dokuyla ölçeklenir: 256 px dokuda da bulut deseni aynı büyüklükte kalır
+  for(let o=0,amp=0.5,cell=32*W/512;o<5&&cell>=1;o++,amp*=0.55,cell/=2){const cx=W/cell,cy=H/cell;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){const gx=x/cell,gy=y/cell,x0=Math.floor(gx),y0=Math.floor(gy),fx=gx-x0,fy=gy-y0,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
       const v=(i,j)=>rnd((x0+i)%cx,Math.min(y0+j,cy),o);
       n[y*W+x]+=amp*((v(0,0)*(1-sx)+v(1,0)*sx)*(1-sy)+(v(0,1)*(1-sx)+v(1,1)*sx)*sy);}}
@@ -37,7 +40,7 @@ function drawCloudsImpl(){
   const wx=snap(Math.min(S.hour,23),frac()),grid=new Float32Array(GW*GH*3);
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const w=sampleWx(wx,GLAT[j],(i+0.5)/GW*360-180),k=(j*GW+i)*3;grid[k]=w.c;grid[k+1]=w.rain;grid[k+2]=w.storm;}
   img=img||g.createImageData(W,H);const d=img.data;
-  const hr=Math.min(S.hour,23)+frac(),sub=(12-(hr-3))*15,drift=Math.floor(((S.wx&&S.wx.t)||0)*1.5+hr*1.5)%W;
+  const hr=Math.min(S.hour,23)+frac(),sub=(12-(hr-3))*15,drift=Math.floor((((S.wx&&S.wx.t)||0)*1.5+hr*1.5)*W/512)%W;
   for(let x=0;x<W;x++)COS[x]=Math.cos((lonOf(x)-sub)*Math.PI/180);
   const sd=Math.sin(CAL.decl*Math.PI/180),cd=Math.cos(CAL.decl*Math.PI/180);
   for(let y=0;y<H;y++){const j0=ROW_J[y],fy=ROW_F[y],cl=ROW_C[y]*cd,sl=ROW_S[y]*sd,r0=j0*GW*3,r1=(j0+1)*GW*3,nrow=y*W;

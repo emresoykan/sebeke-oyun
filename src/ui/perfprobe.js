@@ -24,6 +24,8 @@ export function initPerfProbe(){
       `kare: ${Math.round(f/5)}/sn, en uzun aralık ${gap} ms • uzun görev ${lt} (en uzun ${Math.round(ltMax)} ms)${loaf?"":" • betik kaynağı bu tarayıcıda yok"}\n`+
       (worst.length?"en uzun donmalar:\n"+worst.map(w=>`  ${w.ms} ms (${w.at}. sn) ${w.what}`).join("\n"):"donma yok")+
       "\noyun işlevleri (toplam / en uzun / sayı):\n"+Object.entries(window.__wp).sort((a,b)=>b[1].t-a[1].t).slice(0,8).map(([k,e])=>`  ${Math.round(e.t)} ms / ${Math.round(e.max)} ms / ${e.n} ${k}`).join("\n");};
-  setInterval(()=>{txt.textContent=report();},1000);
+  // metne dokununca tek satıra küçülür / açılır (telefonda kutu düğmelerin üstünü kapatmasın)
+  let mini=matchMedia("(max-width:599px)").matches;txt.onclick=()=>{mini=!mini;txt.textContent=mini?report().split("\n").slice(0,2).join("\n"):report();};
+  setInterval(()=>{const r=report();txt.textContent=mini?r.split("\n").slice(0,2).join("\n"):r;},1000);
   btn.onclick=async()=>{try{await navigator.clipboard.writeText(report());btn.textContent="Kopyalandı";}catch(e){btn.textContent="Kopyalanamadı: metni seçip kopyala";}setTimeout(()=>btn.textContent="Kopyala",2000);};
 }
