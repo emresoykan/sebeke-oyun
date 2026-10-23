@@ -1,6 +1,7 @@
 // --- Düz haritada hava durumu: bulut örtüsü, yağmur ve fırtına bulutları, şimşek, fırtına uyarı halkaları ---
 // Bulut dokusu Web Mercator satırlarıyla (512x512) çizilir ve dünyayı kaplayan bir tuval kaynağı olarak haritaya verilir;
 // yalnızca oyun saati değişince yeniden çizilir. Bulutların gece tarafı karartılır; yakınlaştıkça katman incelir.
+import { wp } from "../perfmark.js";
 import { S } from "../state.js";
 import { sampleWx } from "../weather.js";
 import { snap, frac } from "../wxsite.js";
@@ -29,7 +30,8 @@ function makeNoise(){
   return n;
 }
 
-function drawClouds(){
+function drawClouds(){const t=performance.now();drawCloudsImpl();wp("bulut tuvali",t);}
+function drawCloudsImpl(){
   const g=cv.getContext("2d");
   if(!on){g.clearRect(0,0,W,H);return;}
   const wx=snap(Math.min(S.hour,23),frac()),grid=new Float32Array(GW*GH*3);

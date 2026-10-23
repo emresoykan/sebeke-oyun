@@ -1,4 +1,5 @@
 // --- Grafik ve göstergeler ---
+import { wp } from "../perfmark.js";
 import { GOAL, REG, MARKETS, BANKRUPT_DAYS } from "../config.js";
 import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
@@ -29,7 +30,8 @@ export function drawChart(){
   x.fillStyle="rgba(255,255,255,.85)";x.font="11px 'Bricolage Grotesque',system-ui,sans-serif";x.textAlign="center";
   [0,6,12,18,23].forEach(h=>x.fillText(String(h).padStart(2,"0"),padL+h*cw+cw/2,H-5));
 }
-export function render(){
+export function render(){const t=performance.now();renderImpl();wp("render (üst bilgi, grafik)",t);}
+function renderImpl(){
   const h=Math.min(S.hour,23),k=selMarket(),M=D[k],st=D.st;
   document.getElementById("cash").textContent=fmt$(S.money);
   const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");dl.textContent=`${sn.i} ${fmtDate(CAL.date)}`;document.getElementById("dayNo").textContent=`Gün ${S.dayNo}`;

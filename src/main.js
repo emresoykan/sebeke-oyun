@@ -1,4 +1,5 @@
 // Giriş noktası: oyun döngüsü, kontroller ve ilk yükleme
+import { wp } from "./perfmark.js";
 import { S, setS, fresh, load, save, clearSelCache } from "./state.js";
 import { newDay, tick } from "./sim.js";
 import { initMap, drawMap, initMap3DUI } from "./ui/map.js";
@@ -30,7 +31,7 @@ let timer=null, speed=1, paused=false, held=0; // held: açık bekletici pencere
 
 // Zaman ilk arazi alınana kadar işlemez: oyuncu haritayı incelerken gün ilerlemez
 const waiting=()=>!Object.keys(S.sites).length;
-function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(tick,500/speed);}
+function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(()=>{const t=performance.now();tick();wp("oyun saati (sim + arayüz)",t);},500/speed);}
 window.addEventListener("sebeke:land",loop);
 // held bir sayaçtır: pencere sırası ve kazanma/kaybetme ekranı ayrı ayrı bekletebilir; biri kapanınca diğeri açıkken oyun sürmesin
 window.addEventListener("sebeke:hold",()=>{held++;loop();});
@@ -45,6 +46,7 @@ function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribut
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
 speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
+if(new URLSearchParams(location.search).has("perf"))import("./ui/perfprobe.js").then(m=>m.initPerfProbe()); // ?perf=1: takılma ölçümü
 // açılış koruması (index.html): sayfa 10 sn çalıştıysa ya da normal kapandıysa açılış başarılı sayılır
 {const ok=()=>{try{localStorage.removeItem("sebeke-boot");}catch(e){}};setTimeout(ok,10000);addEventListener("pagehide",ok);
   if(window.__safeBoot)setTimeout(()=>toast("Güvenli açılış",window.__safeBoot>=2?"Önceki açılışlar tamamlanamadı: düz harita açıldı, gerçek santraller ve potansiyel katmanları kapatıldı.":"Önceki açılış tamamlanamadı: gerçek santraller ve potansiyel katmanları kapatıldı. Harita düğmelerinden yeniden açabilirsin."),1500);}
