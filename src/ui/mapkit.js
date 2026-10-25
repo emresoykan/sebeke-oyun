@@ -42,15 +42,18 @@ function asyncTiles(draw,reload,max=400,name="karo"){
     if(t.v===ver){const t0=performance.now(),c=draw(t.x,t.y,t.z);wp(name,t0);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
       const o=cache.get(k);cache.delete(k);cache.set(k,{v:t.v,url});if(o&&o.url!==url)drop(o.url);
       while(cache.size>max){const [ok,ov]=cache.entries().next().value;cache.delete(ok);drop(ov.url);}}
-    const now=performance.now();if(now-last>500){last=now;reload();}setTimeout(step,0);
+    setTimeout(step,0); // katman yalnızca kuyruk bitince yenilenir (her yenileme haritanın karo yüklemesiyle yarışıyor)
   }
   return {get(x,y,z){const k=`${z}/${x}/${y}`,c=cache.get(k);if(c&&c.v===ver)return c.url;
       if(!(q.has(k)&&q.get(k).v===ver)){q.set(k,{x,y,z,v:ver});if(!busy){busy=true;setTimeout(step,0);}}return c?c.url:null;},
     setVer(v){ver=String(v);}};
 }
 // harita kaydırılırken karo katmanları yenilenmez (dokunuşla kaydırma takılmasın); bitince bekleyenler uygulanır
-let moving=false;const afterMove=[];
-const whenStill=f=>{if(moving){if(!afterMove.includes(f))afterMove.push(f);}else f();};
+// Kaydırma bittikten sonra da 2 sn beklenir: Apple'ın kendi karoları (uydu görüntüsü) önce yüklensin; bizim katman
+// yenilemelerimiz aynı anda karo istediği için harita uzun süre boş ızgara kalıyordu
+let moving=false,settleT=0;const afterMove=[];
+const flush=()=>{settleT=0;if(!moving)afterMove.splice(0).forEach(f=>f());};
+const whenStill=f=>{if(moving||settleT){if(!afterMove.includes(f))afterMove.push(f);}else f();};
 
 function loadScript(){
   return new Promise((res,rej)=>{
@@ -202,7 +205,7 @@ export async function initMapKit(el,h){
     setRealView({w:c.longitude-sp.longitudeDelta/2,e:c.longitude+sp.longitudeDelta/2,s:c.latitude-sp.latitudeDelta/2,n:c.latitude+sp.latitudeDelta/2,z:Math.log2(2.6e7/map.cameraDistance),lat:c.latitude,lon:c.longitude});};
   map.addEventListener("region-change-end",realView);
   map.addEventListener("region-change-start",()=>{moving=true;if(F)facLoop();});
-  map.addEventListener("region-change-end",()=>{moving=false;afterMove.splice(0).forEach(f=>f());refreshFlatNight();});
+  map.addEventListener("region-change-end",()=>{moving=false;clearTimeout(settleT);settleT=setTimeout(flush,2000);whenStill(refreshFlatNight);});
   map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
@@ -215,16 +218,18 @@ export async function initMapKit(el,h){
   clouds=new mk.TileOverlay((x,y,z)=>cloudT.get(x,y,z),{maximumZ:7,opacity:0});
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
   const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1});let potT=0;
-  P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;pot.reload();});
+  P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;whenStill(()=>pot.reload());});
   // yenileme seyrek: hesap sürerken en fazla 1,2 sn'de bir, kuyruk bitince bir kez daha (her karoda yenilemek kasabilir)
-  let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)pot.reload();};
+  let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)whenStill(()=>pot.reload());};
   P.onPotTile(()=>{if(!map||P.potMode()==="off"||potT)return;
     potT=setTimeout(reloadPot,P.potPending()===0?150:Math.max(150,1200-(performance.now()-potLast)));});
   // gerçek santraller (realplants.js): karo görüntüsü olarak çizilir; açılıp kapanınca yenilenir
   const real=new mk.TileOverlay((x,y,z)=>realTileURL(z,x,y),{opacity:realOn()?1:0});
   onRealChange(on=>{if(!map)return;real.opacity=on?1:0;real.reload();});
-  onRealTile(()=>{if(map&&realOn())real.reload();}); // arka planda çizilen karolar hazır oldukça
-  map.addTileOverlays([night,pot,real,clouds]);
+  const reloadReal=()=>{if(map&&realOn())real.reload();};
+  onRealTile(()=>whenStill(reloadReal)); // arka planda çizilen karolar hazır olunca (harita durulduktan sonra)
+  // ?overlays=0 (tanı): bizim karo katmanlarımız eklenmez; harita yalnızca Apple'ın kendi görüntüsüyle açılır
+  if(!new URLSearchParams(location.search).has("overlays")||new URLSearchParams(location.search).get("overlays")!=="0")map.addTileOverlays([night,pot,real,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
   updateWeather(true);wxTimer=setInterval(()=>{if(!document.hidden)updateWeather(false);},400);onRegion();
@@ -273,7 +278,8 @@ export function setClock(hour){
   if(!map||hour===lastHour)return;
   lastHour=hour;
   const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);flatKey=flatNightKey();whenStill(()=>night.reload());};
-  if(nightTimer)return;const wait=1000-(performance.now()-nightLast);if(wait<=0)go();else nightTimer=setTimeout(go,wait);
+  // gece en çok 5 sn'de bir yenilenir (1x hızda oyun saati 0,5 sn; karanlık zaten yavaş değişir)
+  if(nightTimer)return;const wait=5000-(performance.now()-nightLast);if(wait<=0)go();else nightTimer=setTimeout(go,wait);
 }
 export function camInfo(){
   if(!map)return null;const c=map.center;return {lat:c.latitude,lon:c.longitude,h:map.cameraDistance};
