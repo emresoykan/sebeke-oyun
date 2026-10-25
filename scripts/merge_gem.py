@@ -16,7 +16,7 @@ OSM'den yüksektir (ör. hidroda büyük santraller), küçük tesisler OSM'den 
    "om": OSM gücü, "f": katılan OSM satırları, "ow": sahip, "y": işletmeye giriş yılı}. GEM'de kapanmış (emekli,
    bekletmede) bir santrale yakın ve adı benzer OSM kayıtları haritadan çıkarılıp dosyanın "x" listesine konur. Önceki birleştirme bu bilgiyle geri
    alınır; böylece betik aynı dosyada tekrar çalışabilir (OSM iş akışı da her güncellemede yeniden uygular).
-   index.json'daki ülke özeti ve world.json'daki satırları da güncellenir; kapsama TEİAŞ 2025 kurulu gücüyle yazdırılır.
+   index.json'daki ülke özeti ve world.json'daki satırları da güncellenir; kapsama ETKB'nin Eylül 2026 sonu kurulu gücüyle yazdırılır.
 
 Kullanım: python3 scripts/merge_gem.py --extract GIPT.xlsx --country TUR --out data/gem/gipt-TUR.json [--release "September 2026"]
           python3 scripts/merge_gem.py --apply data/gem/gipt-TUR.json public/data/plants
@@ -27,9 +27,9 @@ from datetime import datetime, timezone
 
 WORLD_MW = 100
 COUNTRY_NAMES = {"TUR": {"turkey", "turkiye", "türkiye"}}
-# TEİAŞ 2025 yıl sonu kurulu güç (MW; src/ui/realplants.js TEIAS_2025 ile aynı). Doğalgaz: tek yakıtlı 20.027 + sıvı ve gaz
-# çok yakıtlı 4.066 (çok yakıtlıların çoğu doğalgaz kombine çevrimidir; varsayım). Kaynak: TEİAŞ, Kurulu güç tablosu 9 (2006–2025)
-TEIAS_2025 = {"w": 14792, "s": 25927, "h": 32299, "g": 24093, "c": 21216, "j": 1758, "b": 2405, "o": 119}
+# Türkiye kurulu gücü, Eylül 2026 sonu (MW; src/ui/realplants.js KURULU ile aynı). Kaynak: ETKB, "Elektrik kurulu gücü
+# kaynaklara göre dağılımı, Eylül 2026" (toplam 127.355 MW). Kömür = yerli 11.565 + ithal 10.466; petrol ayrı verilmiyor.
+KURULU = {"w": 15540, "s": 28222, "h": 32332, "g": 25009, "c": 22031, "j": 1798, "b": 2423}
 # başlık adayları (küçük harf, yalnızca harf/rakam)
 COLS = {"country": ["countryarea", "country"], "plant": ["plantprojectname", "projectname", "plantname"],
         "unit": ["unitphasename", "phasename", "unitname"], "loc": ["gemlocationid", "locationid"],
@@ -261,9 +261,9 @@ def apply(a):
     rows, st, gone = merge(rows, gem, closed); counts, mws, known = summary(rows)
     st["gem_plants"] = len(gem)
     print(f"{a3}: {len(gem)} işletmedeki GEM santrali; eşleşme özeti:", json.dumps(st))
-    print(f"{'tür':4} {'TEİAŞ 2025':>10} {'OSM':>14} {'GEM':>14} {'birleşik':>14}")
-    for k in sorted(set(before) | set(mws) | set(TEIAS_2025), key=lambda k: -TEIAS_2025.get(k, 0)):
-        t = TEIAS_2025.get(k); f = lambda v: f"{round(v or 0):>7}" + (f" (%{round((v or 0) / t * 100):>3})" if t else "       ")
+    print(f"{'tür':4} {'ETKB 09/26':>10} {'OSM':>14} {'GEM':>14} {'birleşik':>14}")
+    for k in sorted(set(before) | set(mws) | set(KURULU), key=lambda k: -KURULU.get(k, 0)):
+        t = KURULU.get(k); f = lambda v: f"{round(v or 0):>7}" + (f" (%{round((v or 0) / t * 100):>3})" if t else "       ")
         print(f"{k:4} {t or '—':>10} {f(before.get(k))} {f(gem_mw.get(k))} {f(mws.get(k))}")
     d["meta"].update({"counts": counts, "mw": mws, "withCapacity": known,
                       "gem": {"release": gx["release"], "license": gx["license"], "extracted": gx["extracted"], **st}})
