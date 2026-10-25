@@ -5,7 +5,7 @@
 // dosyaları yüklenir. Düz haritada (map.js) GeoJSON çember katmanı, Apple haritasında (mapkit.js) bu modülün çizdiği karo
 // görüntüleri kullanılır. Noktalar teknoloji renginde, gücün kareköküyle büyür; dokununca ad ve güç görünür.
 // OSM gönüllü verisidir: santrallerin bir kısmı eksik ya da gücü yazılmamış olabilir. Lejant haritanın ortasındaki ülkenin
-// özetini gösterir; Türkiye'de kayıtlı gücü TEİAŞ'ın 2025 kurulu gücüyle karşılaştırır. GEM ile birleştirilen ülkelerde
+// özetini gösterir; Türkiye'de kayıtlı gücü Bakanlığın (ETKB) Eylül 2026 sonu kurulu gücüyle karşılaştırır. GEM ile birleştirilen ülkelerde
 // (scripts/merge_gem.py) satırın sonunda kaynak bilgisi bulunur (ülke dosyasında 7., dünya dosyasında 8. öğe). Lejanttaki satırlara
 // dokununca o tür gizlenir/gösterilir; seçim tarayıcıda saklanır.
 import { wp } from "../perfmark.js";
@@ -17,9 +17,11 @@ export const DETAIL_Z=4.5; // bu yakınlıktan sonra ülke dosyaları yüklenir 
 const MAX_LOAD=8,CACHE=24,TILE_CACHE=matchMedia("(pointer:coarse)").matches?150:400;
 export const KINDS={w:["Rüzgâr","#5AA2E0"],s:["Güneş","#F2B42C"],h:["Hidro","#A58BEA"],g:["Doğalgaz","#9FB1BD"],c:["Kömür","#B08968"],
   o:["Petrol","#D98BB6"],j:["Jeotermal","#E8755A"],b:["Biyokütle, atık","#A6C44E"],n:["Nükleer","#F2E94C"],e:["Batarya depolama","#3CC495"],x:["Diğer, bilinmiyor","#D7DEE2"]};
-// TEİAŞ 2025 yıl sonu kurulu güç (MW): Türkiye için kapsama oranı. Doğalgaz = tek yakıtlı 20.027 + sıvı ve gaz çok yakıtlı
-// 4.066 (çok yakıtlıların çoğu doğalgaz kombine çevrimi; varsayım). Kaynak: TEİAŞ kurulu güç tablosu 9 (2006–2025)
-export const TEIAS_2025={w:14792,s:25927,h:32299,g:24093,c:21216,j:1758,b:2405,o:119};
+// Türkiye kurulu gücü, Eylül 2026 sonu (MW): kapsama oranı için. Kaynak: T.C. Enerji ve Tabii Kaynaklar Bakanlığı,
+// "Elektrik kurulu gücü kaynaklara göre dağılımı, Eylül 2026" (Bakanlığın sosyal medya paylaşımı; toplam 127.355 MW).
+// Kömür = yerli 11.565 + ithal 10.466. Bakanlık petrolü ayrı vermiyor (sıvı yakıtlar büyük olasılıkla doğalgaz satırında;
+// varsayım), bu yüzden petrolün kapsaması gösterilmez. GEM verisi de Eylül 2026 sürümü: iki taraf aynı dönem.
+export const KURULU={w:15540,s:28222,h:32332,g:25009,c:22031,j:1798,b:2423},KURULU_ADI="ETKB Eylül 2026 sonu";
 const NAME=Object.fromEntries(countries.features.map(f=>[f.properties.a3,f.properties.n]));
 
 let on=(()=>{try{return localStorage.getItem(KEY)==="1";}catch(e){return false;}})();
@@ -192,11 +194,11 @@ function legend(){
   const sc=c||tot,tr=focusA3==="TUR",gem=c&&c.gem&&index.meta.gem,rows=Object.keys(KINDS).filter(k=>sc.counts[k]).sort((a,b)=>(sc.mw[b]||0)-(sc.mw[a]||0));
   const where=c?NAME[focusA3]||focusA3:`Dünya, ${Object.keys(index.c).length} ülke`,busy=pend.size?" • yükleniyor…":"";
   const note=view.z<DETAIL_Z?`Bu uzaklıkta yalnızca ${index.meta.worldMW} MW ve üstü santraller çizilir; yaklaşınca ülkenin tüm santralleri yüklenir.`:"";
-  el.innerHTML=`<summary>Gerçek santraller, ${where} <small>${sc.n.toLocaleString("tr-TR")} santral${busy}</small></summary><table><thead><tr><th></th><th>Santral</th><th title="${gem?"Gücü yazılı santrallerin toplamı (OSM ve GEM birleşik)":"OSM'de gücü yazılı santrallerin toplamı"}">${gem?"MW":"OSM MW"}</th>${tr?`<th title="Gücü yazılı santrallerin TEİAŞ 2025 kurulu gücüne oranı">Kapsama</th>`:""}</tr></thead><tbody>${rows.map(k=>{
-    const [n,col]=KINDS[k],t=TEIAS_2025[k],cov=tr&&t&&sc.mw[k]?Math.round(sc.mw[k]/t*100):null;
+  el.innerHTML=`<summary>Gerçek santraller, ${where} <small>${sc.n.toLocaleString("tr-TR")} santral${busy}</small></summary><table><thead><tr><th></th><th>Santral</th><th title="${gem?"Gücü yazılı santrallerin toplamı (OSM ve GEM birleşik)":"OSM'de gücü yazılı santrallerin toplamı"}">${gem?"MW":"OSM MW"}</th>${tr?`<th title="Gücü yazılı santrallerin ${KURULU_ADI} kurulu gücüne oranı">Kapsama</th>`:""}</tr></thead><tbody>${rows.map(k=>{
+    const [n,col]=KINDS[k],t=KURULU[k],cov=tr&&t&&sc.mw[k]?Math.round(sc.mw[k]/t*100):null;
     return `<tr class="${hidden.has(k)?"off":""}"><td><button type="button" data-k="${k}" aria-pressed="${!hidden.has(k)}" title="Göster / gizle"><i style="background:${col}"></i>${n}</button></td><td>${sc.counts[k].toLocaleString("tr-TR")}</td><td>${fmtN(sc.mw[k])}</td>${tr?`<td>${cov==null?"—":"%"+cov}</td>`:""}</tr>`;}).join("")}</tbody></table>
     <div class="rlf"><button type="button" data-f="renew" aria-pressed="${[...hidden].sort().join()===NONRENEW.slice().sort().join()}">Yalnızca yenilenebilir</button><button type="button" data-f="all" aria-pressed="${hidden.size===0}">Hepsi</button></div>
-    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${gem?" Büyük santrallerin gücü ve OSM'de olmayan santraller Global Energy Monitor'dan.":""}${tr?` Kapsama, gücü yazılı santrallerin TEİAŞ 2025 yıl sonu kurulu gücüne oranıdır${gem?"; GEM verisi daha yeni olduğundan 2026'da açılan santraller oranı %100'ün üstüne çıkarabilir":""}.`:""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.${gem?` Global Integrated Power Tracker, Global Energy Monitor, ${gem.release} (CC BY 4.0).`:""}</small>`;
+    <small>${note?note+" ":""}Satıra dokununca o tür gizlenir ya da gösterilir. Gönüllü verisi: bazı santraller eksik ya da gücü yazılmamış; 1 MW altı tesisler ve adı yazılmamış küçük güneş alanları gösterilmez.${gem?" Büyük santrallerin gücü ve OSM'de olmayan santraller Global Energy Monitor'dan.":""}${tr?` Kapsama, gücü yazılı santrallerin ${KURULU_ADI} kurulu gücüne oranıdır${gem?"; GEM verisi de Eylül 2026 sürümü. %100'ün üstü çift kayıt ya da sınıflandırma farkından gelebilir":""}.`:""} Deniz santralleri en yakın ülkeye atanır. © OpenStreetMap katkıcıları (ODbL), ${index.meta.fetched||""}.${gem?` Global Integrated Power Tracker, Global Energy Monitor, ${gem.release} (CC BY 4.0).`:""}</small>`;
 }
 // lejant düğmeleri: tür aç/kapa, kısayollar (olay yetkisi bir kez kutuya bağlanır)
 function onLegendClick(e){const b=e.target.closest("button");if(!b)return;
