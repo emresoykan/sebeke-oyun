@@ -186,7 +186,7 @@ def candidates(gem, osm):
         for o in osm:
             if GROUP.get(o["k"], o["k"]) != grp or abs(o["lat"] - g["lat"]) > 0.5: continue
             d = km(g["lat"], g["lon"], o["lat"], o["lon"])
-            if d > 3 * R: continue
+            if d > (3 * R if exact else 30): continue
             s = sim(g["n"], o["n"])
             # gücü birebir aynı (%3 içinde, en az 20 MW) ise ad farklı olsa da aynı santral sayılır (ör. OSM "Acwa Power
             # Kırıkkale", GEM "Yahsihan power station", ikisi de 927,4 MW, 8 km)
@@ -196,6 +196,10 @@ def candidates(gem, osm):
             if s < 0.3 and o["mw"] and not (1 / 3 <= g["mw"] / o["mw"] <= 3): continue
             ok = (d <= R and (s >= 0.3 or d <= R / 2 or not o["n"])) if exact else (d <= R and s >= 0.3)
             if not ok and d <= 3 * R and s >= 0.6: ok = True  # konum farklı ama ad aynı (ör. baraj gövdesi ile santral binası)
+            # GEM konumu yaklaşık (çoğu zaman il merkezi): 30 km içinde, ad benzer ve güç %10 içinde ise aynı santral
+            # (ör. OSM "ENKA Enerji Kırklareli Doğal Gaz Kombine Çevrim" 850 MW ↔ GEM "Kirklareli power station" 890 MW,
+            # sahibi ENKA, 24 km)
+            if not ok and not exact and d <= 30 and s >= 0.5 and o["mw"] and abs(o["mw"] - g["mw"]) <= 0.1 * g["mw"]: ok = True
             if ok: pairs.append((d / R - s, gi, o["i"], d, s))
     return sorted(pairs)
 
