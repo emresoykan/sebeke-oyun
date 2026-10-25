@@ -8,6 +8,7 @@
 //   3. İlk izin kolaylığı: uygun ilk sahada 30/30 onay; orman sahasında uygulanmaz.
 //   4. İkinci proje: izin reddinde dört başvuru yolu (maliyet, süre, ihtimal görünür), Ek ÇED seçimi uygulanır.
 //   5. Eski kayıt (görev zinciri v1) yeni zincire çevrilir.
+//   6. GÖP masası: ilk açılışta kısa giriş açık, sonraki açılışlarda kapalı.
 // Her adımda yatay taşma ve açık pencerenin ekrana sığması denetlenir. Çıkış kodu: hata varsa 1.
 const { chromium } = require("playwright");
 const URL0 = process.argv[2] || "http://localhost:5182/sebeke-oyun/";
@@ -98,6 +99,17 @@ async function flow(b, vp, tag) {
   ok(await p.isVisible("#fin details.expert"), "proje ekonomisi Uzman ayrıntıları altında");
   if (OUT) await p.screenshot({ path: `${OUT}/${tag}-4-rapor.png` });
   await layout(p, "rapor");
+  // GÖP masası: ilk açılışta giriş kutusu açık, sonra kapalı
+  await p.evaluate(async () => { const m = await import("/src/ui/desk.js"); m.openDesk(true); });
+  await waitFor(p, () => document.querySelector("#deskDlg[open]"), 5000);
+  ok(await p.evaluate(() => !!document.querySelector("#deskDlg details.dintro[open]")), "GÖP masası ilk açılışta giriş açıklaması açık");
+  await layout(p, "GÖP masası");
+  if (OUT) await p.screenshot({ path: `${OUT}/${tag}-5-gop.png` });
+  await p.click("#deskGo");
+  await p.evaluate(async () => { const m = await import("/src/ui/desk.js"); m.openDesk(true); });
+  await waitFor(p, () => document.querySelector("#deskDlg[open]"), 5000);
+  ok(await p.evaluate(() => { const d = document.querySelector("#deskDlg details.dintro"); return d && !d.open && /nedir/.test(d.textContent); }), "sonraki açılışta giriş kapalı ('GÖP masası nedir?')");
+  await p.click("#deskGo");
   // 2. yenileme: kaldığı yerden
   const before = await st(p);
   await p.reload(); await p.waitForTimeout(3500);
