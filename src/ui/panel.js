@@ -1,8 +1,10 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_LIMIT, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
 import { S, selSite, save } from "../state.js";
-import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed } from "../rules.js";
+import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions } from "../rules.js";
+import { spotCheck, ob, proOn, inTutorial } from "../tutorial.js";
+import { checkMissions } from "../missions.js";
 import { slopeOf } from "../slope.js";
 import { fillRes, ghiAt } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
@@ -46,11 +48,11 @@ function buildHtml(t){
     const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>2 saat</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
-      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button>${(()=>{const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
+      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
-  h+=loanNote(t,tab);
+  if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
@@ -114,28 +116,36 @@ function renderPanelImpl(){
     html+=`<div class="status bad">${steepTxt(t)} Bu noktada kurulabilecek tesis yok: araziyi almak için daha düz bir yer seç.</div>`;
   }else if(!o){
     if(steepTxt(t))html+=`<div class="status wait">${steepTxt(t)}</div>`;
+    // eğitimde ilk arazi: seçilen yer ilk proje için uygun mu (uygun değilse satın almadan önce açıkça uyarılır)
+    if(inTutorial()&&!Object.keys(S.sites).length){const sc=spotCheck(t);
+      html+=sc.ok?`<div class="status ok tutspot">İlk proje için iyi bir yer: ${[sc.sun&&"güneş",sc.wind&&"rüzgâr"].filter(Boolean).join(" ve ")} güçlü, izin ihtimali yüksek.</div>`
+        :`<div class="status bad tutspot">${sc.low?"İlk projen için uygun değil. ":""}${sc.why}${sc.low?" Ova, bozkır ya da çölde bir yer seç.":""}</div>`;}
     html+=`<div class="status">${t.sea?"Deniz alanı tahsisi":"Arazi"}: <b>${fmt$(landCost(t))}</b>. Satın aldıktan sonra ${ministry(t)} izni gerekir. Tahmini izin ihtimali: <b>${oddsTxt(p)}</b>.${t.ter==="p"?" Korunan alanda izin neredeyse hiç verilmez.":t.ter==="f"?" Orman alanlarında izin zor çıkar.":""}</div>`;
     // eğim ölçülmeden arazi satılmaz: eğim uyarısı satın almadan önce görünsün (ölçüm başarısızsa düğme açılır)
     const sw=!t.sea&&slopeOfSite(t)===undefined;
     html+=`<div class="actions"><button class="pri" data-a="land" data-c="${landCost(t)}"${sw?' data-wait="1" disabled':""}>${sw?"Eğim ölçülüyor…":t.sea?"Deniz alanını kirala":"Araziyi satın al"}</button></div>`;
   }else if(o.permit==="none"||o.permit==="rejected"){
     if(steepTxt(t))html+=`<div class="status wait">${steepTxt(t)}</div>`;
-    if(o.permit==="rejected")html+=`<div class="status bad">İzin reddedildi: ${o.why}. Tekrar başvurabilirsin; ihtimal değişmez.</div>`;
-    else html+=`<div class="status">Arazi senin. ${ministry(t)} izni olmadan kurulum yapılamaz. İzin ihtimali: <b>${oddsTxt(p)}</b>.</div>`;
-    html+=`<div class="actions"><button class="pri" data-a="permit" data-c="${permitFee(t)}">İzin başvurusu yap (${fmt$(permitFee(t))})</button></div>`;
+    if(o.permit==="rejected"){
+      // ret: başvuru yolu seçilir; maliyet, süre ve tahmini onay ihtimali önceden görünür (rules.js permitOptions)
+      html+=`<div class="status bad">İzin reddedildi: ${o.why}. Nasıl devam edeceğini seç:</div><div class="popts">`+permitOptions(t).map(x=>{
+        const dd=x.d[0]===x.d[1]?`${x.d[0]} gün`:`${x.d[0]}–${x.d[1]} gün`,pp=Math.round(x.p*100);
+        return `<button class="popt" data-a="permit" data-o="${x.k}" data-c="${x.fee}" aria-label="${x.l}: ${fmt$(x.fee)}, ${dd} inceleme, tahmini onay ihtimali yüzde ${pp}"><b>${x.l}</b><span>${x.sub}</span><span class="pmeta">${fmt$(x.fee)} • ${dd} • onay ~%${pp}</span></button>`;}).join("")+`</div>`;}
+    else{html+=`<div class="status">Arazi senin. ${ministry(t)} izni olmadan kurulum yapılamaz. İzin ihtimali: <b>${oddsTxt(p)}</b>.</div>`;
+      html+=`<div class="actions"><button class="pri" data-a="permit" data-c="${permitFee(t)}">İzin başvurusu yap (${fmt$(permitFee(t))})</button></div>`;}
   }else if(o.permit==="pending"){
     html+=`<div class="status wait">İzin inceleniyor: yaklaşık ${o.days} gün kaldı.</div>`;
   }else{
     const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
-    html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${SITE_LIMIT} MW kurulu${list?": "+list:""}.</div>`;
+    html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
     if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
   }
   el.innerHTML=html;
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id);
-    else if(a==="tab"){tab=b.dataset.k;renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);
+    else if(a==="tab"){tab=b.dataset.k;if(o&&o.permit==="ok"&&!ob().tech){ob().tech=1;checkMissions();}renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }
-export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>SITE_LIMIT||locked(b.dataset.k)))d=true;b.disabled=d;});}
+export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>siteCap(S.sites[S.sel.id])||locked(b.dataset.k)))d=true;b.disabled=d;});}

@@ -1,8 +1,9 @@
 // --- Aksiyonlar ---
-import { BLOCK, SITE_LIMIT, REG, TECH, UNDO_MS } from "./config.js";
+import { BLOCK, REG, TECH, UNDO_MS } from "./config.js";
 import { describe, placeName } from "./world.js";
 import { S, save, addLog } from "./state.js";
-import { landCost, permitFee, permitDays, allowed } from "./rules.js";
+import { landCost, permitFee, permitDays, allowed, siteCap, permitOptions, SHRINK_MW } from "./rules.js";
+import { easyPermit, ob } from "./tutorial.js";
 import { slopeCached } from "./slope.js";
 import { siteMW, newDayHydro, planBio, awardAch } from "./sim.js";
 import { locked } from "./rules.js";
@@ -43,11 +44,20 @@ export function undoLast(){
 export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||(!t.sea&&!allowed(t).length))return;S.money-=c;
   const id="s"+(S.nextId++),sl=slopeCached(t.lat,t.lon);S.sites[id]={...t,permit:"none"};if(sl)S.sites[id].slope=sl;S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
-export function applyPermit(id){const t=S.sites[id],c=permitFee(t);if(S.money<c)return;S.money-=c;const d=permitDays(t);delete t.why;Object.assign(t,{permit:"pending",days:d});addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.`);refresh();window.dispatchEvent(new CustomEvent("sebeke:permit"));}
+// opt: reddedilen başvurudan sonra seçilen yol (rules.js permitOptions); yoksa normal başvuru.
+// Eğitimde uygun ilk sahanın ilk başvurusu onaylanır ve kısa sürer (tutorial.js easyPermit; t.tg sonuçlanınca silinir).
+export function applyPermit(id,opt="n"){const t=S.sites[id];if(!t||(t.permit!=="none"&&t.permit!=="rejected"))return;
+  const o=permitOptions(t).find(x=>x.k===opt)||permitOptions(t)[0],c=o.fee;if(S.money<c)return;S.money-=c;
+  const easy=t.permit==="none"&&easyPermit(t),d=easy?2:permitDays(t,o.d);delete t.why;
+  if(easy){t.tg=1;ob().g=1;}
+  if(o.k==="small")t.cap=SHRINK_MW;
+  Object.assign(t,{permit:"pending",days:d,pk:o.k});
+  const how={ced:" Ek ÇED çalışmasıyla.",small:` Proje ${SHRINK_MW} MW'a küçültüldü.`,local:" Yerel ortakla."}[o.k]||"";
+  addLog(`${placeName(t)}: izin başvurusu yapıldı, inceleme yaklaşık ${d} gün sürecek.${how}`);refresh();window.dispatchEvent(new CustomEvent("sebeke:permit"));}
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer.
 // loan: yatırımın bir kısmı banka kredisiyle (loans.js); nakitten yalnızca özsermaye payı düşer, borç portföy değerinden çıkar
 export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):null;if(loan&&!(lt&&lt.debt>0))return;
-  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||siteMW(id)+BLOCK>SITE_LIMIT||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
+  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||siteMW(id)+BLOCK>siteCap(S.sites[id])||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
   const L=lt?openLoan(id,k,q,lt):null;
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır

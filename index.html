@@ -78,15 +78,15 @@
           <div>Portföy değerini <b>5 M$</b>'a ulaştır. Şu an: <b id="nw">–</b></div>
           <div class="goal"><div id="goalBar"></div></div>
         </div>
-        <h2>Güneş capture oranı trendi</h2>
+        <div id="captureBox" hidden><h2>Güneş capture oranı trendi</h2>
         <div class="report">
           <div style="font-size:.85rem;color:var(--muted)">Son 14 gün. Her piyasada güneş kapasitesi arttıkça öğle fiyatları düşer.</div>
           <div class="trend" id="trend"></div>
-        </div>
+        </div></div>
       </section>
       <section class="tabp" data-tab="rapor" hidden>
         <h2>Dünün raporu</h2>
-        <div class="report" id="report"><p style="margin:0;color:var(--muted)">İlk gün bitince burada santral türlerine göre gelir ve capture oranını göreceksin.</p></div>
+        <div class="report" id="report"><p style="margin:0;color:var(--muted)">İlk gün bitince burada santrallerinin üretimini, gelirini ve giderlerini göreceksin.</p></div>
         <h2>Proje ekonomisi <small class="mut">gerçek dünya karşılığı</small></h2>
         <div class="report" id="fin"></div>
         <h2>Bildirimler</h2>
@@ -117,6 +117,7 @@
 <dialog id="confirmDlg" class="confirm" aria-label="Onay"></dialog>
 <dialog id="winDlg" class="windlg" aria-label="Hedefe ulaştın"></dialog>
 <dialog id="fbDlg" aria-label="Geri bildirim"></dialog>
+<dialog id="firstDlg" class="firstdlg" aria-labelledby="firstTitle"></dialog>
 <script>
 // Açılış koruması: iOS Safari bellek yetmeyince sekmeyi kapatıp sayfayı yeniden açar ("A problem repeatedly occurred").
 // Açılış işaretlenir; sayfa 10 sn sorunsuz çalışınca ya da normal kapanınca (pagehide) silinir (main.js). İşaret duruyorsa

@@ -2,6 +2,7 @@
 // Gün başında, oyuncunun santrali varsa belirli olasılıkla bir olay çıkar; oyun durur, oyuncu seçeneklerden birini seçer.
 // Olaylar gerçek piyasa olgularından esinlenir (kuraklık, gaz şoku, şebeke kısıtı, tatil günü fiyat çöküşü...);
 // her kartta kısa bir "piyasa notu" vardır. Sayılar oyun dengesi için temsilidir.
+import { fullOn } from "./tutorial.js";
 import { news } from "./news.js";
 import { REG, TECH, MARKETS } from "./config.js";
 import { placeName } from "./world.js";
@@ -120,7 +121,7 @@ export const EVENTS=[
 
 // Gün başında olay çıkar mı? İlk santralden sonraki ilk gün başında ilk olay garantilidir.
 export function maybeEvent(){
-  if(!S.plants.length||S.dayNo<3)return;
+  if(!S.plants.length||S.dayNo<3||!fullOn())return; // eğitim bitmeden olay kartı çıkmaz
   if(S.evCool>0){S.evCool--;return;}
   if(S.evDone>0&&rnd()>0.45)return;
   // ilk olay kartı en az iki seçenekli olsun (görev seçenekleri tartmayı istiyor); seçenekler bir kez hesaplanır

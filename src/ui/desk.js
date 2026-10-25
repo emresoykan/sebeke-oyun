@@ -9,6 +9,7 @@ import { enqueue } from "./modal.js";
 import { toast } from "./fx.js";
 import { clock } from "../wxsite.js";
 import { render } from "./hud.js";
+import { fullOn } from "../tutorial.js";
 
 const dlg=()=>document.getElementById("deskDlg");
 let fastNote=false;
@@ -20,6 +21,8 @@ export function openDesk(force=false,quiet=false){
   if(!S.desk)S.desk=deskDefaults();
   if(!hasRenew()&&!(force&&hasBatt()))return;
   if(S.desk.auto&&!force)return;
+  // eğitim sürerken masa kendiliğinden açılmaz (teklif varsayılan ayarlarla gider); GÖP düğmesiyle açılabilir
+  if(!force&&!fullOn())return;
   // hızlı oyunda (3x, 8x) masa her gün açılıp oyunu durdurmasın: teklif son ayarlarla gönderilir (otomatik mod gibi)
   if(!force&&quiet){toast("GÖP teklifi son ayarlarınla gönderildi","Değiştirmek için GÖP düğmesine bas.");return;}
   if(!force&&clock.ms<500){if(!fastNote){fastNote=true;toast("GÖP teklifi otomatik gönderiliyor","Hızlı oyunda teklif son ayarlarınla verilir. Masayı GÖP düğmesiyle açabilirsin.");}return;}

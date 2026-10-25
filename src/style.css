@@ -557,3 +557,42 @@ a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
 /* potansiyel lejantı açıksa onun üstüne çıkar */
 .potlegend:not([hidden]) ~ .reallegend{bottom:170px}
 @media (max-width:599px){.reallegend{right:10px;width:calc(100% - 74px);font-size:.7rem}}
+
+/* ===== İlk oturum eğitimi (tutorial.js, ui/mission.js, ui/firstsale.js) ===== */
+.mission.tut{border-left-color:var(--solar)}
+.mission .mact{margin:6px 0 2px;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--solar);background:transparent;color:var(--ink);font-weight:700;font-size:.86rem;cursor:pointer}
+.mission.mdone{animation:mdone 1.2s ease-out}
+@keyframes mdone{0%{box-shadow:0 0 0 0 rgba(60,196,149,.0);background:var(--surface)}25%{box-shadow:0 0 0 3px rgba(60,196,149,.8);background:rgba(60,196,149,.14)}100%{box-shadow:0 0 0 0 rgba(60,196,149,0);background:var(--surface)}}
+/* vurgulanan kontrol: body[data-tut] anahtarı (panel yeniden çizilse de geçerli) */
+body[data-tut="pick"] #potBtn,body[data-tut="land"] #panel button[data-a="land"],body[data-tut="permit"] #panel button[data-a="permit"],
+body[data-tut="tech"] #panel .eqtabs button,body[data-tut="build"] #panel .eqcard.t-std button[data-a="build"]:not(.loan),
+body[data-tut="speed"] #speedBtn,body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:tutpulse 1.6s ease-in-out infinite;position:relative;z-index:1}
+@keyframes tutpulse{0%,100%{box-shadow:0 0 0 0 rgba(242,180,44,0)}50%{box-shadow:0 0 0 4px rgba(242,180,44,.9)}}
+@media (prefers-reduced-motion: reduce){
+  .mission.mdone{animation:none}
+  body[data-tut="pick"] #potBtn,body[data-tut="land"] #panel button[data-a="land"],body[data-tut="permit"] #panel button[data-a="permit"],
+  body[data-tut="tech"] #panel .eqtabs button,body[data-tut="build"] #panel .eqcard.t-std button[data-a="build"]:not(.loan),
+  body[data-tut="speed"] #speedBtn,body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:none;box-shadow:0 0 0 3px rgba(242,180,44,.9)}}
+.status.tutspot{font-weight:600}
+/* izin reddinden sonra başvuru yolları */
+.popts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
+.popt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;min-height:44px}
+.popt b{font-size:.9rem}.popt span{font-size:.78rem;color:var(--muted);line-height:1.3}.popt .pmeta{color:var(--ink);font-weight:700;margin-top:2px}
+.popt:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:420px){.popts{grid-template-columns:1fr}}
+/* Uzman ayrıntıları (rapor, proje ekonomisi) */
+details.expert{margin-top:10px;border-top:1px solid var(--line);padding-top:6px}
+details.expert>summary{cursor:pointer;font-weight:700;font-size:.88rem;min-height:36px;display:flex;align-items:center}
+/* ilk satış kartı */
+dialog.firstdlg{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);color:var(--ink)}
+dialog.firstdlg::backdrop{background:rgba(5,10,15,.55)}
+.firstdlg h3{margin:8px 0 2px;font-size:1.2rem}
+.firstdlg .fsub{margin:0;color:var(--muted);font-size:.86rem}
+.firstdlg .winstats{position:relative;margin:12px 0 8px}
+.firstdlg .fwx{margin:0 0 8px;font-size:.88rem;line-height:1.4}
+.firstdlg .frw{margin:0 0 10px;font-size:.84rem;color:var(--muted)}
+.firstdlg .fq{margin:0 0 6px;font-weight:800}
+.fopts{display:grid;gap:8px}
+.fopts button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;min-height:44px}
+.fopts button span{font-size:.8rem;color:var(--muted)}
+.fopts button:first-child{border-color:var(--solar)}
