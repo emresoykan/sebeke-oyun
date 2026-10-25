@@ -147,7 +147,8 @@ async function step(){
   const old=tiles.get(key);if(!(old&&old.sig===t.sig)){const url=await draw(t);setTile(key,{sig:t.sig,url});}
   note(false);setTimeout(step,0);
 }
-function note(done){const now=performance.now();if(done||now-lastNote>300){lastNote=now;tileListeners.forEach(f=>f());}}
+// dinleyiciler (mapkit.js katmanı yeniler) yalnızca kuyruk bitince çağrılır: her yenileme haritanın kendi karolarıyla yarışıyor
+function note(done){if(!done)return;lastNote=performance.now();tileListeners.forEach(f=>f());}
 function setTile(key,v){const o=tiles.get(key);tiles.delete(key);tiles.set(key,v);
   if(o&&o.url&&o.url!==v.url)setTimeout(()=>URL.revokeObjectURL(o.url),5000); // harita eski adresi yüklüyor olabilir
   while(tiles.size>TILE_CACHE){const [k,e]=tiles.entries().next().value;tiles.delete(k);if(e.url)setTimeout(()=>URL.revokeObjectURL(e.url),5000);}}
