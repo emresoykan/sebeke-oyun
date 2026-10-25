@@ -9,7 +9,7 @@ import { enqueue } from "./modal.js";
 import { toast } from "./fx.js";
 import { clock } from "../wxsite.js";
 import { render } from "./hud.js";
-import { fullOn } from "../tutorial.js";
+import { fullOn, ob } from "../tutorial.js";
 
 const dlg=()=>document.getElementById("deskDlg");
 let fastNote=false;
@@ -29,6 +29,15 @@ export function openDesk(force=false,quiet=false){
   enqueue(done=>show(done));
 }
 
+// Kısa giriş: masa ilk açıldığında açık bir kutu, sonraki açılışlarda kapalı "GÖP masası nedir?" (ob().desk: giriş görüldü)
+function intro(){
+  const first=!ob().desk;
+  return `<details class="dintro"${first?" open":""}><summary>${first?"İlk kez GÖP masası: 3 adımda":"GÖP masası nedir?"}</summary><ol>
+    <li><b>Ne yapıyorsun?</b> Gün başında, bugün her saat ne kadar elektrik satacağını gün öncesi piyasasına (GÖP) teklif edersin. Teklif ettiğin miktar o saatin GÖP fiyatından satılır.</li>
+    <li><b>Risk ne?</b> Üretim tahmini hiçbir zaman kesin değil. Gerçekleşen üretim teklifinden az çıkarsa eksiği PTF'nin %${Math.round(K_SHORT*100)} fazlasıyla alırsın; fazla çıkarsa fazlayı %${Math.round(K_SURP*100)} ucuza satarsın. Bu fark dengesizlik maliyetidir.</li>
+    <li><b>Ne seçmeli?</b> Emin değilsen önerilen ayarla gönder: teklif %100 (tahmin kadar), standart tahmin. Ertesi gün Rapor'daki "Tahmin ve dengesizlik" satırına bakıp ayarla. Her gün sormasın istersen alttaki otomatik gönder kutusunu işaretle.</li>
+  </ol></details>`;
+}
 function show(done){
   const d=dlg(),from=S.hour,mid=from>0,pre0=S.desk.fc==="pre";
   applyDesk(from);
@@ -37,6 +46,7 @@ function show(done){
   d.innerHTML=`<div class="desk">
     <span class="evtag">Gün öncesi piyasası</span>
     <h3>GÖP masası <small>${fmtDate(CAL.date)}${mid?` • ${String(from).padStart(2,"0")}:00 sonrası`:""}</small></h3>
+    ${intro()}
     <p class="dsub">${mid?"Gün içinde yaptığın değişiklik yalnızca kalan saatlere uygulanır (gün içi piyasada pozisyon düzeltmek gibi).":"Bugünün saatlik üretim tahmini hazır. Ne kadarını GÖP'te satacağını seç; gerçekleşen üretim teklifinden saparsa fark dengesizlik fiyatından kapanır."}</p>
     ${hasRenew()?`<canvas id="deskChart" role="img" aria-label="Saatlik üretim tahmini, belirsizlik bandı, teklif ve fiyat"></canvas>
     <div class="dleg"><span><i class="b"></i>Tahmin</span><span><i class="u"></i>Belirsizlik</span><span><i class="c"></i>Teklif</span><span><i class="p"></i>Fiyat</span></div>
@@ -63,7 +73,7 @@ function show(done){
     applyDesk(from);
     // premium servis gün içinde seçildiyse o günün ücreti bir kez alınır
     if(S.desk.fc==="pre"&&!pre0&&!D.st.fee){const f=deskSummary().fee;S.money-=f;D.st.fee=f;addLog(`Premium tahmin servisi alındı: ${fmt$(f)}.`);}
-    save();d.close();render();done();
+    ob().desk=1;save();d.close();render();done();
   };
   d.querySelector("#deskGo").onclick=go;
   d.oncancel=e=>{e.preventDefault();go();}; // Esc: mevcut ayarlarla gönder

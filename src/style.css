@@ -204,6 +204,10 @@ dialog#deskDlg::backdrop{background:rgba(5,10,15,.6)}
 .desk h3{margin:8px 0 4px;font-size:1.25rem;font-weight:800}
 .desk h3 small{font-size:.8rem;font-weight:400;color:var(--muted);margin-left:6px}
 .dsub{margin:0 0 10px;font-size:.9rem;line-height:1.45}
+.dintro{margin:0 0 10px;border:1px solid var(--line);border-left:4px solid var(--solar);border-radius:10px;padding:6px 10px;background:rgba(242,180,44,.07)}
+.dintro>summary{cursor:pointer;font-weight:700;font-size:.9rem;min-height:36px;display:flex;align-items:center}
+.dintro ol{margin:4px 0 6px;padding-left:20px;font-size:.86rem;line-height:1.45}
+.dintro li{margin-bottom:4px}
 #deskChart{width:100%;height:150px;display:block;background:rgba(10,20,35,.55);border-radius:10px}
 .dleg{display:flex;flex-wrap:wrap;gap:12px;font-size:.75rem;color:var(--muted);margin:6px 0 10px}
 .dleg i{display:inline-block;width:12px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px}
