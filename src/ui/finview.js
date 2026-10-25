@@ -1,6 +1,7 @@
 // --- Rapor sekmesi: proje ekonomisi (gerçek dünya karşılığı) ---
 // Her santral kaydı için kapasite faktörü, ortalama satış fiyatı, yatırım, LCOE, NPV, IRR ve geri ödeme; iskonto oranı
 // kaydırıcıyla değiştirilebilir (duyarlılık). Varsayımlar, formüller ve kısaltmalar açılır bölümde.
+import { proOn } from "../tutorial.js";
 import { S, save } from "../state.js";
 import { loanDSCR, prepay, totalDebt, dailyDS, dueOf, ECON_YEAR } from "../loans.js";
 import { fmt$ } from "../utils.js";
@@ -119,8 +120,12 @@ function loanRows(){
 
 export function renderFin(){
   const el=document.getElementById("fin");if(!el)return;
-  if(!el.dataset.init){el.dataset.init="1";
-    el.innerHTML=`<label class="finw">İskonto oranı (WACC): <b id="finW"></b><input type="range" min="4" max="16" step="0.5" value="${wacc*100}" aria-label="İskonto oranı (WACC), yüzde"></label>
+  // ilk satışa kadar gizli; sonra kısa bir açıklama ve kapalı "Uzman ayrıntıları" (tutorial.js)
+  if(!proOn()){if(el.dataset.init!=="0"){el.dataset.init="0";el.innerHTML=`<p class="mut" style="margin:0">İlk satışından sonra burada santralinin ömür boyu ekonomisi hesaplanır: yatırımın kaç yılda geri döner, MWh başına maliyetin ne olur.</p>`;}return;}
+  if(el.dataset.init!=="1"){el.dataset.init="1";
+    el.innerHTML=`<p class="mut pfnote" style="margin-top:0">Santralinin gerçekleşen üretimi ve satış fiyatıyla, aynı santralin gerçek dünyada ömrü boyunca ne kazandıracağı tahmin edilir. Terimlerin açıklaması tablonun altında.</p>
+      <details class="expert"><summary>Uzman ayrıntıları: LCOE, NPV, IRR, PPA ve kredi</summary>
+      <label class="finw">İskonto oranı (WACC): <b id="finW"></b><input type="range" min="4" max="16" step="0.5" value="${wacc*100}" aria-label="İskonto oranı (WACC), yüzde"></label>
       <p class="mut pfnote"><b>Bu tablo gerçek dünya ölçeğindedir (M$).</b> Aynı santral gerçekte kurulsaydı yatırım ve getirisi ne olurdu, onu gösterir; oyundaki bütçen (b$) bu tutarların çok küçük bir kesridir (${scaleNote()}). Üretim ve satış fiyatı oyunda gerçekleşen değerlerdir. Oyun parası yalnızca aşağıdaki Banka kredileri bölümündedir.</p>
       <div style="overflow-x:auto"><table class="fint"><thead><tr><th>Santral</th><th>CF</th><th>Ort. satış fiyatı</th><th title="Gerçek dünya karşılığı">Yatırım (gerçek)</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Geri ödeme</th><th>Veri</th></tr></thead><tbody id="finRows"></tbody></table></div>
       ${assumptions()}
@@ -140,7 +145,7 @@ export function renderFin(){
           <li>Stres senaryosu: borç baz senaryoyla boyutlanır, gerçekleşen spot fiyat %${STRESS*100} düşer; PPA yıllarının fiyatı değişmez. ⚠, DSCR'ın 1'in altına indiği (nakdin taksiti karşılamadığı) yıl olduğunu gösterir. Stresin ilk yıllarda yarattığı vergi zararı sonraki yılların vergisini azalttığı için en düşük DSCR bazen baz senaryodan yüksek çıkabilir.</li>
         </ul>
         <p class="mut">Hariç: inşaat dönemi ve inşaat faizi, kredi komisyonları, borç servis rezervi, kur riski (her şey USD), enflasyon, temettü kısıtları. Faiz tabanı ve vergi oranları kaynaklıdır; kredi marjı, borç oranı, vade, DSCR hedefleri, amortisman süresi ve PPA koşulları doğrulanmamış varsayımlardır. Değerler bu tarayıcıda saklanır.</p>
-      </details>`;
+      </details></details>`;
     // kaydırıcı yalnızca tabloyu yeniler (sürükleme kesilmez): iskonto oranına duyarlılık
     el.querySelector('input[type="range"]').oninput=e=>{setWacc(+e.target.value/100);renderFin();};
     // finansman varsayımları: geçerli sayı girilince tablo yenilenir (giriş kutuları yeniden çizilmez)

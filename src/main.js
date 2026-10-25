@@ -1,13 +1,15 @@
 // Giriş noktası: oyun döngüsü, kontroller ve ilk yükleme
 import { wp } from "./perfmark.js";
-import { S, setS, fresh, load, save, clearSelCache } from "./state.js";
+import { S, setS, fresh, load, save, clearSelCache, selSite } from "./state.js";
 import { newDay, tick } from "./sim.js";
 import { initMap, drawMap, initMap3DUI } from "./ui/map.js";
 import { renderPanel } from "./ui/panel.js";
 import { render, renderLog, renderReport, drawChart } from "./ui/hud.js";
 import { initProfile } from "./ui/profile.js";
 import { PROFILE_KEY } from "./profile.js";
-import { skipDone } from "./missions.js";
+import { skipDone, checkMissions } from "./missions.js";
+import { ob, spotCheck, inTutorial } from "./tutorial.js";
+import { initFirstSale } from "./ui/firstsale.js";
 import { renderMission } from "./ui/mission.js";
 import { initSound, toast } from "./ui/fx.js";
 import { clock } from "./wxsite.js";
@@ -31,7 +33,7 @@ let timer=null, speed=1, paused=false, held=0; // held: açık bekletici pencere
 
 // Zaman ilk arazi alınana kadar işlemez: oyuncu haritayı incelerken gün ilerlemez
 const waiting=()=>!Object.keys(S.sites).length;
-function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(()=>{const t=performance.now();tick();wp("oyun saati (sim + arayüz)",t);},500/speed);}
+function loop(){const stop=paused||held||waiting();clearInterval(timer);clock.ms=500/speed;clock.paused=stop;clock.at=performance.now();if(!stop)timer=setInterval(()=>{const t=performance.now();tick();renderMission();wp("oyun saati (sim + arayüz)",t);},500/speed);}
 window.addEventListener("sebeke:land",loop);
 // held bir sayaçtır: pencere sırası ve kazanma/kaybetme ekranı ayrı ayrı bekletebilir; biri kapanınca diğeri açıkken oyun sürmesin
 window.addEventListener("sebeke:hold",()=>{held++;loop();});
@@ -79,8 +81,13 @@ document.addEventListener("keydown",e=>{
 });
 // mobilde görev açıklaması dokununca açılır/kapanır
 const mis=document.getElementById("mission");mis.onclick=()=>mis.setAttribute("aria-expanded",String(mis.classList.toggle("open")));
-initSheet({onTab:t=>{if(t==="piyasa")drawChart();}});
+// eğitim: ilk raporun açılması (Rapor sekmesine geçince ya da sekme açıkken gün kapanınca)
+const repSeen=()=>{if(inTutorial()&&ob().repReady&&!ob().rep){ob().rep=1;checkMissions();save();}};
+initSheet({onTab:t=>{if(t==="piyasa")drawChart();if(t==="rapor")repSeen();}});
+window.addEventListener("sebeke:dayend",()=>{const r=document.querySelector('.tabp[data-tab="rapor"]');if(r&&!r.hidden&&(!matchMedia("(max-width:899.98px)").matches||document.getElementById("side").dataset.state!=="peek"))repSeen();renderMission();});
+// eğitim: ilk proje için iyi bir yer seçildi (satın alınmamış nokta)
+window.addEventListener("sebeke:select",()=>{if(inTutorial()&&!ob().pick&&!S.sel.id&&spotCheck(selSite()).ok){ob().pick=1;checkMissions();save();}});
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();initFirstSale();});

@@ -11,7 +11,7 @@ export function bndOf(img){
   const [e0,e1,n0,n1]=BND;if(!img)return BND;
   return [Math.min(e0,img.east[0]-40),Math.max(e1,img.east[1]+40),Math.min(n0,img.north[0]-40),Math.max(n1,img.north[1]+40)];
 }
-export const occText=mw=>`${mw}/${SITE_LIMIT} MW • ${mw?(mw<SITE_LIMIT?`${SITE_LIMIT-mw} MW boş`:"dolu"):"boş saha"}`;
+export const occText=(mw,cap=SITE_LIMIT)=>`${mw}/${cap} MW • ${mw?(mw<cap?`${cap-mw} MW boş`:"dolu"):"boş saha"}`;
 const f1=v=>v.toLocaleString("tr-TR",{maximumFractionDigits:1,minimumFractionDigits:v>0&&v<10?1:0});
 // Son oyun saatinde sahanın ürettiği güç ve ortalama satış fiyatı (sim.js LIVE); santral yoksa boş metin
 export function liveText(id){

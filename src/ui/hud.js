@@ -9,6 +9,7 @@ import { setGameClock } from "./map.js";
 import { CAL, fmtDate, seasonOf } from "../calendar.js";
 import { hasRenew } from "../market.js";
 import { renderFin } from "./finview.js";
+import { proOn, inTutorial } from "../tutorial.js";
 
 function skyColor(h){const st=[[0,"#1B2A4A"],[5,"#2A3A63"],[7,"#E59A6B"],[9,"#7FB3D9"],[13,"#9CCAE9"],[17,"#6E9CC9"],[19,"#D9845F"],[21,"#2D3B66"],[24,"#1B2A4A"]];
   let a=st[0],b=st[st.length-1];for(let i=0;i<st.length-1;i++)if(h>=st[i][0]&&h<=st[i+1][0]){a=st[i];b=st[i+1];break;}
@@ -45,6 +46,7 @@ function renderImpl(){
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
   const nw=netWorth();document.getElementById("nw").textContent=fmt$(nw);document.getElementById("goalBar").style.width=clamp(nw/GOAL*100,0,100)+"%";
   if(nw>=GOAL&&!S.won){S.won=true;save();setTimeout(()=>showWin(nw),50);}
+  const cb=document.getElementById("captureBox");if(cb&&cb.hidden===proOn())cb.hidden=!proOn(); // capture oranı ilk satıştan sonra
   document.getElementById("deskBtn").disabled=!(hasRenew()||S.plants.some(p=>p.k==="batt"));
   updateButtons();drawChart();setGameClock(S.hour);
 }
@@ -73,6 +75,8 @@ export function showLose(){
   window.dispatchEvent(new CustomEvent("sebeke:hold"));d.showModal();d.querySelector('[data-v="new"]').focus();
 }
 export function renderLog(){const el=document.getElementById("log");if(!S.log.length)return;el.innerHTML=S.log.map(l=>`<li>${l}</li>`).join("");}
+// rapordaki "Uzman ayrıntıları" (dengesizlik, tahmin, kredi) açık mı: yeniden çizimde korunur
+let repOpen=false;
 export function renderReport(){
   renderFin();
   const L=S.last;if(!L)return;
@@ -87,14 +91,21 @@ export function renderReport(){
   else if(L.E.ges>0&&L.sRate<0.75)note=`Güneşin kazandığı ortalama fiyat, kurulu olduğu piyasaların ortalamasının %${Math.round(L.sRate*100)}'i. Güneşi farklı piyasalara yaymak veya batarya eklemek bu kaybı azaltır.`;
   else if(L.imb>0)note=`Tahmin sapmaları ${fmt$(L.imb)} dengesizlik maliyeti yarattı. GÖP masasında teklifini belirsizliğe göre ayarlayabilirsin.`;
   else note=`Farklı piyasalarda kurulum yapmak, tek bir piyasanın fiyat düşüşüne karşı portföyünü korur.`;
+  // eğitimdeki ilk rapor: tablonun nasıl okunacağı
+  if(inTutorial()&&rows)note=`Üretim × o saatin fiyatı = piyasa değeri. Ondan işletme gideri ve tahmin sapmasının maliyeti düşülünce gün sonu net gelir çıkar. ${note}`;
+  const xrows=`<tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
+  ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}
+  ${L.fee>0?`<tr><td>Tahmin servisi</td><td></td><td class="neg">−${fmt$(L.fee)}</td><td></td></tr>`:""}`;
   document.getElementById("report").innerHTML=`<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>Gün ${L.dayNo}</span><span>Net: <b class="${L.net<0?"neg":"pos"}">${fmt$(L.net)}</b></span></div>
   <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Piyasa değeri</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
   ${L.fuel>0?`<tr><td>Biyokütle yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
-  <tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>
-  <tr><td>Dengesizlik${L.err?` <small class="mut">tahmin hatası %${Math.round(L.err*100)}</small>`:""}</td><td>${L.short!=null&&(L.short||L.surp)?`−${L.short.toFixed(0)} / +${L.surp.toFixed(0)} MWh`:""}</td><td class="neg">−${fmt$(L.imb)}</td><td></td></tr>
-  ${L.bBal>0?`<tr><td>Batarya dengeleme</td><td>${L.bBal.toFixed(0)} MWh</td><td></td><td></td></tr>`:""}
-  ${L.fee>0?`<tr><td>Tahmin servisi</td><td></td><td class="neg">−${fmt$(L.fee)}</td><td></td></tr>`:""}
+  ${L.bNet||S.plants.some(p=>p.k==="batt")?`<tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>`:""}
+  <tr><td>Tahmin ve dengesizlik</td><td></td><td class="neg">−${fmt$(L.imb+(L.fee||0))}</td><td></td></tr>
   <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr>
-  ${L.loan&&L.loan.paid>0?`<tr><td>Kredi taksiti <small class="mut">faiz ${fmt$(L.loan.int)}</small></td><td></td><td class="neg">−${fmt$(L.loan.paid)}</td><td></td></tr>`:""}</table></div><div class="note">${note}</div>`;
+  ${L.loan&&L.loan.paid>0?`<tr><td>Kredi taksiti <small class="mut">faiz ${fmt$(L.loan.int)}</small></td><td></td><td class="neg">−${fmt$(L.loan.paid)}</td><td></td></tr>`:""}</table></div><div class="note">${note}</div>
+  <details class="expert" id="repX"${repOpen?" open":""}><summary>Uzman ayrıntıları: dengesizlik ve tahmin</summary>
+  <p class="mut">GÖP'te bir gün önceden satış teklifi verilir; gerçekleşen üretim tekliften saparsa eksik ya da fazla miktar dengesizlik fiyatından kapanır. Tahmin hatası ne kadar küçükse maliyet o kadar düşer.</p>
+  <div style="overflow-x:auto"><table><tr><th>Kalem</th><th>Miktar</th><th>Tutar</th><th></th></tr>${xrows}</table></div></details>`;
+  const rx=document.getElementById("repX");if(rx)rx.ontoggle=()=>{repOpen=rx.open;};
   const tr=document.getElementById("trend");tr.innerHTML="";S.hist.forEach(v=>{const d=document.createElement("div");d.style.height=clamp(v,0,1.2)/1.2*100+"%";d.title=Math.round(v*100)+"%";tr.appendChild(d);});
 }

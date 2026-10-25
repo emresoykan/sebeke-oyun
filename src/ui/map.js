@@ -23,6 +23,7 @@ import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
 import { bndOf, occText, liveText } from "./sitelive.js";
+import { siteCap } from "../rules.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 
@@ -386,7 +387,7 @@ export function drawMap(){
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
   const bf=[];
-  Object.entries(S.sites).forEach(([id,o])=>{const f=facs.get(id);bndFeatures(bf,o,bndOf(f&&f.img),"rgba(255,255,255,.85)",occText(siteMW(id)));});
+  Object.entries(S.sites).forEach(([id,o])=>{const f=facs.get(id);bndFeatures(bf,o,bndOf(f&&f.img),"rgba(255,255,255,.85)",occText(siteMW(id),siteCap(o)));});
   rivalSites().forEach(({r,s})=>bndFeatures(bf,s,bndOf(null),r.c,`${r.sh} • ${occText(s.mw)}${s.build>0?" • inşaat":""}`));
   map.getSource("bnd").setData(fc(bf));
   syncFacilities();

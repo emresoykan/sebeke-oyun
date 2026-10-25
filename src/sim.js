@@ -3,7 +3,8 @@ import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMI
 import { payLoans, totalDebt } from "./loans.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
-import { permitProb, rejectWhy, landCost } from "./rules.js";
+import { optProb, rejectWhy, landCost } from "./rules.js";
+import { noteHour, ob } from "./tutorial.js";
 import { rnd, clamp, shape, fmt$ } from "./utils.js";
 import { render, renderReport, showLose } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
@@ -108,7 +109,9 @@ export function tick(){
   });
   // dengesizlik uzlaştırması: piyasa başına net sapma; dengeleme modundaki batarya önce sapmayı kapatır
   for(const m in dev){const c=settle(m,dev[m],D[m].price[h],batts[m]||[],st);st.dev+=Math.abs(dev[m]);cash+=c;st.imb+=val[m]-c;}
-  S.money+=cash; S.hour++;stepWx(S.wx,1);clock.at=performance.now();
+  S.money+=cash;
+  if(noteHour(h,LIVE)){checkMissions();if(ob().sale&&!ob().card)window.dispatchEvent(new CustomEvent("sebeke:firstsale"));}
+  S.hour++;stepWx(S.wx,1);clock.at=performance.now();
   if(S.hour>=24)endDay();
   render();
 }
@@ -127,7 +130,8 @@ export function endDay(){
   Object.values(S.sites).forEach(o=>{
     if(o.permit!=="pending")return;o.days--;
     if(o.days<=0){const nm=placeName(o);
-      if(rnd()<permitProb(o)){o.permit="ok";addLog(`${nm} için izin çıktı. Artık santral kurabilirsin.`);}
+      const okP=o.tg||rnd()<optProb(o,o.pk);delete o.tg;delete o.pk;
+      if(okP){o.permit="ok";addLog(`${nm} için izin çıktı. Artık santral kurabilirsin.`);}
       else{o.permit="rejected";o.why=rejectWhy(o);addLog(`${nm} için izin reddedildi: ${o.why}.`);}}
   });
   // istatistikler
@@ -141,6 +145,7 @@ export function endDay(){
   rollOutages();ageMods();
   // banka kredisi taksitleri (loans.js): gün sonunda nakitten düşer, iflas denetiminden önce
   S.last.loan=payLoans();
+  if(ob().sale&&mwh>0)ob().repReady=1; // ilk satıştan sonra üretimli ilk gün: rapor görevi açılır
   S.dayNo++;S.hour=0;newDay();awardAch();checkMissions();
   // iflas: gün sonu nakit (görev ve rozet ödüllerinden sonra) art arda BANKRUPT_DAYS gün eksi kalırsa şirket batar
   let warn=0;

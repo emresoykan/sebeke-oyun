@@ -1,5 +1,5 @@
 // Kare bazlı kurallar: izinli teknolojiler, arazi/izin maliyeti ve olasılıkları
-import { REG, MAR_UNLOCK } from "./config.js";
+import { REG, MAR_UNLOCK, SITE_LIMIT } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
@@ -34,8 +34,26 @@ export const totalMW=()=>S.plants.reduce((a,p)=>a+p.mw,0);
 export const locked=k=>k==="mar"&&totalMW()<MAR_UNLOCK;
 export function landCost(t){return t.sea?30000:REG[t.reg].land;}
 export function permitFee(t){return t.sea?10000:5000;}
-export function permitProb(t){let p=t.sea?0.6:({p:0.03,f:0.3,m:0.7,d:0.95,pl:0.85})[t.ter];if(t.mreg==="E")p*=0.9;if(spec()==="reg"&&t.ter!=="p")p=Math.min(0.98,p+0.1);if(t.boost)p=Math.min(0.98,Math.max(0.01,p+t.boost));return p;}
-export function permitDays(t){return 3+Math.floor(Math.random()*4)+(t.ter==="f"?3:0)+(t.mreg==="E"?2:0)+(t.sea?2:0)-(spec()==="reg"?1:0);}
+// küçültülmüş projede (Projeyi küçült seçeneği, t.cap) etki alanı daralır, onay ihtimali artar
+export function permitProb(t){let p=t.sea?0.6:({p:0.03,f:0.3,m:0.7,d:0.95,pl:0.85})[t.ter];if(t.mreg==="E")p*=0.9;if(spec()==="reg"&&t.ter!=="p")p=Math.min(0.98,p+0.1);if(t.cap)p=Math.min(0.97,p*1.2+0.05);if(t.boost)p=Math.min(0.98,Math.max(0.01,p+t.boost));return p;}
+// inceleme süresi aralığı (gün): 3–6 gün, ormanda, Avrupa'da ve denizde daha uzun
+export function permitRange(t){const e=(t.ter==="f"?3:0)+(t.mreg==="E"?2:0)+(t.sea?2:0)-(spec()==="reg"?1:0);return [3+e,6+e];}
+export function permitDays(t,[a,b]=permitRange(t)){return a+Math.floor(Math.random()*(b-a+1));}
+// Sahanın kurulu güç sınırı (küçültülmüş projede SHRINK_MW)
+export const SHRINK_MW=20;
+export const siteCap=t=>t&&t.cap?t.cap:SITE_LIMIT;
+// İzin reddinden sonra başvuru yolları: maliyet, süre aralığı ve onay ihtimali başvurudan önce görünür.
+// Ek ÇED dosyayı güçlendirir (pahalı, biraz uzun); küçültme saha sınırını SHRINK_MW'a indirir; yerel ortak incelemeyi kısaltır.
+export function permitOptions(t){
+  const fee=permitFee(t),r=permitRange(t),p=permitProb(t),o=[
+    {k:"n",l:"Normal başvuru",sub:"Aynı dosyayla yeniden başvur.",fee,d:r,p}];
+  o.push({k:"ced",l:"Ek ÇED çalışması",sub:"Kuş, su ve toprak etüdüyle dosyayı güçlendir.",fee:fee*3,d:[r[0]+2,r[1]+2],p:optProb(t,"ced")});
+  if(!t.cap)o.push({k:"small",l:"Projeyi küçült",sub:`Saha sınırı ${SHRINK_MW} MW'a iner; daha az arazi ve çevre etkisi.`,fee,d:r,p:permitProb({...t,cap:SHRINK_MW})});
+  o.push({k:"local",l:"Yerel ortakla çalış",sub:"Yerel bir ortak dosyayı takip eder; inceleme kısalır, ihtimal değişmez.",fee:fee+10000,d:[Math.max(1,r[0]-2),Math.max(1,r[1]-3)],p});
+  return o;
+}
+// başvuru sonuçlanırken onay ihtimali (inceleme sürerken olay kartlarının etkisi de girer)
+export function optProb(t,k){const p=permitProb(t);return k==="ced"?Math.min(0.97,p*1.35+0.05):p;}
 export function rejectWhy(t){if(t.sea)return"kuş göç yolu ve balıkçılık alanı gerekçesiyle";return({p:"korunan alan olduğu için ÇED olumsuz bulundu",f:"orman alanında ağaç kesimine izin verilmedi",m:"su kaynakları ve yaban hayatı gerekçesiyle"})[t.ter]||"ÇED raporu yetersiz bulundu";}
 export function oddsTxt(p){return p>=0.85?"Yüksek":p>=0.6?"Orta":p>=0.25?"Düşük":"Çok düşük";}
 export function ministry(t){return t.mreg==="T"?"Tarım ve Orman Bakanlığı / ÇED":"Çevre ve orman otoritesi";}

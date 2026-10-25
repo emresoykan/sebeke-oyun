@@ -19,6 +19,7 @@ import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
 import { bndOf, occText, liveText } from "./sitelive.js";
+import { siteCap } from "../rules.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -278,7 +279,7 @@ function drawImpl(){
     const col=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.background=col;m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
     m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
-    ensureBnd(m,true);const b=occText(mw);if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
+    ensureBnd(m,true);const b=occText(mw,siteCap(o));if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
     const lv=liveText(id);if(m.live.textContent!==lv){m.live.textContent=lv;if(m.bndOn)m.live.style.display=lv?"":"none";}
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}
