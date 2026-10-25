@@ -22,7 +22,7 @@ import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapsty
 import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
-import { bndOf, occText, liveText } from "./sitelive.js";
+import { bndOf, occText, liveText, battText } from "./sitelive.js";
 import { siteCap } from "../rules.js";
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -382,7 +382,7 @@ export function drawMap(){
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     const on=mw&&isLive(plantStatus(id))?1:0;if(on)live=true;
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)});})));
+    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)+battText(plantStatus(id).batt)});})));
   anyLive=live;
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));

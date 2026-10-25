@@ -18,7 +18,7 @@ import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
-import { bndOf, occText, liveText } from "./sitelive.js";
+import { bndOf, occText, liveText, battHtml } from "./sitelive.js";
 import { siteCap } from "../rules.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
@@ -103,16 +103,38 @@ function facPpm(m){const kx=111320*Math.cos(m.lat*RAD),a=map.convertCoordinateTo
 function sizeFac(m){
   if(!m.fac||!m.img||!map)return;
   const k=facPpm(m),[e0,e1]=m.img.east,[n0,n1]=m.img.north,w=(e1-e0)*k,vis=map.cameraDistance<FAC_H&&w<9000;
-  m.fac.style.display=vis?"":"none";m.root.classList.toggle("fac",vis);if(!vis)return;
-  Object.assign(m.fac.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
+  m.fac.style.display=vis?"":"none";m.root.classList.toggle("fac",vis);if(m.rot&&!vis)m.rot.style.display="none";if(!vis)return;
+  const box={width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"};Object.assign(m.fac.style,box);
+  if(m.rot){Object.assign(m.rot.style,box);m.rot.style.display="";}
   const url=F.lodFor(m.img,w*(window.devicePixelRatio||1));if(m.facUrl!==url){m.facUrl=url;m.fac.src=url;}
 }
 function ensureFac(id,m){
   if(!F)return;const sig=F.siteSig(id);if(m.facSig===sig)return;m.facSig=sig;
-  F.siteImage(id).then(img=>{if(m.facSig!==sig||!map)return;
-    if(!img){if(m.fac){m.fac.remove();m.fac=null;}m.root.classList.remove("fac");return;}
+  F.siteImage(id,true).then(img=>{if(m.facSig!==sig||!map)return;
+    if(!img){if(m.fac){m.fac.remove();m.fac=null;}dropRot(m);m.root.classList.remove("fac");return;}
     if(!m.fac){m.fac=document.createElement("img");m.fac.className="mk-fac";m.fac.alt="";m.anchor.insertBefore(m.fac,m.anchor.firstChild);}
-    m.img=img;m.facUrl=null;sizeFac(m);});
+    m.img=img;m.facUrl=null;buildRot(m);spinRot(m,id);sizeFac(m);});
+}
+// --- Dönen pervaneler: tesis görüntüsü pervanesiz çizilir (siteimage.js bare), her türbin göbeğine görüntünün üstünde
+// döner bir SVG rotor konur. Rotor diski CSS matrisiyle görüntünün eğik bakışına izdüşürülür; dönüş Web Animations ile
+// (kompozitörde, yeniden çizimsiz) yapılır, hız sahanın o saatteki rüzgâr üretiminden gelir. Hareket azaltılmışsa durur.
+const BLADES='<svg viewBox="-100 -100 200 200" aria-hidden="true"><g class="bl">'+[0,120,240].map(a=>`<path transform="rotate(${a})" d="M-4,-4 C-9,-30 -7,-70 -1.5,-98 L1.5,-98 C5,-60 7,-28 4,-4 Z"/>`).join("")+'<circle r="6"/></g></svg>';
+function dropRot(m){if(m.rot){m.rot.remove();m.rot=null;}m.spin=[];}
+function buildRot(m){
+  dropRot(m);const hs=m.img&&m.img.hubs;if(!hs||!hs.length||!m.fac)return;
+  m.rot=div("mk-rot");m.fac.after(m.rot);
+  for(const h of hs){const w=div("mk-rotor",m.rot);
+    Object.assign(w.style,{left:h.x*100+"%",top:h.y*100+"%",width:h.r*200+"%",transform:`translate(-50%,-50%) matrix(${h.m.join(",")},0,0)`});
+    w.innerHTML=BLADES;const g=w.firstChild;g.style.transform=`rotate(${Math.round(Math.random()*120)}deg)`;
+    const a=reduced.matches||!g.animate?null:g.animate([{transform:"rotate(0deg)"},{transform:"rotate(360deg)"}],{duration:5000,iterations:Infinity});
+    if(a){a.currentTime=Math.random()*5000;a.playbackRate=0;}m.spin.push({a,k:h.k});}
+}
+// dönüş hızı: 5 sn'de bir tur = 12 dev/dk; kapasitenin %3'ünden az üretimde (rüzgâr yok, fırtınada kesme, arıza) durur,
+// üretim arttıkça 6'dan 14 dev/dk'ya çıkar (büyük türbinlerin olağan çalışma aralığı)
+function spinRot(m,id){
+  if(!m.spin||!m.spin.length)return;const st=plantStatus(id);
+  for(const x of m.spin){if(!x.a)continue;const s=st[x.k],f=s&&!s.down&&!s.cut?s.f:0,rate=f>=0.03?(6+8*f)/12:0;
+    if(Math.abs((x.rate??-1)-rate)<0.01)continue;x.rate=rate;if(x.a.updatePlaybackRate)x.a.updatePlaybackRate(rate);else x.a.playbackRate=rate;}
 }
 function syncFac(){
   if(!map||map.cameraDistance>FAC_H*1.3)return sites.forEach(sizeFac);
@@ -131,7 +153,7 @@ function sizeBnd(m){
   if(!m.bnd)return;const near=map.cameraDistance<FAC_H;
   if(!near){if(m.bndOn){m.bndOn=false;m.bnd.style.display="none";if(m.live)m.live.style.display="none";}return;}
   const k=facPpm(m),[e0,e1,n0,n1]=bndOf(m.fac?m.img:null),w=(e1-e0)*k,vis=w>=30&&w<12000;
-  if(vis!==m.bndOn){m.bndOn=vis;m.bnd.style.display=vis?"":"none";if(m.live)m.live.style.display=vis&&m.live.textContent?"":"none";}
+  if(vis!==m.bndOn){m.bndOn=vis;m.bnd.style.display=vis?"":"none";if(m.live)m.live.style.display=vis&&m.liveKey?"":"none";}
   if(!vis)return;
   Object.assign(m.bnd.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
   m.bnd.classList.toggle("lbl",w>=90);
@@ -280,7 +302,9 @@ function drawImpl(){
     m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
     ensureBnd(m,true);const b=occText(mw,siteCap(o));if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
-    const lv=liveText(id);if(m.live.textContent!==lv){m.live.textContent=lv;if(m.bndOn)m.live.style.display=lv?"":"none";}
+    const st=plantStatus(id),lv=liveText(id),bh=battHtml(st.batt),lk=lv+bh;
+    if(m.liveKey!==lk){m.liveKey=lk;m.live.innerHTML=lv?`<span>${lv}</span>${bh}`:"";if(m.bndOn)m.live.style.display=lv?"":"none";}
+    spinRot(m,id);
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}
   syncFac();

@@ -14,21 +14,25 @@ let R=null,ENV=null;
 
 export const siteSig=id=>S.plants.filter(p=>p.t===id).map(p=>p.k+tierOf(p)+p.mw).sort().join(",");
 
-// {url, lods, east:[min,max], north:[min,max]} (metre) veya santral yoksa null
+// {url, lods, east:[min,max], north:[min,max], hubs} (metre) veya santral yoksa null
+// bare: pervanesiz görüntü (Apple haritası pervaneleri üstüne dönen katman olarak çizer); hubs: her türbin göbeğinin
+// görüntüdeki yeri (x, y: genişlik ve yüksekliğe oranla), rotor yarıçapı (r: genişliğe oranla), yönü (yaw) ve teknolojisi (k)
 // lods: aynı görüntünün yarıya yarıya küçültülmüş kopyaları (büyükten küçüğe). Harita küçük çizerken büyük görüntüyü
 // doğrudan küçültürse panel sıraları titreşen çizgilere (moiré) dönüşür; ekrandaki boyuta en yakın kopya kullanılır.
-export function siteImage(id){
+export function siteImage(id,bare=false){
   const sig=siteSig(id);if(!sig)return Promise.resolve(null);
-  const c=cache.get(id);if(c&&c.sig===sig)return c.p;
-  const p=new Promise(res=>setTimeout(()=>{try{res(render(id,sig));}catch(e){console.warn("Tesis görüntüsü çizilemedi:",e);res(null);}},0));
-  cache.set(id,{sig,p});return p;
+  const key=id+(bare?"|b":""),c=cache.get(key);if(c&&c.sig===sig)return c.p;
+  const p=new Promise(res=>setTimeout(()=>{try{res(render(id,bare));}catch(e){console.warn("Tesis görüntüsü çizilemedi:",e);res(null);}},0));
+  cache.set(key,{sig,p});return p;
 }
+const ROTOR=/^rotor\d/,BLADE=61; // kanat boyu (m, sitemodel.js bladeGeometry)
 
-function render(id){
+function render(id,bare){
   const o=S.sites[id],ps=S.plants.filter(p=>p.t===id);
-  const {root}=buildSite(id,o,ps);
+  const {root}=buildSite(id,o,ps,bare);
   // haritada anlamsız olan parçalar: GES parıltı bantları, su sıçraması
   root.traverse(n=>{if(/^glint|^spray/.test(n.name||""))n.visible=false;});
+  if(bare)root.traverse(n=>{if(ROTOR.test(n.name||""))n.visible=false;});
   // zemin alanları yarı saydam: altındaki uydu görüntüsü (toprak, bitki örtüsü) sezilir
   root.traverse(n=>{if(n.name==="pad"){n.material=n.material.clone();n.material.transparent=true;n.material.opacity=padAlpha(n.material);}});
   const box=new THREE.Box3().setFromObject(root);
@@ -45,6 +49,13 @@ function render(id){
   for(const sx of [box.min.x,box.max.x])for(const sy of [box.min.y,box.max.y])for(const sz of [box.min.z,box.max.z]){
     const v=new THREE.Vector3(sx,sy,sz).applyMatrix4(inv);x0=Math.min(x0,v.x);x1=Math.max(x1,v.x);y0=Math.min(y0,v.y);y1=Math.max(y1,v.y);}
   const m=2;x0-=m;x1+=m;y0-=m;y1+=m;
+  const hubs=[];
+  if(bare){root.updateMatrixWorld(true);root.traverse(n=>{if(!ROTOR.test(n.name||""))return;
+    const v=n.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv),s=n.getWorldScale(new THREE.Vector3()).x;let g=n.parent;while(g&&!g.userData.k)g=g.parent;
+    const yaw=n.parent.rotation.y;
+    // rotor diski (türbin ekseninde dik düzlem) görüntüde bir elipse izdüşer: diskin yatay ekseni (sin yaw, cos TILT·cos yaw),
+    // aşağı ekseni (0, sin TILT) piksele gider (görüntünün üstü kuzey, kamera güneyden TILT eğimle bakar). m: CSS matrix(a,b,c,d)
+    hubs.push({x:(v.x-x0)/(x1-x0),y:(y1-v.y)/(y1-y0),r:BLADE*s/(x1-x0),k:g?g.userData.k:"res",m:[Math.sin(yaw),Math.cos(TILT)*Math.cos(yaw),0,Math.sin(TILT)].map(x=>+x.toFixed(4))});});}
   Object.assign(cam,{left:x0,right:x1,bottom:y0,top:y1});cam.updateProjectionMatrix();
   const res=Math.max(MIN_RES,Math.max(x1-x0,y1-y0)/MAX_PX),W=Math.round((x1-x0)/res),H=Math.round((y1-y0)/res);
   // ışık: gökyüzü ve güneş, gölgeli; saydam bir gölge yakalayıcı gölgeleri uydu görüntüsünün üstüne düşürür
@@ -63,7 +74,7 @@ function render(id){
   root.traverse(n=>{if(n.geometry)n.geometry.dispose();});
   // saha koordinatının (orijin) kameradaki yeri: görüntü sınırları ona göre metreye çevrilir; kuzey ekseni eğimle kısalır
   const org=new THREE.Vector3(0,0,0).applyMatrix4(inv),c=Math.cos(TILT);
-  return {url,lods,east:[x0-org.x,x1-org.x],north:[(y0-org.y)/c,(y1-org.y)/c]};
+  return {url,lods,east:[x0-org.x,x1-org.x],north:[(y0-org.y)/c,(y1-org.y)/c],hubs};
 }
 // Yarıya küçültme zinciri: her adım dört pikselin ortalamasını alır (kutu süzgeci), en küçüğü ~48 piksel
 function mips(src){

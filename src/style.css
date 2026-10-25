@@ -314,6 +314,16 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
   background:rgba(10,18,30,.86);color:#fff;font:600 12px "Noto Sans",system-ui,sans-serif;padding:4px 8px;border-radius:7px;
   box-shadow:0 1px 4px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
 .mk-live::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(10,18,30,.86)}
+.mk-live>span:first-child{display:block}
+.mk-batt{display:block;height:6px;margin-top:4px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.mk-batt i{display:block;height:100%;background:var(--batt);transition:width .6s}
+.mk-batt.chg i{background:#3CC495}.mk-batt.dis i{background:#F2A93B}
+.mk-battl{display:block;margin-top:2px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.8)}
+/* dönen pervaneler (tesis görüntüsünün üstünde, göbek yerlerinde) */
+.mk-rot{position:absolute;pointer-events:none}
+.mk-rotor{position:absolute;aspect-ratio:1}
+.mk-rotor svg{display:block;width:100%;height:100%;overflow:visible}
+.mk-rotor .bl{fill:#F4F6F7;stroke:rgba(40,48,56,.55);stroke-width:1.2;transform-box:view-box;transform-origin:50% 50%}
 
 /* ===== Düzen: harita sahnesi + panel (masaüstünde yan sütun, mobilde alttan açılan kart) ===== */
 button{min-height:44px}
