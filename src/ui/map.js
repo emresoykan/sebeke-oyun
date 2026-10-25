@@ -22,6 +22,7 @@ import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapsty
 import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
+import { bndOf, occText, liveText } from "./sitelive.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 
@@ -102,6 +103,13 @@ function addGameLayers(){
     "circle-stroke-color":["get","st"],"circle-stroke-width":2.5}});
   map.addLayer({id:"site-labels",type:"symbol",source:"sites",minzoom:3,filter:["!=",["get","t"],""],layout:{"text-field":["get","t"],"text-font":FONT.m,"text-size":12,"text-offset":[0,1.1],"text-anchor":"top","text-allow-overlap":true},
     paint:{"text-color":"#FFFFFF",...lbl}});
+  // yakında saha sınırı (40 MW'lık alan, kesik çizgi) ve doluluk; kendi sahanda canlı üretim (sitelive.js)
+  map.addSource("bnd",{type:"geojson",data:fc([])});
+  map.addLayer({id:"bnd-line",type:"line",source:"bnd",minzoom:FAC_Z,filter:["==",["geometry-type"],"Polygon"],paint:{"line-color":["get","c"],"line-width":1.5,"line-dasharray":[3,2]}},"site-pulse");
+  map.addLayer({id:"bnd-label",type:"symbol",source:"bnd",minzoom:FAC_Z+1,filter:["==",["geometry-type"],"Point"],layout:{"text-field":["get","t"],"text-font":FONT.m,"text-size":11.5,"text-anchor":"bottom-left","text-offset":[0,-0.3],"text-max-width":40,"text-allow-overlap":true},
+    paint:{"text-color":["get","c"],...lbl}});
+  map.addLayer({id:"site-live",type:"symbol",source:"sites",minzoom:FAC_Z,filter:["!=",["get","lv"],""],layout:{"text-field":["get","lv"],"text-font":FONT.m,"text-size":12,"text-anchor":"bottom","text-offset":[0,-1.4],"text-max-width":40,"text-allow-overlap":true},
+    paint:{"text-color":"#FFFFFF","text-halo-color":"rgba(10,18,30,.92)","text-halo-width":3}});
   map.addLayer({id:"sel-outer",type:"circle",source:"sel",paint:{"circle-radius":13,"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#000000","circle-stroke-width":3.5}});
   map.addLayer({id:"sel-inner",type:"circle",source:"sel",paint:{"circle-radius":12.5,"circle-color":"rgba(0,0,0,0)","circle-stroke-color":"#FFFFFF","circle-stroke-width":1.6}});
 }
@@ -373,11 +381,22 @@ export function drawMap(){
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     const on=mw&&isLive(plantStatus(id))?1:0;if(on)live=true;
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on});})));
+    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)});})));
   anyLive=live;
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
+  const bf=[];
+  Object.entries(S.sites).forEach(([id,o])=>{const f=facs.get(id);bndFeatures(bf,o,bndOf(f&&f.img),"rgba(255,255,255,.85)",occText(siteMW(id)));});
+  rivalSites().forEach(({r,s})=>bndFeatures(bf,s,bndOf(null),r.c,`${r.sh} • ${occText(s.mw)}${s.build>0?" • inşaat":""}`));
+  map.getSource("bnd").setData(fc(bf));
   syncFacilities();
+}
+
+// saha sınırı dikdörtgeni (metre kapsamı → derece) ve sol üst köşesinde doluluk yazısı
+function bndFeatures(out,o,[e0,e1,n0,n1],c,t){
+  const ky=111320,kx=ky*Math.cos(o.lat*Math.PI/180),P=(e,n)=>[o.lon+e/kx,o.lat+n/ky];
+  out.push({type:"Feature",properties:{c},geometry:{type:"Polygon",coordinates:[[P(e0,n0),P(e1,n0),P(e1,n1),P(e0,n1),P(e0,n0)]]}},
+    {type:"Feature",properties:{c,t},geometry:{type:"Point",coordinates:P(e0,n1)}});
 }
 
 // --- 3D pencere ---

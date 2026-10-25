@@ -18,6 +18,7 @@ import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
+import { bndOf, occText, liveText } from "./sitelive.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -117,7 +118,24 @@ function syncFac(){
   if(!F){Fload=Fload||import("./siteimage.js").then(x=>{F=x;sites.forEach((m,id)=>ensureFac(id,m));});return;}
   sites.forEach((m,id)=>{ensureFac(id,m);sizeFac(m);});
 }
-function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{sites.forEach(sizeFac);facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
+function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{sites.forEach(sizeFac);sizeBnds();facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
+
+// --- Yakında saha sınırı (kesik çizgi, doluluk) ve kendi sahanda canlı üretim kutusu (sitelive.js) ---
+// Tesis görüntüsüyle aynı yakınlıkta görünür; rakip sahalarında yalnızca sınır ve doluluk çizilir.
+function ensureBnd(m,live){
+  if(m.bnd)return;m.bnd=div("mk-bnd");m.bndLab=div("mk-bndlbl",m.bnd);m.bnd.style.display="none";m.anchor.insertBefore(m.bnd,m.anchor.firstChild);
+  if(live){m.live=div("mk-live",m.anchor);m.live.style.display="none";}
+}
+function sizeBnd(m){
+  if(!m.bnd)return;const near=map.cameraDistance<FAC_H;
+  if(!near){if(m.bndOn){m.bndOn=false;m.bnd.style.display="none";if(m.live)m.live.style.display="none";}return;}
+  const k=facPpm(m),[e0,e1,n0,n1]=bndOf(m.fac?m.img:null),w=(e1-e0)*k,vis=w>=30&&w<12000;
+  if(vis!==m.bndOn){m.bndOn=vis;m.bnd.style.display=vis?"":"none";if(m.live)m.live.style.display=vis&&m.live.textContent?"":"none";}
+  if(!vis)return;
+  Object.assign(m.bnd.style,{width:w+"px",height:(n1-n0)*k+"px",left:e0*k+"px",top:-n1*k+"px"});
+  m.bnd.classList.toggle("lbl",w>=90);
+}
+function sizeBnds(){if(!map)return;sites.forEach(sizeBnd);rivals.forEach(sizeBnd);}
 
 // --- Gece tarafı: karo başına güneş yüksekliğinden karanlık (map.js'teki düz harita ile aynı eşikler) ---
 // Yakında (z > NIGHT_Z) gece karanlığı görünüm içinde tek renktir: her karo için hesap yerine görünüm merkezindeki
@@ -204,9 +222,9 @@ export async function initMapKit(el,h){
   const realView=()=>{if(!map)return;const r=map.region,c=r.center,sp=r.span;
     setRealView({w:c.longitude-sp.longitudeDelta/2,e:c.longitude+sp.longitudeDelta/2,s:c.latitude-sp.latitudeDelta/2,n:c.latitude+sp.latitudeDelta/2,z:Math.log2(2.6e7/map.cameraDistance),lat:c.latitude,lon:c.longitude});};
   map.addEventListener("region-change-end",realView);
-  map.addEventListener("region-change-start",()=>{moving=true;if(F)facLoop();});
+  map.addEventListener("region-change-start",()=>{moving=true;facLoop();});
   map.addEventListener("region-change-end",()=>{moving=false;clearTimeout(settleT);settleT=setTimeout(flush,2000);whenStill(refreshFlatNight);});
-  map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();});
+  map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();sizeBnds();});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
   map.addOverlays(PROTECTED.map(([n,lat,lon,r])=>new mk.CircleOverlay(coord(lat,lon),r*1000,{style:ps,enabled:false})));
@@ -260,6 +278,8 @@ function drawImpl(){
     const col=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.background=col;m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
     m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
+    ensureBnd(m,true);const b=occText(mw);if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
+    const lv=liveText(id);if(m.live.textContent!==lv){m.live.textContent=lv;if(m.bndOn)m.live.style.display=lv?"":"none";}
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}
   syncFac();
@@ -269,9 +289,11 @@ function drawImpl(){
     if(!m){m=marker("mk-rival",16,()=>hooks.selectRival(s.lat,s.lon));m.root.style.setProperty("--c",r.c);m.lab.style.color=r.c;rivals.set(k,m);place(m,s.lat,s.lon);map.addAnnotation(m.a);}
     m.root.classList.toggle("build",s.build>0);
     const t=`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`;if(m.lab.textContent!==t)m.lab.textContent=t;
+    ensureBnd(m,false);m.bnd.style.setProperty("--c",r.c);const b=`${r.sh} • ${occText(s.mw)}${s.build>0?" • inşaat":""}`;if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
   });
   for(const [k,m] of rivals)if(!rs.has(k)){map.removeAnnotation(m.a);rivals.delete(k);}
   place(sel,S.sel.lat,S.sel.lon);
+  sizeBnds();
 }
 
 export function setClock(hour){

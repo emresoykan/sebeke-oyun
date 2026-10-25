@@ -300,6 +300,16 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 /* Apple haritasında yakınlaşınca tesisin kuşbakışı görüntüsü (işaretin arkasında) */
 .mk-fac{position:absolute;max-width:none;pointer-events:none;user-select:none}
 .mk-site.fac{opacity:.7;transform:translate(-50%,-50%) scale(.75)}
+/* Yakında saha sınırı (40 MW'lık alan, kesik çizgi) ve doluluk; rakipte kendi renginde. Kendi sahanda canlı üretim kutusu */
+.mk-bnd{position:absolute;box-sizing:border-box;border:1.5px dashed var(--c,rgba(255,255,255,.85));border-radius:6px;background:rgba(255,255,255,.04);
+  box-shadow:0 0 0 1px rgba(11,22,38,.35);pointer-events:none}
+.mk-bndlbl{position:absolute;left:0;bottom:100%;margin-bottom:3px;white-space:nowrap;display:none;
+  font:600 11.5px "Noto Sans",system-ui,sans-serif;color:var(--c,#fff);text-shadow:0 0 3px #0B1626,0 0 2px #0B1626,0 1px 2px #0B1626}
+.mk-bnd.lbl .mk-bndlbl{display:block}
+.mk-live{position:absolute;left:0;top:0;transform:translate(-50%,calc(-100% - 16px));white-space:nowrap;pointer-events:none;
+  background:rgba(10,18,30,.86);color:#fff;font:600 12px "Noto Sans",system-ui,sans-serif;padding:4px 8px;border-radius:7px;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
+.mk-live::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(10,18,30,.86)}
 
 /* ===== Düzen: harita sahnesi + panel (masaüstünde yan sütun, mobilde alttan açılan kart) ===== */
 button{min-height:44px}
