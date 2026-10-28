@@ -1,5 +1,5 @@
 // --- Oyuncu profili: kimlik, uzmanlık, ünvan ve rozetler ---
-// Kimlik (ad, şirket, renk, uzmanlık) ayrı anahtarda saklanır; "Yeniden başla" oyunu sıfırlar ama profili korur.
+// Kimlik (ad, şirket, renk, uzmanlık) ayrı anahtarda saklanır; "Yeniden başla" (varsayılan) ve iflas ekranındaki "Yeni oyun" profili de siler.
 // İstatistik ve rozetler oyunun kendisine aittir (S.stats, S.ach) ve yeni oyunla sıfırlanır.
 import { MARKETS } from "./config.js";
 

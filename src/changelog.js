@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.3",t:"İflastan sonra temiz başlangıç",items:[
+    "İflas ekranındaki \"Yeni oyun\" şirket profilini de siler; kurulum ekranı yeniden açılır (\"Yeniden başla\" ile aynı)."]},
   {id:"2026-10-28.2",t:"Saha satışı",items:[
     "Sahayı sat: portföydeki bir sahayı bir altyapı fonunun teklifiyle satabilirsin (saha paneli, eğitimden sonra).",
     "Teklif santralin oyunda gerçekleşen nakit akışından hesaplanır; sahanın kredisi bedelden kapanır, defter değerine göre kâr ya da zarar gösterilir.",
