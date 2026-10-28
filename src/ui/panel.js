@@ -22,6 +22,7 @@ import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
+import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -62,12 +63,23 @@ function buildHtml(t){
     csp:`Aynalar güneşi kuledeki alıcıya odaklar; ısı erimiş tuzda ${CSP.h} saat saklanır, türbin günün en pahalı saatlerinde (akşam zirvesi, gece) üretir. Yalnızca doğrudan güneş ışığı işe yarar: bulutlu havada toplama hızla düşer. Yatırımı GES'in ~5 katı.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
+  h+=supportNote(t,tab);
   // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
   const used=capMW(S.sel.id),cap=siteCap(t);
   if(tab!=="fpv"&&used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
+// Destek mekanizması notu (support.js): depolamada kapasite ödemesi, elektrolizörde hidrojen üretim desteği; piyasada yoksa
+// bu da söylenir (oyuncu nerede destek olduğunu görsün)
+function supportNote(t,k){
+  const m=t.mreg,nm=REG[m].n;
+  if(DERATE[k]){const c=CAP[m];
+    return `<div class="eqnote support"><b>Kapasite ödemesi:</b> ${c?`${nm} piyasasında 5 MW bloğa günde ${fmt$(capDay(m,k,BLOCK))} (${c.src}; gücün %${Math.round(DERATE[k]*100)}'i sayılır${k==="batt"?": 2 saatlik depo zirveyi kısa süre karşılar":""}). Tesis arızalıyken${k==="batt"?" ve batarya GÖP masasında boştayken":""} ödenmez.`:`${nm} piyasasında depolamaya kapasite ödemesi yok${m==="T"?" (Türkiye'nin kapasite mekanizmasında depolamaya ilişkin hüküm bulunamadı)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
+  if(k==="h2"){const s=H2SUB[m],g=h2Grant(m);
+    return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
+  return "";
+}
 // Sahayı sat (sale.js): alıcı teklifinin dökümü (defter değeri ve teklif), kredi kapama, nakde geçecek tutar ve kâr/zarar.
 // Kutu kapalı gelir; açıkken yeniden çizimde açık kalır (sellOpen: açık kutunun sahası). Eğitim bitince görünür.
 let sellOpen=null;

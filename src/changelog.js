@@ -2,6 +2,11 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.10",t:"Depolama ve hidrojene destek",items:[
+    "Kapasite ödemesi: Avrupa ve Kuzey Amerika'da batarya ve pompaj HES zirveye hazır güç için günlük ödeme alır (Büyük Britanya ve PJM açık artırma fiyatlarıyla). Arızalıyken ya da batarya boştayken ödenmez.",
+    "Yeşil hidrojen desteği: Avrupa'da Hidrojen Bankası primi (~0,45 $/kg), ABD'de 45V vergi kredisi (3 $/kg, takvim 2028'e gelmeden kurulana), 10 ekonomik yıl. Yalnızca aynı sahadaki rüzgâr ve güneşle üretilen hidrojene ödenir.",
+    "Türkiye'de depolamaya kapasite ödemesi ve hidrojen üretim desteği yok; saha paneli her piyasada durumu yazar.",
+    "Rapor ve proje ekonomisi destekleri ayrı gösterir; hidrojen desteği yalnızca ilk 10 yıl hesaba girer."]},
   {id:"2026-10-28.9",t:"Gerçekçi rüzgâr türbinleri",items:[
     "Türbinler kurulurken rüzgâr nereden esiyorsa o yöne bakar; sıralar rüzgâra dik dizilir, aynı sıradaki türbinler birbirinin rüzgâr gölgesinde kalmaz.",
     "Türbin modeli gerçek santrallerin fotoğraflarına göre yenilendi: ince kule, yuvarlak köşeli gövde, havalandırma panjurları ve ölçüm çerçevesi, iri burun, ince uzun kanatlar ve uçlarında kırmızı-beyaz-kırmızı ikaz bantları.",

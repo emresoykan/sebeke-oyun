@@ -13,6 +13,7 @@ import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
 import { siteWx } from "./wxsite.js";
 import { dirName } from "./weather.js";
+import { h2Grant } from "./support.js";
 import { rivalNear } from "./rivals.js";
 import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
 import { saleOffer } from "./sale.js";
@@ -78,6 +79,8 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);
   if(k==="phs")planStore(p);
+  // hidrojen desteği hakkı ilk kurulumda belirlenir (piyasa ve tarih; support.js)
+  if(k==="h2"&&p.h2s===undefined)p.h2s=h2Grant(o.mreg);
   if(k==="h2")planH2(p,S.hour);
   if(k==="csp")planCSP(p,S.hour);
   sfx("build");
