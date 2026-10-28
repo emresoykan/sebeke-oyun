@@ -92,7 +92,7 @@ function assumptions(){
     <li>Geri ödeme = birikimli (iskontosuz) nakit akışının yatırımı karşıladığı yıl.</li>
   </ul>
   <p class="mut">Bu tablo vergi ve finansman öncesidir; borç, vergi ve PPA aşağıdaki Proje finansmanı bölümündedir. Hariç: enflasyon (fiyat ve giderler sabit), arazi ve şebeke bağlantısı, hurda değeri, dengesizlik maliyeti. * işaretli satırlarda veri ${SHORT_DAYS} günden kısa: oyundaki mevsim yıllık ortalamayı temsil etmeyebilir (ör. ilkbaharda ölçülen GES yıllık değeri olduğundan yüksek gösterebilir). Satış fiyatları oyunun piyasa modelinden gelir, gerçek piyasa fiyatı değildir.</p>
-  <p><b>Kısaltmalar</b></p>
+  <p><b>Kısaltmalar</b> <button type="button" class="hlink" data-gloss="">Tüm terimler: Sözlük</button></p>
   <ul>
     <li><b>CF</b> (Capacity Factor): kapasite faktörü.</li>
     <li><b>LCOE</b> (Levelized Cost of Energy): seviyelendirilmiş enerji maliyeti; ömür boyu her MWh'nin ortalama maliyeti.</li>

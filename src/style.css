@@ -639,3 +639,35 @@ dialog.firstdlg::backdrop{background:rgba(5,10,15,.55)}
 .fopts button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;min-height:44px}
 .fopts button span{font-size:.8rem;color:var(--muted)}
 .fopts button:first-child{border-color:var(--solar)}
+
+/* Sözlük ve sürüm notları (ui/help.js) */
+dialog.helpdlg{width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:0 18px 18px;background:var(--surface);color:var(--ink)}
+dialog#glossDlg{height:min(760px,calc(100dvh - 32px))} /* aramada boy sabit kalır */
+dialog.helpdlg::backdrop{background:rgba(5,10,15,.55)}
+.helpdlg .hhead{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);padding:14px 0 4px}
+.helpdlg h3{margin:0;font-size:1.15rem}
+.helpdlg .hclose{min-width:44px;min-height:44px;border:0;background:transparent;font-size:1.1rem;color:var(--muted)}
+.helpdlg .hsub{margin:0 0 10px;color:var(--muted);font-size:.88rem}
+.helpdlg .gsearch{width:100%;box-sizing:border-box;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;margin-bottom:6px}
+.helpdlg h4{margin:16px 0 6px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.helpdlg dl{margin:0}
+.helpdlg .gterm{padding:8px 6px;scroll-margin:80px}
+.helpdlg .gterm+.gterm{border-top:1px solid var(--line)}
+.helpdlg dt{font-weight:800}
+.helpdlg dt small{font-weight:500;color:var(--muted)}
+.helpdlg dd{margin:3px 0 0;font-size:.92rem;line-height:1.45}
+.helpdlg .gin{display:block;margin-top:4px;color:var(--muted);font-size:.88rem}
+.helpdlg .gterm.hit{animation:ghit 1.8s ease-out}
+@keyframes ghit{0%,40%{background:color-mix(in srgb,var(--warn) 28%,transparent)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.helpdlg .gterm.hit{animation:none;background:color-mix(in srgb,var(--warn) 18%,transparent)}}
+.helpdlg .gnone{color:var(--muted);margin:12px 0}
+.helpdlg details.rel{border-top:1px solid var(--line);padding:8px 0}
+.helpdlg details.rel summary{cursor:pointer;min-height:32px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.helpdlg details.rel time{color:var(--muted);font-size:.85rem}
+.helpdlg details.rel ul{margin:6px 0 2px;padding-left:20px;font-size:.92rem;line-height:1.45}
+.helpdlg details.rel li+li{margin-top:3px}
+.hlink{border:0;background:transparent;padding:0;font:inherit;font-size:.85em;font-weight:600;color:var(--wind);text-decoration:underline;cursor:pointer}
+h2 .hlink{margin-left:6px;font-weight:600;min-height:32px}
+.dintro .dgl{margin:6px 0 0;font-size:.88rem;color:var(--muted)}
+#notesBtn.isnew::after{content:"Yeni";margin-left:6px;padding:1px 6px;border-radius:8px;background:var(--warn);color:#1D2B36;font-size:.72rem;font-weight:800}
+.tabs button.hasnew::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;border-radius:50%;background:var(--warn);vertical-align:2px}

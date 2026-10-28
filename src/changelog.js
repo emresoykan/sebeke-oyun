@@ -1,0 +1,49 @@
+// --- Sürüm notları: oyuncunun göreceği değişiklikler, en yenisi önce ---
+// id: yayın tarihi (YYYY-MM-DD; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
+// yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
+export const NOTES=[
+  {id:"2026-10-28",t:"Daha hızlı ilk büyüme, daha net kontroller",items:[
+    "Sözlük: piyasa, proje, finans ve teknoloji terimleri tek yerde (Ayarlar).",
+    "Sürüm notları: bu pencere. Yeni bir sürüm gelince Ayarlar'da işaret görünür.",
+    "Hız artık üç ayrı düğme: 1x, 3x, 8x. Seçili hız basılı görünür.",
+    "İlk yenilenebilir projene 5 gün boyunca 90 $/MWh alım garantisi.",
+    "Yeni görev: ilk kredili bloğunu kur. 1 M$ portföy değerinde \"Bölgesel oyuncu\" ara zaferi.",
+    "Haritada dönen pervaneler ve batarya şarj çubuğu.",
+    "Ekran kartı kullanmayan tarayıcıda 3D yerine hafif yakın görünüm: donma yok. \"Tam 3D\" yine açılabilir.",
+    "Masaüstünde panel geniş ekranda büyür, rapor tabloları sığar.",
+    "\"Yeniden başla\" şirket profilini de siler (kutu varsayılan olarak işaretli)."]},
+  {id:"2026-10-25",t:"İlk 10 dakika",items:[
+    "8 adımlı eğitim görevleri; ilgili düğme vurgulanır.",
+    "Uygun ilk sahada ilk izin garantili ve kısa.",
+    "İlk satışta sonuç kartı: üretim, fiyat, gelir ve havanın etkisi.",
+    "İzin reddinde dört yol: yeniden başvur, ek ÇED, projeyi küçült, yerel ortak.",
+    "GÖP masasına kısa giriş açıklaması.",
+    "Yakınlaşınca saha sınırı, doluluk ve canlı üretim kutusu.",
+    "Gerçek santraller katmanında Türkiye kapsaması ETKB Eylül 2026 sonu kurulu gücüyle karşılaştırılır."]},
+  {id:"2026-10-19",t:"Hız ve kararlılık",items:[
+    "Haritada daha akıcı kaydırma; iPhone'da çökme sonrası güvenli açılış.",
+    "Takvim oyun gününden 3 kat hızlı: mevsimler 120 oyun gününde döner.",
+    "Rüzgâr yatırım maliyeti güneşle aynı ölçeğe çekildi."]},
+  {id:"2026-10-18",t:"Finansman ve gerçek santraller",items:[
+    "Banka kredisi: yatırımın bir kısmı borçla, günlük taksit.",
+    "Proje finansmanı tablosu: borç, DSCR, vergi, PPA ve fiyat stresi.",
+    "Gerçek santraller katmanı (OpenStreetMap): önce Türkiye, sonra dünya; tür filtresi.",
+    "Fiyat modeli 2025 verisiyle kalibre edildi (Türkiye: EPİAŞ; Avrupa: ENTSO-E).",
+    "Rüzgâr üretimi TEİAŞ, EPDK ve ENTSO-E 2025 verisiyle kalibre edildi.",
+    "Vaka çalışması sayfaları ve anonim geri bildirim formu."]},
+  {id:"2026-10-17",t:"Proje ekonomisi",items:[
+    "Her santral için LCOE, NPV, IRR ve geri ödeme süresi.",
+    "Eğimli arazide düz zemin isteyen tesisler kurulamaz."]},
+  {id:"2026-10-13",t:"Gerçek kaynak verisi",items:[
+    "Güneş ve rüzgâr kaynağı NASA POWER iklim verisinden.",
+    "Yerleşim alanlarında santral kurulamaz.",
+    "Tesisler gerçek ölçekte ve araziye oturtulmuş."]},
+  {id:"2026-10-12",t:"Rehber ve kayıt",items:[
+    "İlk oyun rehberi, geri alma, kayıt dosyası ve bulut kayıt.",
+    "Güneş ve rüzgâr potansiyel haritası, yer arama.",
+    "Klavyeyle haritada gezinme; mobilde alttan açılan panel."]},
+  {id:"2026-10-11",t:"Wattlas",items:[
+    "Oyunun adı Wattlas; Apple Haritalar ana harita.",
+    "Jeotermal, biyokütle ve deniz enerjisi santralleri."]}
+];
+export const LATEST=NOTES[0].id;
