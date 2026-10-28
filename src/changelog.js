@@ -2,6 +2,12 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.9",t:"Gerçekçi rüzgâr türbinleri",items:[
+    "Türbinler kurulurken rüzgâr nereden esiyorsa o yöne bakar; sıralar rüzgâra dik dizilir, aynı sıradaki türbinler birbirinin rüzgâr gölgesinde kalmaz.",
+    "Türbin modeli gerçek santrallerin fotoğraflarına göre yenilendi: ince kule, yuvarlak köşeli gövde, havalandırma panjurları ve ölçüm çerçevesi, iri burun, ince uzun kanatlar ve uçlarında kırmızı-beyaz-kırmızı ikaz bantları.",
+    "Haritada türbin göğe bakmıyor: uydu görüntüsündeki gibi rotor tepeden ince bir çizgi, pervanenin üç kanatlı dönen şekli gölgesinde.",
+    "Tesis görüntülerinde güneş sabah güneydoğudan vurur; gölgeler altlık uydu görüntüsündeki gölgelerle aynı yöne düşer.",
+    "3D görünümde kuzey ve güney rüzgârında türbinler rüzgâra sırtını dönüyordu; düzeldi."]},
   {id:"2026-10-28.8",t:"Dört yeni teknoloji",items:[
     "Yüzer GES: HES'in baraj gölüne kurulur, HES'in şebeke bağlantısını paylaşır. Saha sınırına sayılmaz, en çok HES'in gücü kadar olabilir; su panelleri soğuttuğu için biraz fazla üretir.",
     "Pompaj depolamalı HES: dağlık sahada iki hazne. Ucuz saatte suyu üst hazneye basar, pahalı saatte üretir; 10 saatlik depo (bataryanın 5 katı).",

@@ -11,7 +11,7 @@ import * as Cesium from "cesium";
 import { S } from "../state.js";
 import { plantStatus } from "../plantstatus.js";
 import { tierOf } from "../equipment.js";
-import { buildSite, conformSite, takePads } from "./sitemodel.js";
+import { buildSite, conformSite, takePads, yawOf } from "./sitemodel.js";
 
 const RAD=Math.PI/180;
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
@@ -149,8 +149,9 @@ function animate(s,st,dt){
   const m=s.model,spin=!reduced.matches,wind=st.res||st.off||st.flo;
   for(const r of s.parts.rotors){const target=wind&&wind.f>=0.03?(0.55+1.15*wind.f)*r.f:0;r.w+=(target-r.w)*Math.min(1,dt*0.6);if(spin)r.a+=r.w*dt;
     const n=m.getNode(r.name);if(n){Cesium.Matrix3.fromRotationX(r.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
-  // türbinler rüzgârın estiği yöne döner (rotor rüzgâra bakar): yön kuzeyden saat yönünde d derece ise yaw = d+90°
-  if(st.wx)for(const y of s.parts.yaws){let d=(st.wx.dir+90)*RAD-y.cur;d=Math.atan2(Math.sin(d),Math.cos(d));y.cur+=d*Math.min(1,dt*0.25);
+  // türbinler rüzgârın estiği yöne döner (rotor rüzgâra bakar; yawOf). Önceki formül (d+90°) doğu-batı rüzgârında doğruydu,
+  // kuzey ve güney rüzgârında rotoru rüzgâra sırtını dönmüş gösteriyordu
+  if(st.wx)for(const y of s.parts.yaws){let d=yawOf(st.wx.dir)-y.cur;d=Math.atan2(Math.sin(d),Math.cos(d));y.cur+=d*Math.min(1,dt*0.25);
     const n=m.getNode(y.name);if(n){Cesium.Matrix3.fromRotationY(y.cur-y.base,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
   const blink=st.night&&(performance.now()%1600<800);s.parts.beacons.forEach(b=>show(m,b,blink));
   s.parts.flows.forEach(f=>show(m,f,!!(st.hes&&st.hes.run)));

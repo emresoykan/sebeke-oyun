@@ -4,7 +4,11 @@
 // gölgesi görüntüdedir; pervanenin gölgesi ayrı bir yarı saydam pervanedir (göbeğin gölgesinde, güneş yönüne göre zemine
 // izdüşmüş) ve pervaneyle aynı açıdan, aynı hızla döner. Gölgeler pervanelerin altında kalır. Hareket azaltılmışsa döndürülmez.
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
-const BLADES='<svg viewBox="-100 -100 200 200" aria-hidden="true"><g class="bl">'+[0,120,240].map(a=>`<path transform="rotate(${a})" d="M-4,-4 C-9,-30 -7,-70 -1.5,-98 L1.5,-98 C5,-60 7,-28 4,-4 Z"/>`).join("")+'<circle r="6"/></g></svg>';
+import { BLADE_LEN, BLADE_ROOT, BLADE_BANDS, bladePart } from "./blade.js";
+// kanat planı 3D modelle aynı (blade.js): 98 birim = kanat boyu; kiriş haritada seçilsin diye 1,3 kat. Uçta kırmızı bantlar
+const K=98/BLADE_LEN,path=(y0,y1)=>"M"+bladePart(y0,y1,3).map(([x,y])=>`${(x*K*1.3).toFixed(1)},${(-y*K).toFixed(1)}`).join("L")+"Z";
+const ONE=`<path d="${path(BLADE_ROOT,BLADE_LEN)}"/>`+BLADE_BANDS.map(([a,b])=>`<path class="tip" d="${path(a,b)}"/>`).join("");
+const BLADES='<svg viewBox="-100 -100 200 200" aria-hidden="true"><g class="bl">'+[0,120,240].map(a=>`<g transform="rotate(${a})">${ONE}</g>`).join("")+'<circle r="4.4"/></g></svg>';
 
 // box: görüntüyle aynı boyutta konumlanan kap; hubs: siteimage.js göbek listesi. Dönüş: hız ayarı için liste
 export function addRotors(box,hubs){

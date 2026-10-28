@@ -28,7 +28,7 @@ const warm=await p.evaluate(async()=>{const F=await import("/src/ui/siteimage.js
 const rows=[];
 for(const id of ids){
   const r=await p.evaluate(async id=>{const st=await import("/src/state.js"),M=await import("/src/ui/sitemodel.js"),F=await import("/src/ui/siteimage.js"),S=st.S;
-    const {root}=M.buildSite(id,S.sites[id],S.plants.filter(x=>x.t===id),true);let calls=0,tris=0;
+    const {root}=M.buildSite(id,S.sites[id],S.plants.filter(x=>x.t===id));let calls=0,tris=0;
     root.traverse(n=>{if(!n.isMesh)return;calls++;const g=n.geometry,t=(g.index?g.index.count:g.attributes.position.count)/3;tris+=t*(n.isInstancedMesh?n.count:1);});
     window.__lt=[];const ob=new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push(e.duration)));ob.observe({type:"longtask"});
     const t0=performance.now();const im=await F.siteImage(id+"",false);const ms=performance.now()-t0;await new Promise(r=>setTimeout(r,50));ob.disconnect();
