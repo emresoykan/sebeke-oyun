@@ -292,6 +292,36 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .cvpic.night img{filter:brightness(.42) saturate(.6)}
 .cvpic.night .mk-rotor .bl{fill:#9AA3AA}
 .cvload{position:absolute;inset:0;display:grid;place-items:center;font-size:.9rem}
+/* Yakın görünümde hava ve mevsim (wxfx.js): zemin rengi mevsime göre, kar örtüsü; yağış ve şimşek yalnızca transform ve
+   opacity ile canlanır (ekran kartında birleştirilir, her karede yeniden boyama yok). Yağış deseni bir döşemede birkaç
+   uzun elips (yağmur) ya da daire (kar); katman tam bir döşeme boyu kayıp başa döner, dikiş görünmez. */
+.cv[data-season=spr]{background:radial-gradient(ellipse at 50% 45%,#6f8f4e 0%,#4d6a35 60%,#2b3b20 100%)}
+.cv[data-season=sum]{background:radial-gradient(ellipse at 50% 45%,#8b8a55 0%,#62603a 60%,#363521 100%)}
+.cv[data-season=aut]{background:radial-gradient(ellipse at 50% 45%,#8c6c40 0%,#614a2c 60%,#352819 100%)}
+.cv[data-season=win]{background:radial-gradient(ellipse at 50% 45%,#7a817c 0%,#555b57 60%,#2f3330 100%)}
+.cv.snowy{background:radial-gradient(ellipse at 50% 45%,#e3e9ee 0%,#b9c3cb 60%,#7d8790 100%)}
+.cv.snowy .cvpic img{filter:saturate(.55) brightness(1.06)}
+.cv.snowy .cvpic.night img{filter:brightness(.5) saturate(.4)}
+.cv[data-wx=rain] .cvpic img,.cv[data-wx=storm] .cvpic img{filter:brightness(.82) saturate(.85)}
+.cv[data-wx=rain] .cvpic.night img,.cv[data-wx=storm] .cvpic.night img{filter:brightness(.38) saturate(.55)}
+.cvfx{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.cvfx i{position:absolute;display:none}
+.cvp{left:-25%;width:150%;top:-200px;height:calc(100% + 400px);opacity:var(--fxo,.8);will-change:transform}
+.cv[data-wx=rain] .cvp,.cv[data-wx=storm] .cvp{display:block;background-size:76px 140px;
+  background-image:radial-gradient(1px 11px at 12px 18px,rgba(215,228,255,.8),transparent),radial-gradient(1px 9px at 47px 73px,rgba(215,228,255,.65),transparent),
+    radial-gradient(1px 12px at 30px 118px,rgba(215,228,255,.75),transparent),radial-gradient(1px 8px at 63px 40px,rgba(215,228,255,.55),transparent),
+    radial-gradient(1px 10px at 5px 95px,rgba(215,228,255,.6),transparent);animation:cvrain .5s linear infinite}
+.cv[data-wx=storm] .cvp{animation-duration:.34s}
+.cv[data-wx=snow] .cvp{display:block;background-size:90px 180px;
+  background-image:radial-gradient(circle 2.2px at 12px 22px,rgba(255,255,255,.95),transparent),radial-gradient(circle 1.6px at 58px 74px,rgba(255,255,255,.85),transparent),
+    radial-gradient(circle 2.6px at 34px 128px,rgba(255,255,255,.9),transparent),radial-gradient(circle 1.4px at 78px 160px,rgba(255,255,255,.8),transparent),
+    radial-gradient(circle 1.8px at 70px 20px,rgba(255,255,255,.85),transparent);animation:cvsnow 7s linear infinite}
+@keyframes cvrain{from{transform:rotate(12deg) translate3d(0,0,0)}to{transform:rotate(12deg) translate3d(0,140px,0)}}
+@keyframes cvsnow{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,180px,0)}}
+.cvflash{inset:0;background:#EAF0FF;opacity:0}
+.cv[data-wx=storm] .cvflash{display:block;animation:cvflash 7s linear infinite}
+@keyframes cvflash{0%,6%,100%{opacity:0}1%{opacity:.5}2%{opacity:.06}3%{opacity:.38}4.5%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cvfx .cvp{animation:none}.cv[data-wx=storm] .cvflash{display:none}}
 .cvload[hidden]{display:none}
 .cvinfo{padding:10px 14px 12px;background:rgba(6,12,20,.82);font-size:.86rem;line-height:1.4}
 .cvt{display:block;font-size:.98rem;margin-bottom:2px}
@@ -324,6 +354,7 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 @media (prefers-reduced-motion: reduce){.mk-site.on::after{animation:none;opacity:.5}}
 /* Apple haritasında yakınlaşınca tesisin kuşbakışı görüntüsü (işaretin arkasında) */
 .mk-fac{position:absolute;max-width:none;pointer-events:none;user-select:none}
+.mk-fac.snowy{filter:saturate(.45) brightness(1.18)} /* saha karla kaplı (wxfx.js) */
 .mk-site.fac{opacity:.7;transform:translate(-50%,-50%) scale(.75)}
 /* Yakında saha sınırı (40 MW'lık alan, kesik çizgi) ve doluluk; rakipte kendi renginde. Kendi sahanda canlı üretim kutusu */
 .mk-bnd{position:absolute;box-sizing:border-box;border:1.5px dashed var(--c,rgba(255,255,255,.85));border-radius:6px;background:rgba(255,255,255,.04);

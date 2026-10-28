@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.5",t:"Sahada hava ve mevsim",items:[
+    "Yakın görünümde sahanın havası: yağmur, kar ve fırtınada şimşek; zemin mevsime göre renk değiştirir (güney yarıkürede ters, dönencelerde mevsim yok).",
+    "Kar panelleri örtünce saha hem yakın görünümde hem haritada karlı görünür.",
+    "Efektler yalnızca CSS ile çizilir; \"hareketi azalt\" açıksa yağış durağan, şimşek kapalı."]},
   {id:"2026-10-28.4",t:"Karanlık temada okunurluk",items:[
     "Karanlık temada teknoloji renkli düğme ve etiketlerde (GES, RES, batarya…) yazı koyu: açık renk zeminde beyaz yazı okunmuyordu.",
     "Şirket avatarının yazı rengi seçtiğin renge göre otomatik; kilitli rozetler soluk değil, okunur; kazanılanlarda ✓ var.",
