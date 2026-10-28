@@ -51,7 +51,7 @@ export function noteHour(h,live){
 // İlk satış saatinin özeti: üretim, fiyat, gelir ve havanın etkisi (üretimin en çok olduğu sahadan)
 function summary(id,h,mw,r,own){
   const t=S.sites[id],ps=S.plants.filter(p=>p.t===id&&!p.down),w=siteWx(t,h),night=shape(h)===0,l=wxLabel(w,night);
-  const gen=ps.filter(p=>p.k!=="batt").reduce((a,p)=>a+p.mw,0)||1,f=Math.round(Math.min(1,own/gen)*100);
+  const gen=ps.filter(p=>!["batt","phs","h2"].includes(p.k)).reduce((a,p)=>a+p.mw,0)||1,f=Math.round(Math.min(1,own/gen)*100);
   const ks=new Set(ps.map(p=>p.k));let fx;
   if(ks.has("res")||ks.has("off"))fx=`Türbin yüksekliğinde rüzgâr ${w.hub.toFixed(0)} m/s esti: santral kapasitesinin %${f} kadarıyla üretti. Rüzgâr hızlandıkça üretim artar, 25 m/s üstünde türbinler durur.`;
   else if(ks.has("ges"))fx=`${l.t}: paneller kapasitenin %${f} kadarıyla üretti. ${w.c>0.4?"Bulutlar ışığı azaltıp üretimi düşürdü; açık havada daha çok üretir.":(h<12?"Güneş yükseldikçe üretim öğleye kadar artar.":"Güneş alçaldıkça üretim akşama doğru azalır.")}`;

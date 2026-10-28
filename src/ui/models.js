@@ -146,7 +146,7 @@ export function regroundModels(){for(const s of sites.values()){s.lastD=Infinity
 const rotX=new Cesium.Matrix3(),rotM=new Cesium.Matrix4();
 function show(model,name,v){const n=model.getNode(name);if(n)n.show=v;}
 function animate(s,st,dt){
-  const m=s.model,spin=!reduced.matches,wind=st.res||st.off;
+  const m=s.model,spin=!reduced.matches,wind=st.res||st.off||st.flo;
   for(const r of s.parts.rotors){const target=wind&&wind.f>=0.03?(0.55+1.15*wind.f)*r.f:0;r.w+=(target-r.w)*Math.min(1,dt*0.6);if(spin)r.a+=r.w*dt;
     const n=m.getNode(r.name);if(n){Cesium.Matrix3.fromRotationX(r.a,rotX);Cesium.Matrix4.multiply(n.originalMatrix,Cesium.Matrix4.fromRotation(rotX,rotM),rotM);n.matrix=rotM;}}
   // türbinler rüzgârın estiği yöne döner (rotor rüzgâra bakar): yön kuzeyden saat yönünde d derece ise yaw = d+90°
@@ -169,6 +169,8 @@ function animate(s,st,dt){
     if(st.bes&&st.bes.run)for(const b of s.parts.belts){const n=m.getNode(b);if(n)tr(n,(now*3.4)%6.8,0,0);}}
   s.parts.belts.forEach(b=>show(m,b,!!(st.bes&&st.bes.run)));
   show(m,"spray",!!(st.hes&&st.hes.run));
+  // durumla açılıp kapanan parçalar (elektrolizör buharı, CSP alıcısının parıltısı): {n: düğüm, k: teknoloji, f: durum alanı}
+  (s.parts.toggles||[]).forEach(t=>show(m,t.n,!!(st[t.k]&&!st[t.k].down&&st[t.k][t.f])));
   // JES buharı ve BES dumanı yalnızca çalışırken
   s.parts.steams.forEach(n=>show(m,n,!!(st.jes&&!st.jes.down&&st.jes.f>0)));
   s.parts.smokes.forEach(n=>show(m,n,!!(st.bes&&st.bes.run)));

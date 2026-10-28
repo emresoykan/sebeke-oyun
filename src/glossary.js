@@ -3,7 +3,7 @@
 // d (tanım), g (oyundaki karşılığı, isteğe bağlı). Tanımlar genel kabul gören anlamı verir; "Oyunda" satırı oyunun
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
-import { FIT } from "./config.js";
+import { FIT, PHS_H, H2, CSP } from "./config.js";
 import { SALE } from "./sale.js";
 
 export const CATS=[["piyasa","Piyasa"],["proje","Proje ve izin"],["finans","Finans"],["tekno","Teknoloji"]];
@@ -28,8 +28,8 @@ export const TERMS=[
     d:"Şebeke kısıtı ya da fazla arz nedeniyle santralin üretebileceği enerjinin bir kısmının sisteme verilememesi.",
     g:"Olay kartlarında şebeke kısıtı üretimi geçici olarak düşürür; batarya etkisini azaltabilir."},
   {k:"arb",t:"Arbitraj",e:"arbitrage",c:"piyasa",
-    d:"Ucuz saatte alıp pahalı saatte satarak fiyat farkından kazanmak. Bataryaların ana gelir kaynaklarından biri.",
-    g:"Batarya ucuz saatlerde şarj olur, pahalı saatlerde boşalır; net kazanç Rapor'da \"Batarya (BESS) arbitrajı\" satırındadır."},
+    d:"Ucuz saatte alıp pahalı saatte satarak fiyat farkından kazanmak. Batarya ve pompaj depolamalı HES gibi depolama tesislerinin ana gelir kaynaklarından biri; kazanç, fiyat farkı çevrim kaybını aştığında oluşur.",
+    g:"Batarya ve pompaj HES ucuz saatlerde depolar, pahalı saatlerde satar; net kazanç Rapor'da \"Batarya (BESS) arbitrajı\" ve \"Pompaj HES arbitrajı\" satırlarındadır."},
   {k:"fit",t:"Alım garantisi",e:"feed-in tariff",c:"piyasa",
     d:"Yenilenebilir üretime belirli bir süre sabit ya da taban fiyat güvencesi veren destek mekanizması. Türkiye'deki karşılığı YEKDEM'dir.",
     g:`Yalnızca ilk yenilenebilir projene ${FIT.years} gün boyunca ${FIT.p} $/MWh taban fiyat: piyasa bunun altına düşerse fark sana ödenir.`},
@@ -88,6 +88,9 @@ export const TERMS=[
     d:"Güneş ışığını fotovoltaik panellerle elektriğe çeviren santral. Yalnızca gündüz üretir; üretim öğlen tepe yapar, bulut ve mevsimle değişir."},
   {k:"res",t:"RES",e:"rüzgâr enerjisi santrali (wind)",c:"tekno",
     d:"Rüzgârın türbin kanatlarını döndürmesiyle elektrik üreten santral. Üretim rüzgâr hızının yaklaşık küpüyle artar; çok düşük ve çok yüksek hızda durur. Denizde kurulana offshore denir."},
+  {k:"flo",t:"Yüzer RES",e:"floating offshore wind",c:"tekno",
+    d:"Deniz tabanına sabitlenmek yerine bağlama halatlarıyla tutulan yüzer bir platforma kurulan rüzgâr türbini. Sabit temelin ekonomik olmadığı derin sularda kullanılır; yatırımı sabit tabanlı açık deniz santralinden yüksektir. Çift rotorlu tasarımlarda tek platformda iki türbin bulunur.",
+    g:`Sığ denizde ve kıyıya 200–350 km'lik derin deniz bandında kurulur; toplam 60 MW kurulu güçten sonra açılır. Yatırım varsayımı sabit tabanlının ~1,9 katı (NREL 2020 tahmini). Fırtına kartında arıza riski yok.`},
   {k:"hes",t:"HES",e:"hidroelektrik santrali",c:"tekno",
     d:"Akan ya da biriktirilmiş suyun türbinleri döndürmesiyle elektrik üreten santral. Üretimi yağış ve mevsime bağlıdır."},
   {k:"jes",t:"JES",e:"jeotermal enerji santrali",c:"tekno",
@@ -97,5 +100,17 @@ export const TERMS=[
     d:"Tarım ve orman atığı, hayvan gübresi gibi organik maddeleri yakarak ya da gazlaştırarak elektrik üreten santral. Sürekli üretebilir ama yakıt maliyeti vardır."},
   {k:"batt",t:"Batarya (BESS)",e:"Battery Energy Storage System",c:"tekno",
     d:"Elektriği depolayıp sonra şebekeye veren sistem. Gücü (MW) ne kadar hızlı, enerjisi (MWh) ne kadar uzun süre verebileceğini belirler.",
-    g:"5 MW / 10 MWh: tam güçte 2 saat boşalır. Arbitraj ya da dengeleme (tahmin sapmasını karşılama) için kullanılır."}
+    g:"5 MW / 10 MWh: tam güçte 2 saat boşalır. Arbitraj ya da dengeleme (tahmin sapmasını karşılama) için kullanılır."},
+  {k:"fpv",t:"Yüzer GES",e:"floating solar PV",c:"tekno",
+    d:"Göl, baraj gölü ya da su havuzu üstüne şamandıralarla kurulan güneş santrali. Arazi kullanmaz; su paneli soğuttuğu için verimi bir miktar artabilir. Baraj gölüne kurulduğunda HES'in şebeke bağlantısını paylaşabilir. Yatırımı karadaki GES'ten yüksektir (şamandıra ve çapa).",
+    g:"Yalnızca HES olan sahada, en çok HES'in gücü kadar kurulur; saha sınırına sayılmaz. Soğutma kazancı %4 (varsayım), yatırım kara GES'inin ~1,2 katı."},
+  {k:"phs",t:"Pompaj depolamalı HES",e:"pumped storage hydropower",c:"tekno",
+    d:"Biri yüksekte iki su haznesi arasında çalışan depolama santrali: elektrik ucuzken suyu üst hazneye pompalar, pahalıyken türbinden geçirip üretir. Dünyadaki elektrik depolama kapasitesinin büyük kısmı bu tiptir; çevrimde enerjinin yaklaşık beşte biri kaybolur.",
+    g:`Dağlık sahada kurulur. 5 MW / ${5*PHS_H} MWh (${PHS_H} saat), çevrim verimi %75–83. Her gün en ucuz saatlerde pompalar, en pahalılarda üretir.`},
+  {k:"h2",t:"Yeşil hidrojen",e:"green hydrogen, electrolysis",c:"tekno",
+    d:"Suyun elektrikle hidrojen ve oksijene ayrıştırılmasıyla (elektroliz) üretilen hidrojen; elektrik yenilenebilir kaynaktan geliyorsa \"yeşil\" sayılır. Sanayide, gübre ve yakıt üretiminde kullanılır. Maliyetin büyük kısmı elektriktir: ancak ucuz elektrikle kârlıdır.",
+    g:`Elektrolizör, satış fiyatı hidrojen gelirinin altındaysa şebekeden elektrik alır (${H2.kwh} kWh/kg, hidrojen ${H2.price} $/kg: varsayım). Gerçekte yeşil sayılması için yenilenebilir kaynak şartı aranır; oyunda bu şart yok.`},
+  {k:"csp",t:"CSP",e:"concentrated solar power",c:"tekno",
+    d:"Aynalarla güneş ışığını bir alıcıya odaklayıp ısıya, ısıyla buhar üreterek elektriğe çeviren santral. Isı erimiş tuzda saklanabildiği için güneş battıktan sonra da üretir. Yalnızca doğrudan güneş ışığından yararlanır; çok güneşli, açık havalı bölgelere kurulur.",
+    g:`Çölde ya da yıllık ışınımı ~5 kWh/m²/gün üstü yerde kurulur. ${CSP.h} saatlik tuz deposu, en pahalı saatlerde üretir. Yatırım IRENA 2024 dünya ortalaması (3.677 $/kW), kapasite faktörü oyunda ~%40.`}
 ];

@@ -1,5 +1,5 @@
 // Kare bazlı kurallar: izinli teknolojiler, arazi/izin maliyeti ve olasılıkları
-import { REG, MAR_UNLOCK, SITE_LIMIT } from "./config.js";
+import { REG, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
@@ -15,23 +15,38 @@ export const slopeOfSite=t=>t.slope!==undefined?t.slope:slopeCached(t.lat,t.lon)
 export function tooSteep(k,t){
   const s=slopeOfSite(t);if(!s||t.sea)return false;
   if(k==="ges")return s.mean>(s.south?SLOPE.south:SLOPE.flat);
-  if(k==="batt"||k==="bes"||k==="jes")return s.mean>SLOPE.flat;
+  if(k==="batt"||k==="bes"||k==="jes"||k==="h2"||k==="csp")return s.mean>SLOPE.flat;
   if(k==="res")return s.mean>SLOPE.res;
   return false;
 }
 
-// İzinli teknolojiler: HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi olan karada, deniz enerjisi sığ denizde;
-// arazi eğimi ölçüldüyse fazla eğimli yerde düz arazi isteyen teknolojiler çıkar
+// İzinli teknolojiler: HES, yüzer GES (baraj gölüne) ve pompaj HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi
+// olan karada, CSP çölde ya da güneşi çok güçlü yerde, deniz enerjisi sığ denizde; elektrolizör ve batarya her karada.
+// Arazi eğimi ölçüldüyse fazla eğimli yerde düz arazi isteyen teknolojiler çıkar
 export const allowed=t=>baseAllowed(t).filter(k=>!tooSteep(k,t));
 // eğim kuralı uygulanmadan önceki liste (panelde hangi teknolojinin eğim yüzünden düştüğünü söylemek için)
 export function baseAllowed(t){
   fillRes(t);
-  if(t.urban)return[];if(t.sea)return t.shallow?["off","mar"]:[];if(!t.mreg)return[];
-  const a=["ges","res"];if(t.ter==="m")a.push("hes");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");a.push("batt");return a;
+  if(t.urban)return[];if(t.sea)return t.shallow?["off","flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
+  const a=["ges","res"];if(t.ter==="m")a.push("hes","fpv","phs");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");
+  if(cspOk(t))a.push("csp");a.push("batt","h2");return a;
 }
+// CSP doğrudan güneş ışınımı ister (bulut ve pus onu küresel ışınımdan çok düşürür): çöl ya da yıllık ortalama küresel ışınım
+// ~5 kWh/m²/gün üstü (güneş puanı = ışınım ÷ 9). Doğrudan ışınım verisi yok: eşik yaklaşık, CSP santrallerinin bulunduğu
+// güney İspanya düzeyine göre seçildi (varsayım)
+export const CSP_SUN=0.55;
+export const cspOk=t=>!t.sea&&(t.ter==="d"||(t.solar||0)>=CSP_SUN);
+// Yüzer GES baraj gölüne kurulur ve HES'in şebeke bağlantısını paylaşır (hibrit): sahada önce HES olmalı ("lake"), gücü
+// HES'in kurulu gücünü aşamaz ("lakefull"); buna karşılık saha sınırına (SITE_LIMIT) sayılmaz: arazi kullanmaz, güneş
+// öğlen, HES suyunu akşam pahalı saatlerde kullanır (sade kural; bağlantının saatlik kapasitesi ayrıca denetlenmez)
+const mwOn=(id,k)=>S.plants.reduce((a,p)=>a+(p.t===id&&p.k===k?p.mw:0),0);
+export const siteBlock=(id,k)=>k!=="fpv"?null:!mwOn(id,"hes")?"lake":mwOn(id,"fpv")+5>mwOn(id,"hes")?"lakefull":null;
+// saha sınırına sayılan güç (yüzer GES hariç) ve bir bloğun sınıra sığıp sığmadığı
+export const capMW=id=>S.plants.reduce((a,p)=>a+(p.t===id&&p.k!=="fpv"?p.mw:0),0);
+export const fits=(id,k,mw=5)=>k==="fpv"||capMW(id)+mw<=siteCap(S.sites[id]);
 // Deniz enerjisi gelişmekte olan bir teknoloji: yeterli deneyim (kurulu güç) olmadan yatırım yapılamaz
 export const totalMW=()=>S.plants.reduce((a,p)=>a+p.mw,0);
-export const locked=k=>k==="mar"&&totalMW()<MAR_UNLOCK;
+export const locked=k=>(k==="mar"&&totalMW()<MAR_UNLOCK)||(k==="flo"&&totalMW()<FLO_UNLOCK);
 export function landCost(t){return t.sea?30000:REG[t.reg].land;}
 export function permitFee(t){return t.sea?10000:5000;}
 // küçültülmüş projede (Projeyi küçült seçeneği, t.cap) etki alanı daralır, onay ihtimali artar

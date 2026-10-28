@@ -64,9 +64,9 @@ function update(){
   // en yakın oyuncu rüzgâr sahası
   let best=0,bf=0;
   Object.entries(S.sites).forEach(([id,o])=>{
-    if(!S.plants.some(p=>p.t===id&&(p.k==="res"||p.k==="off")))return;
+    if(!S.plants.some(p=>p.t===id&&(p.k==="res"||p.k==="off"||p.k==="flo")))return;
     const d=Math.hypot(km(c.lat,c.lon,o.lat,o.lon),c.h/1000),near=clamp(1-(d-0.4)/4,0,1);if(near<=best)return;
-    const st=plantStatus(id),x=st.res||st.off;best=near;bf=x?x.f:0;});
+    const st=plantStatus(id),x=st.res||st.off||st.flo;best=near;bf=x?x.f:0;});
   const tl=0.22*best*best*(bf>0.03?0.4+0.6*bf:0);
   set(N.turb.gain,tl*0.6);set(N.bd.gain,tl*0.4);set(N.blade.frequency,0.55+0.35*bf);
   // fırtınada ara ara gök gürültüsü

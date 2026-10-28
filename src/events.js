@@ -16,7 +16,7 @@ import { checkMissions } from "./missions.js";
 import { CAL, seasonOf } from "./calendar.js";
 import { applyDesk } from "./market.js";
 
-const RENEW=["ges","res","off","hes","jes","bes","mar"];
+const RENEW=["ges","res","off","flo","hes","jes","bes","mar","fpv","csp"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
 const has=k=>S.plants.some(p=>p.k===k);
 // oyuncunun en çok kurulu gücü olan piyasa
@@ -35,22 +35,23 @@ export const EVENTS=[
       {l:"Tam güç üret",e:"Bugün HES tam güç, sonraki 3 gün baraj boş (%30). Fiyatlar 4 gün %15 yüksek.",run:()=>{mod({t:"out",m,k:["hes"],v:0.3,d:3,w:1,label:"Kuraklık: baraj boşaldı"});mod({t:"price",m,v:1.15,d:4,label:"Kuraklık: fiyatlar yüksek"});return "Bugün su bol, ama önümüzdeki günlerde baraj kuruyacak.";}}
     ]:[{l:"Fiyat artışından yararlan",e:"Fiyatlar 4 gün %15 yüksek.",run:()=>{mod({t:"price",m,v:1.15,d:4,label:"Kuraklık: fiyatlar yüksek"});return "HES'in yok; kuraklık senin GES ve RES gelirini artıracak.";}}]},
 
-  {id:"storm",tag:"Hava",title:"Fırtına uyarısı",ok:()=>has("res")||has("off"),
+  {id:"storm",tag:"Hava",title:"Fırtına uyarısı",ok:()=>has("res")||has("off")||has("flo"),
     text:()=>`Meteoroloji 90 km/s'yi aşan rüzgâr bekliyor. Türbinler kesme hızını aşarsa kendini durdurur; çalışmaya devam etmek daha çok üretim ama kanat ve dişli kutusu hasarı riski demek.`,
-    learn:"Türbinler belirli bir rüzgâr hızının üstünde (kesme hızı) güvenlik için durur. Sigorta, düşük olasılıklı ama pahalı hasarlara karşı korur.",
+    learn:"Türbinler belirli bir rüzgâr hızının üstünde (kesme hızı) güvenlik için durur. Sigorta, düşük olasılıklı ama pahalı hasarlara karşı korur. Tayfun sınıfı yüzer platformlar (yüzer RES) hasar riski taşımaz.",
     opts:()=>{const ins=Math.max(1500,Math.round(S.plants.filter(p=>p.k==="res"||p.k==="off").reduce((a,p)=>a+(p.cost||0),0)*0.006/100)*100);return [
-      {l:"Türbinleri güvenli moda al",e:"Bugün rüzgâr üretimi yok, hasar riski yok.",run:()=>{mod({t:"out",k:["res","off"],v:0,label:"Fırtına: türbinler durduruldu"});return "Türbinler güvenle durduruldu.";}},
-      {l:"Çalışmaya devam et",e:"Bugün üretim %30 fazla; %35 ihtimalle bir rüzgâr santrali 3 gün arızalı.",run:()=>{mod({t:"out",k:["res","off"],v:1.3,label:"Fırtına: yüksek rüzgâr"});
-        if(rnd()<0.35){const ps=S.plants.filter(p=>p.k==="res"||p.k==="off"),p=ps[Math.floor(rnd()*ps.length)];p.down=3;S.stats.outages++;return `Riskli karar pahalıya patladı: ${placeName(S.sites[p.t])} ${TECH[p.k].n} 3 gün arızalı.`;}
+      {l:"Türbinleri güvenli moda al",e:"Bugün rüzgâr üretimi yok, hasar riski yok.",run:()=>{mod({t:"out",k:["res","off","flo"],v:0,label:"Fırtına: türbinler durduruldu"});return "Türbinler güvenle durduruldu.";}},
+      {l:"Çalışmaya devam et",e:"Bugün üretim %30 fazla; %35 ihtimalle bir rüzgâr santrali 3 gün arızalı.",run:()=>{mod({t:"out",k:["res","off","flo"],v:1.3,label:"Fırtına: yüksek rüzgâr"});
+        const ps=S.plants.filter(p=>p.k==="res"||p.k==="off"); // yüzer RES tayfun sınıfı: hasar listesinde yok
+        if(ps.length&&rnd()<0.35){const p=ps[Math.floor(rnd()*ps.length)];p.down=3;S.stats.outages++;return `Riskli karar pahalıya patladı: ${placeName(S.sites[p.t])} ${TECH[p.k].n} 3 gün arızalı.`;}
         return "Şans yanındaydı: fırtına bol üretim getirdi, hasar yok.";}},
-      {l:`Sigorta yaptır ve devam et (${fmt$(ins)})`,c:ins,e:"Bugün üretim %30 fazla, hasar sigortalı.",run:()=>{pay(ins);mod({t:"out",k:["res","off"],v:1.3,label:"Fırtına: yüksek rüzgâr"});return "Sigortalı üretim: fırtınadan kazançlı çıktın.";}}];}},
+      {l:`Sigorta yaptır ve devam et (${fmt$(ins)})`,c:ins,e:"Bugün üretim %30 fazla, hasar sigortalı.",run:()=>{pay(ins);mod({t:"out",k:["res","off","flo"],v:1.3,label:"Fırtına: yüksek rüzgâr"});return "Sigortalı üretim: fırtınadan kazançlı çıktın.";}}];}},
 
-  {id:"holiday",tag:"Piyasa",title:"Bayram tatili: öğle fiyatı çöküyor",ok:()=>has("ges"),
+  {id:"holiday",tag:"Piyasa",title:"Bayram tatili: öğle fiyatı çöküyor",ok:()=>has("ges")||has("fpv"),
     text:m=>`Uzun tatil nedeniyle sanayi talebi düştü, ${mName(m)} piyasasında öğle saatlerinde güneş üretimi talebi aşıyor. Önümüzdeki 2 gün 10:00–15:00 arası fiyatlar sıfıra yakın olacak.`,
     learn:"Güneş kurulumu arttıkça öğle fiyatları düşer (kanibalizasyon). GES'in yakaladığı ortalama fiyat (capture price) piyasa ortalamasının altında kalır. İkili anlaşma bu riski sabitler.",
     opts:m=>{const fix=Math.round(32*REG[m].mult);return [
       {l:"Spotta kal",e:"2 gün öğle fiyatları %85 düşük.",run:()=>{mod({t:"price",m,v:0.15,d:2,h:[10,15],label:"Tatil: öğle fiyatı çöktü"});return "Spot fiyatta kaldın; öğle üretimi düşük fiyattan satılacak.";}},
-      {l:`2 günlük ikili anlaşma: GES ${fix} $/MWh`,e:`GES üretimin 2 gün boyunca saat fark etmeksizin ${fix} $/MWh'ten satılır.`,run:()=>{mod({t:"price",m,v:0.15,d:2,h:[10,15],label:"Tatil: öğle fiyatı çöktü"});mod({t:"fix",m,k:["ges"],v:fix,d:2,label:`İkili anlaşma: GES ${fix} $/MWh`});return "Anlaşma imzalandı; fiyat çöküşü GES gelirini etkilemeyecek.";}}];}},
+      {l:`2 günlük ikili anlaşma: GES ${fix} $/MWh`,e:`GES üretimin 2 gün boyunca saat fark etmeksizin ${fix} $/MWh'ten satılır.`,run:()=>{mod({t:"price",m,v:0.15,d:2,h:[10,15],label:"Tatil: öğle fiyatı çöktü"});mod({t:"fix",m,k:["ges","fpv"],v:fix,d:2,label:`İkili anlaşma: GES ${fix} $/MWh`});return "Anlaşma imzalandı; fiyat çöküşü GES gelirini etkilemeyecek.";}}];}},
 
   {id:"gas",tag:"Piyasa",title:"Doğal gaz fiyat şoku",ok:()=>true,
     text:()=>`Bir boru hattındaki arıza gaz arzını daralttı, gaz fiyatları sıçradı. Gaz santralleri çoğu saatte fiyatı belirlediği için elektrik fiyatları da yükseliyor.`,
@@ -75,19 +76,19 @@ export const EVENTS=[
       {l:"Tedarik anlaşması yap (6 b$)",c:6000,e:"6 b$ öde, zamdan muaf ol.",run:()=>{pay(6000);return "Uzun dönem tedarik anlaşması imzalandı; fiyatların sabit.";}}
     ]},
 
-  {id:"curtail",tag:"Şebeke",title:"Şebeke kısıt talimatı",ok:()=>has("res")||has("ges"),
+  {id:"curtail",tag:"Şebeke",title:"Şebeke kısıt talimatı",ok:()=>has("res")||has("ges")||has("fpv"),
     text:m=>`${mName(m)} piyasasında bölgedeki iletim hattı kapasitesi yetmiyor. Sistem operatörü rüzgâr ve güneş santrallerine 2 gün üretimi düşürme talimatı verdi.`,
     learn:"Şebeke kısıtı: ürettiğin her MWh'i satamayabilirsin. İletim kapasitesi, yenilenebilir yatırımlarında konum seçiminin en önemli kriterlerinden biridir.",
-    opts:m=>{const o=[{l:"Talimata uy",e:"RES ve GES 2 gün %60 kapasiteyle çalışır.",run:()=>{mod({t:"out",m,k:["res","ges"],v:0.6,d:2,label:"Şebeke kısıtı: üretim %60"});return "Talimata uydun; üretim geçici olarak kısıldı.";}}];
-      if(mwOf("batt",m))o.push({l:"Fazlayı bataryada depola",e:"Bataryan kısıntının bir kısmını emer: RES ve GES 2 gün %80.",run:()=>{mod({t:"out",m,k:["res","ges"],v:0.8,d:2,label:"Şebeke kısıtı: üretim %80"});return "Batarya kısıntının etkisini yarıya indirdi.";}});
+    opts:m=>{const o=[{l:"Talimata uy",e:"RES ve GES 2 gün %60 kapasiteyle çalışır.",run:()=>{mod({t:"out",m,k:["res","ges","fpv"],v:0.6,d:2,label:"Şebeke kısıtı: üretim %60"});return "Talimata uydun; üretim geçici olarak kısıldı.";}}];
+      if(mwOf("batt",m))o.push({l:"Fazlayı bataryada depola",e:"Bataryan kısıntının bir kısmını emer: RES ve GES 2 gün %80.",run:()=>{mod({t:"out",m,k:["res","ges","fpv"],v:0.8,d:2,label:"Şebeke kısıtı: üretim %80"});return "Batarya kısıntının etkisini yarıya indirdi.";}});
       return o;}},
 
-  {id:"dust",tag:"Hava",title:"Toz fırtınası",ok:()=>has("ges"),
+  {id:"dust",tag:"Hava",title:"Toz fırtınası",ok:()=>has("ges")||has("csp"),
     text:()=>`Güneyden gelen toz bulutu panelleri kapladı, ışık geçirgenliği belirgin şekilde düştü.`,
     learn:"Kirlenme kaybı (soiling): panel temizliğinin maliyeti ile üretim kaybı karşılaştırılarak karar verilir. Kurak bölgelerde bu kayıp yıllık üretimin birkaç yüzdesine ulaşabilir.",
-    opts:()=>{const c=Math.max(800,Math.round(mwOf("ges")*400/100)*100);return [
+    opts:()=>{const c=Math.max(800,Math.round((mwOf("ges")+mwOf("csp"))*400/100)*100);return [
       {l:`Temizlik ekibi gönder (${fmt$(c)})`,c,e:"Üretim kaybı yok.",run:()=>{pay(c);return "Paneller temizlendi.";}},
-      {l:"Yağmuru bekle",e:"GES 3 gün %75 kapasiteyle çalışır.",run:()=>{mod({t:"out",k:["ges"],v:0.75,d:3,label:"Toz: GES %75"});return "Yağmur gelene kadar paneller tozlu kalacak.";}}];}},
+      {l:"Yağmuru bekle",e:"GES ve CSP aynaları 3 gün %75 kapasiteyle çalışır.",run:()=>{mod({t:"out",k:["ges","csp"],v:0.75,d:3,label:"Toz: GES ve CSP %75"});return "Yağmur gelene kadar paneller tozlu kalacak.";}}];}},
 
   {id:"locals",tag:"Mevzuat",title:"Yerel halk tepkisi",ok:()=>Object.values(S.sites).some(o=>o.permit==="pending"),
     text:()=>{const o=Object.values(S.sites).find(o=>o.permit==="pending");return `${placeName(o)} yakınındaki bir köy derneği, projenin gürültü ve görüntü kirliliği yaratacağını söyleyerek itiraz dilekçesi verdi.`;},
@@ -98,7 +99,7 @@ export const EVENTS=[
 
   {id:"heat",tag:"Piyasa",title:"Sıcak hava dalgası",ok:()=>true,
     text:m=>`${mName(m)} piyasasında klima kullanımı akşam saatlerinde talep rekoru kırdırıyor. 3 gün boyunca 17:00–22:00 arası fiyatlar çok yüksek olacak.`,
-    learn:"Talep pikleri akşam, güneş batarken yaşanır. Bu saatlerde üretebilen batarya ve HES en yüksek fiyatı yakalar.",
+    learn:"Talep pikleri akşam, güneş batarken yaşanır. Bu saatlerde üretebilen batarya, HES, pompaj HES ve CSP en yüksek fiyatı yakalar.",
     opts:m=>[
       {l:"Planlı bakımı ertele, tam güç",e:"3 gün arıza riski yok; sonraki 4 gün iki kat.",run:()=>{mod({t:"price",m,v:1.5,d:3,h:[17,22],label:"Sıcak hava: akşam fiyatı yüksek"});mod({t:"risk",v:0,d:3,label:"Bakım ertelendi"});mod({t:"risk",v:2,d:4,w:3,label:"Ertelenen bakım: arıza riski 2 kat"});return "Bakım ertelendi; pik günlerde santrallerin tam güçte.";}},
       {l:"Bakımı planlandığı gibi yap",e:"Arıza riski değişmez.",run:()=>{mod({t:"price",m,v:1.5,d:3,h:[17,22],label:"Sıcak hava: akşam fiyatı yüksek"});return "Bakım takvimi korundu.";}}

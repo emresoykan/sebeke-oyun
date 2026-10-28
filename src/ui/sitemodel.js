@@ -61,7 +61,12 @@ function materials(){
   const tarp=tex(128,128,(g,w,h)=>{g.fillStyle="#5F7360";g.fillRect(0,0,w,h);for(let i=0;i<30;i++){g.fillStyle=`rgba(30,40,32,${.15+Math.random()*.2})`;g.fillRect(0,Math.random()*h,w,1+Math.random()*2);}
     for(let i=0;i<70;i++){g.fillStyle="#2B2F2D";g.beginPath();g.arc(Math.random()*w,Math.random()*h,2.2,0,6.3);g.fill();}},[2,1]);
   const std=(o)=>new THREE.MeshStandardMaterial(o);
+  // yüzer GES modülleri: GES dokusunun ayrı kopyası (12 m'lik şamandıra sırasına göre döşenir)
+  const fpvMat=(kind,r,mt)=>{const m=std({map:moduleTex(kind),roughness:r,metalness:mt});m.map.repeat.set(12/9.1,1);return m;};
   return {
+    fpv:{eco:fpvMat("eco",.28,.15),std:fpvMat("std",.22,.2),pre:fpvMat("pre",.2,.2)},
+    float:std({color:0xE3E6E1,roughness:.75}), lining:std({color:0x33383D,roughness:.8}),
+    mirror:std({color:0xA8BCCB,roughness:.06,metalness:.85}), embank:std({color:0x7B8566,roughness:1}), glow:new THREE.MeshBasicMaterial({color:0xFFE6A0}),
     pv:{eco:std({map:moduleTex("eco"),roughness:.28,metalness:.15}),std:std({map:moduleTex("std"),roughness:.22,metalness:.2}),pre:std({map:moduleTex("pre"),roughness:.2,metalness:.2})},
     clad:std({map:clad,roughness:.6,metalness:.3}), tarp:std({map:tarp,roughness:.55,metalness:.05}),
     silage:std({map:noiseTex(["#B4A55A","#8E8240","#CDBE73","#6E6A3A"],900,[3,3],[1,4]),roughness:1}),
@@ -216,6 +221,42 @@ function windFarm(mw,sea,parts,yaw,sc=1){
   return g;
 }
 
+// ---- Yüzer RES: çift rotorlu V kule, üç sarı yüzer kolon, tek nokta bağlama ----
+// Bir platformda iki türbin (~17 MW toplam); kuleler ortak bir düğümden V biçiminde dışa açılır, rotorlar birbirine
+// çarpmasın diye göbekler ~185 m aralıklı. Platform ön kolondaki bağlama noktası çevresinde rüzgâra kendiliğinden döner
+// (3D görünümde tüm platform döner). Yerel eksenler: rotorlar −x yönüne (rüzgâra) bakar, kuleler z boyunca açılır.
+function floatUnit(parts,yaw,sc){
+  const g=new THREE.Group(),H=128*sc,S=92*sc,k0=parts.rotors.length;
+  // V kuleler (ortak düğümden dışa eğik, aşağıda kalın) ve iki gövde arasındaki gergi halatı
+  for(const sd of [-1,1]){const A=new THREE.Vector3(0,8,0),B=new THREE.Vector3(0,H-3,sd*S),L=A.distanceTo(B);
+    const tw=new THREE.Mesh(new THREE.CylinderGeometry(1.7*sc,3*sc,L,20),M.white);tw.position.copy(A).add(B).multiplyScalar(.5);
+    tw.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());tw.castShadow=true;g.add(tw);}
+  g.add(cylBetween([0,H-2,-S],[0,H-2,S],.25,M.steel,5));
+  // yüzer gövde: orta düğüm, üç sarı kolon (su hattında koyu şerit), aralarında gri kirişler; kolonlardan kulelere gergiler
+  const C=[[28,-64],[28,64],[-52,0]];
+  g.add(cyl(4.5,4.5,16,M.yellow,0,1,0,20),cyl(4.6,4.6,1,M.dark,0,.2,0,20));
+  C.forEach(([x,z])=>{g.add(cyl(6,6,14,M.yellow,x,1,z,24),cyl(6.1,6.1,1,M.dark,x,.2,z,24),cylBetween([0,3,0],[x,3,z],1.6,M.grey,12));
+    const r=new THREE.Mesh(new THREE.RingGeometry(6.5,12,24),M.seaFoam);r.rotation.x=-Math.PI/2;r.position.set(x,.25,z);g.add(r);
+    if(z)g.add(cylBetween([x,8,z],[0,H*.55,Math.sign(z)*S*.55],.22,M.steel,5));});
+  // tek nokta bağlama: ön kolonda döner bağlantı, öne doğru açılan üç bağlama hattı
+  g.add(cyl(2.4,2.4,3,M.dark,-52,8.5,0,12));[-1,0,1].forEach(d=>g.add(cylBetween([-56,0,0],[-90,-8,d*26],.3,M.dark,5))); // hatların görünen (yüzeye yakın) kısmı
+  // makine daireleri ve rotorlar (kanatlar 61 m × 1,5 ≈ 91 m), uçak ikaz lambaları
+  for(const sd of [-1,1]){const z=sd*S;g.add(box(16,5.6,5.6,M.white,4,H,z),box(3.2,1.4,3.6,M.white,10,H+3.4,z));
+    const rotor=new THREE.Group();rotor.position.set(-5,H,z);rotor.scale.setScalar(1.5*sc);
+    const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
+    for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
+    const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});
+    const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(6,H+3.2,z);bc.name=`beacon${k}`;g.add(bc);parts.beacons.push(bc.name);}
+  g.rotation.y=yaw;g.name=`tw${k0}`;parts.yaws.push({name:g.name,base:yaw,cur:yaw});
+  return g;
+}
+function floatFarm(mw,parts,yaw,sc=1){
+  const g=new THREE.Group(),n=Math.min(3,Math.max(1,Math.ceil(mw/17))),sp=620*sc;
+  for(let i=0;i<n;i++){const u=floatUnit(parts,yaw,sc);u.position.x=(i-(n-1)/2)*sp;g.add(u);}
+  boat(g,-(n-1)/2*sp+70,95,.4);
+  return g;
+}
+
 // ---- GES: ekvatora bakan eğik masalar; parsel sınırına uyan düzen, iç yollarla bloklar, blok başına inverter/trafo istasyonu ----
 // Masa: iki dikey modül (4,6 m derinlik), ~26 m boy, 25° eğim, sıra aralığı 9,5 m (~1,1 ha/MW). Satır araları zemin olarak
 // açık kalır (haritada uydu görüntüsündeki toprak görünür). Parsel kenarları tohumlu gürültüyle girintilidir, bir köşesi
@@ -322,7 +363,7 @@ function valleyOf(seed){
     return y;};
   return {h,ax};
 }
-function hydro(parts,seed){
+function hydro(parts,seed,fpv=0,tier="std",lat=40){
   const g=new THREE.Group(),C=120,H=HES_H,V=valleyOf(seed);
   // arazi ağı: ~4 m çözünürlük, köşe renkleri (bitki örtüsü, kaya, su seviyesi şeridi, göl tabanı) ve kenar saydamlığı
   const X0=-230,X1=230,Z0=-330,Z1=270,nx=115,nz=150,geo=new THREE.PlaneGeometry(X1-X0,Z1-Z0,nx,nz);geo.rotateX(-Math.PI/2);geo.translate((X0+X1)/2,0,(Z0+Z1)/2);
@@ -345,6 +386,7 @@ function hydro(parts,seed){
   // su arazinin üstüne çizilir (ikisi de saydam: sıra sabit olmazsa su altındaki zemin suyun üstüne boyanıyordu)
   const lake=water(Z0,-3.6,HES_W,M.water,40);lake.name="lake";lake.renderOrder=2;g.add(lake);
   const riv=water(24,Z1,.15,M.river,40);riv.renderOrder=2;g.add(riv);
+  if(fpv>0)floatingSolar(g,V,fpv,tier,lat); // yüzer GES baraj gölünde
   // baraj gövdesi: memba yüzü dik, mansap yüzü eğik (ağırlık barajı profili), kalıp izli beton
   const prof=new THREE.Shape();prof.moveTo(-4,0);prof.lineTo(-4,H);prof.lineTo(3,H);prof.lineTo(30,0);prof.closePath();
   const dg=new THREE.ExtrudeGeometry(prof,{depth:C,bevelEnabled:false});dg.translate(0,-2,-C/2);dg.rotateY(-Math.PI/2);
@@ -500,6 +542,178 @@ function marine(mw,parts){
   return g;
 }
 
+// su yüzeyi diski (göl ve hazneler): su malzemesi köşe rengi ister (saydamlık); burada tam opak
+function waterDisk(r,y,seg=64){
+  const geo=new THREE.CircleGeometry(r,seg);geo.rotateX(-Math.PI/2);geo.translate(0,y,0);
+  geo.setAttribute("color",new THREE.BufferAttribute(new Float32Array(geo.attributes.position.count*4).fill(1),4));
+  const m=new THREE.Mesh(geo,M.water);m.receiveShadow=true;m.renderOrder=2;return m;
+}
+// halka set (hazne): profil noktaları [r,y] arası bantlar; iç şev, kret ve dış şev ayrı malzemeyle. Döndürme yüzeyinin hangi
+// yüzü dışa bakacağı şevin yönüne bağlı: malzemenin çift yüzlü kopyası kullanılır
+const DS=new WeakMap(),twoSided=m=>{let d=DS.get(m);if(!d){d=m.clone();d.side=THREE.DoubleSide;DS.set(m,d);}return d;};
+function ringDam(prof,mats,seg=72){
+  const g=new THREE.Group();
+  for(let i=0;i<prof.length-1;i++){const geo=new THREE.LatheGeometry([new THREE.Vector2(...prof[i]),new THREE.Vector2(...prof[i+1])],seg);
+    const m=new THREE.Mesh(geo,twoSided(mats[i]));m.castShadow=m.receiveShadow=true;g.add(m);}
+  return g;
+}
+// zemine oturmayan (tek parça arazili) gruplarda yardımcıların çizdiği nesneleri dy kadar yükseltir
+const lifted=(g,dy,draw)=>{const n0=g.children.length;draw();g.children.slice(n0).forEach(m=>m.position.y+=dy);};
+
+// ---- Yüzer GES (baraj gölünde): HDPE şamandıralar üstünde alçak eğimli (12°) panel sıraları, panelsiz şamandıra şeritleri
+// (bakım yolları), yüzer inverter platformları, kıyıya bağlama halatları ve kıyıya kablo. Ada, kıyıdan payla derin kalan göl
+// hücrelerine membada bir merkezin çevresinde toplu yerleşir. Bir şamandıra sırası 12 m × 2,3 m modül (~5,8 kW); göl
+// küçükse görüntü gölün en çok %60'ını kaplar (temsilî) ----
+function floatingSolar(g,V,mw,tier,lat){
+  const y0=HES_W,sx=12.5,sz=4,deep=(x,z)=>[[0,0],[-9,-6],[9,-6],[-9,6],[9,6]].every(([a,b])=>V.h(x+a,z+b)<y0-2.5);
+  const slots=[];for(let z=-270;z<=-50;z+=sz)for(let x=-170;x<=170;x+=sx)if(deep(x,z))slots.push([x,z]);
+  if(!slots.length)return;
+  const cz=-140,cx=V.ax(cz),n=Math.min(Math.round(mw*1000/5.8),Math.round(slots.length*.6));
+  const pick=slots.sort((a,b)=>Math.hypot(a[0]-cx,(a[1]-cz)*1.2)-Math.hypot(b[0]-cx,(b[1]-cz)*1.2)).slice(0,n);
+  const pan=[],walk=[],tilt=12*RAD*(lat>=0?1:-1);
+  pick.forEach(([x,z])=>(Math.round((z+270)/sz)%9===8||Math.round((x+170)/sx)%7===6?walk:pan).push([x,z]));
+  g.add(inst(new THREE.BoxGeometry(sx-.3,.5,sz-.25),M.float,pick.map(([x,z])=>[x,y0+.2,z])));
+  const pm=new THREE.InstancedMesh(new THREE.BoxGeometry(12,.06,2.3),M.fpv[tier]||M.fpv.std,Math.max(1,pan.length)),mt=new THREE.Matrix4(),
+    q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),tilt),one=new THREE.Vector3(1,1,1);
+  pan.forEach(([x,z],i)=>pm.setMatrixAt(i,mt.compose(new THREE.Vector3(x,y0+.78,z-.2),q,one)));pm.count=pan.length;pm.castShadow=pm.receiveShadow=true;g.add(pm);
+  // yüzer inverter ve trafo platformları (5 MW başına bir), bakım şeritlerinin üstünde
+  const ni=Math.max(1,Math.round(mw/5)),inv=walk.filter((_,i)=>i%Math.max(1,Math.floor(walk.length/ni))===0).slice(0,ni);
+  inv.forEach(([x,z])=>g.add(box(8,.7,5,M.float,x,y0+.35,z),box(4.2,2.4,2.4,M.white,x-1.4,y0+1.9,z),box(2,2,2,M.tankW,x+2.4,y0+1.7,z)));
+  // bağlama halatları: adanın 8 yönündeki en uç şamandıradan kıyıya; kablo ilk platformdan barajın yanındaki kıyıya
+  const shore=(x,z,dx,dz)=>{for(let k=1;k<60;k++){const X=x+dx*k*4,Z=z+dz*k*4;if(V.h(X,Z)>y0)return [X,V.h(X,Z)+.4,Z];}return null;};
+  for(let a=0;a<8;a++){const dx=Math.cos(a*Math.PI/4),dz=Math.sin(a*Math.PI/4);
+    const e=pick.reduce((b,p)=>(p[0]-cx)*dx+(p[1]-cz)*dz>(b[0]-cx)*dx+(b[1]-cz)*dz?p:b,pick[0]),sh=shore(e[0],e[1],dx,dz);
+    if(sh)g.add(cylBetween([e[0]+dx*6,y0+.3,e[1]+dz*2],sh,.14,M.dark,4));}
+  if(inv[0]){const [x,z]=inv[0],sh=shore(x,z,0,1)||shore(x,z,1,0);if(sh)g.add(cylBetween([x,y0+.25,z],sh,.3,M.dark,6));}
+}
+
+// ---- Pompaj depolamalı HES: tepede asfalt kaplamalı halka setli üst hazne (içinde su alma kulesi), yamaçtan beton mesnetler
+// üstünde inen iki cebri boru ve denge bacası, eteğinde santral binası, trafolar ve kuyruk suyu kanalı, setle çevrili alt
+// hazne, şalt sahası ve enerji nakil hattı. Arazi ağı HES vadisi gibi tek parça (araziye bir bütün olarak oturur). Hazne
+// büyüklüğü depo enerjisine göre ölçeklenir; düşü görselde ~120 m (gerçek santrallerde çoğu 200–600 m) ----
+function pumped(mw,parts,seed){
+  const g=new THREE.Group(),N=noise2(seed+21),Hh=120,R=Math.min(125,58*Math.sqrt(mw/5)),RL=R*1.12;
+  const U=[0,-150-R*.4],L=[10,175+RL*.3],zP=L[1]-RL-48,X0=-260,X1=260,Z0=U[1]-R-80,Z1=L[1]+RL+70;
+  const h=(x,z)=>{const du=Math.hypot((x-U[0])/1.25,z-U[1]),dl=Math.hypot((x-L[0])/1.2,z-L[1]);
+    let y=Hh*ss(150,-110,z)+(N(x/90,z/90)-.5)*28+(N(x/22,z/22)-.5)*3;
+    y+=(Hh-3-y)*(1-ss(R+32,R+75,du));y+=(-.5-y)*(1-ss(RL+26,RL+62,dl));
+    const pd=Math.max(L[0]-34-x,x-L[0]-92,Math.abs(z-zP)-28,0);y+=(1-y)*(1-ss(0,14,pd)); // santral ve şalt sahası platformu
+    return y;};
+  const nx=104,nz=Math.round(nx*(Z1-Z0)/(X1-X0)),geo=new THREE.PlaneGeometry(X1-X0,Z1-Z0,nx,nz);geo.rotateX(-Math.PI/2);geo.translate((X0+X1)/2,0,(Z0+Z1)/2);
+  const pos=geo.attributes.position,col=new Float32Array(pos.count*4),c=new THREE.Color(),c2=new THREE.Color(),N2=noise2(seed+5);
+  for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));
+  geo.computeVertexNormals();const nrm=geo.attributes.normal;
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),steep=1-nrm.getY(i),n=N2(x/40,z/40);
+    c.set(0x4A6532).lerp(c2.set(0x7A8A4E),ss(.3,.75,n)).lerp(c2.set(0x34492A),ss(.6,.85,N2(x/11,z/11))*.5);
+    if(steep>.4)c.lerp(c2.set(0x8A8274),ss(.4,.65,steep)*.85);
+    const e=Math.min(x-X0,X1-x,z-Z0,Z1-z);col.set([c.r,c.g,c.b,ss(0,45,e)],i*4);}
+  geo.setAttribute("color",new THREE.BufferAttribute(col,4));
+  const terr=new THREE.Mesh(geo,M.terrain);terr.receiveShadow=terr.castShadow=true;terr.renderOrder=1;g.add(terr);
+  // üst hazne: iç şev asfalt kaplama, kret yolu, dış şev çimli kaya dolgu; su kretin ~3 m altında
+  const up=ringDam([[R-16,Hh-8],[R+4,Hh+12],[R+12,Hh+12],[R+40,Hh-4]],[M.lining,M.asphalt,M.embank]);up.position.set(U[0],0,U[1]);up.scale.x=1.25;g.add(up);
+  const wu=waterDisk(R+1.5,Hh+9);wu.position.set(U[0],0,U[1]);wu.scale.x=1.25;g.add(wu);
+  const iz=U[1]+R-16;g.add(cyl(4.5,4.5,16,M.dam,0,Hh+6,iz,20),cyl(5,5,1,M.roofGrey,0,Hh+14.5,iz,20),box(3,1,20,M.dam,0,Hh+12,iz+11));
+  // cebri borular (iki hat) ve beton mesnetler; üstte vana evi ve denge bacası
+  const z0=U[1]+R+44,K=16,pts=x=>Array.from({length:K+1},(_,k)=>{const z=z0+(zP-14-z0)*k/K;return [x,h(x,z)+2.2,z];});
+  for(const x of [-3.2,3.2]){const P=pts(x);for(let k=0;k<K;k++)g.add(cylBetween(P[k],P[k+1],1.5,M.rust,14));
+    P.forEach((p,k)=>{if(k%2===0)g.add(box(4,2.6,4,M.concrete,x,p[1]-1.6,p[2]));});}
+  const y0=h(0,z0);lifted(g,y0,()=>building(g,12,9,6,0,z0-6,M.roofGrey,1));
+  g.add(cyl(5,5,22,M.dam,14,h(14,z0+10)+11,z0+10,24));
+  // santral binası (iki tersinir ünite), trafolar, kuyruk suyu kanalı
+  g.add(box(32,17,20,M.dam,L[0],1+8.5,zP),box(32.6,.8,20.6,M.roofGrey,L[0],18.4,zP),box(30,1.4,.1,M.glass,L[0],12,zP+10.05),box(7,8,.3,M.steel,L[0]-8,5,zP+10.1));
+  lifted(g,1,()=>{transformer(g,L[0]+24,zP-6);transformer(g,L[0]+24,zP+6);});
+  g.add(padAt(12,RL*.4+30,M.pondPad,L[0],zP+10+(RL*.4+30)/2,1.1));
+  // alt hazne: alçak set, su zeminin biraz üstünde
+  const lo=ringDam([[RL-12,-6],[RL+3,4],[RL+10,4],[RL+26,-.5]],[M.lining,M.asphalt,M.embank]);lo.position.set(L[0],0,L[1]);lo.scale.x=1.2;g.add(lo);
+  const wl=waterDisk(RL+.5,1.5);wl.position.set(L[0],0,L[1]);wl.scale.x=1.2;g.add(wl);
+  // şalt sahası, kontrol binası, enerji nakil hattı
+  const sx=L[0]+62,sz=zP;g.add(padAt(30,26,M.gravel,sx,sz,1.1));
+  [-8,8].forEach(dz=>g.add(box(.6,13,.6,M.steel,sx-10,7.5,sz+dz),box(.6,13,.6,M.steel,sx+10,7.5,sz+dz)));g.add(box(20.6,.5,.5,M.steel,sx,14,sz-8),box(20.6,.5,.5,M.steel,sx,14,sz+8));
+  lifted(g,1,()=>{fence(g,32,28,sx,sz,6);building(g,12,7,4,sx+28,sz+16,M.roofBlue,1);});
+  const t1=pylon(g,sx+40,h(sx+40,sz),sz,30),t2=pylon(g,sx+110,h(sx+110,sz-30),sz-30,30);wires(g,[[sx+10,13,sz-5],[sx+10,13,sz],[sx+10,13,sz+5]],t1);wires(g,t1,t2);
+  g.userData.rigid=true;
+  return g;
+}
+
+// ---- Yeşil hidrojen: konteyner tipi elektrolizör yığınları (üstte iki fanlı kuru soğutucu), doğrultucu kabinleri ve trafolar,
+// gaz arıtma kolonları ve kompresör binası, boru köprüsü, yatay basınçlı hidrojen tankları, su arıtma tankları, havalandırma
+// bacası (elektrolizör çalışırken buhar), tüp treyler dolum alanı ve tırlar, ana trafo, idari bina, çit ----
+function electrolyser(mw,parts){
+  const g=new THREE.Group(),n=Math.min(8,Math.max(1,Math.ceil(mw/5))),W=n*16,fans=[];
+  g.add(pad(W+120,120,M.gravel,.05),padAt(W+12,40,M.concrete,0,-10,.07));
+  for(let i=0;i<n;i++){const x=(i-(n-1)/2)*16;
+    g.add(box(12.2,2.9,2.45,M.container,x,1.6,-18),box(12.2,2.9,2.45,M.clad,x,1.6,-13.5),box(11,1.1,3,M.grey,x,3.7,-18));
+    fans.push([x-2.8,4.4,-18],[x+2.8,4.4,-18]);
+    g.add(box(4,2.6,2.4,M.wall,x-3.4,1.4,-3),box(2.4,2.4,2.2,M.dark,x+3,1.3,-3));}
+  g.add(inst(new THREE.CylinderGeometry(1.2,1.2,.3,16),M.dark,fans));
+  // boru köprüsü: konteynerlerden arıtmaya
+  const rx=W/2+8;g.add(inst(new THREE.BoxGeometry(.4,5,.4),M.steel,Array.from({length:n+2},(_,k)=>[-W/2+k*16,2.5,-8])),box(W+18,.4,1.6,M.steel,9,5,-8));
+  [-.4,.4].forEach(dz=>g.add(cylBetween([-W/2,5.5,-8+dz],[rx+10,5.5,-8+dz],.22,M.frame,8)));
+  // arıtma kolonları ve kompresör binası
+  [[rx+6,-22],[rx+12,-22]].forEach(([x,z])=>g.add(cyl(1.3,1.3,10,M.white,x,5,z,16),cyl(1.4,1.4,.6,M.grey,x,10.2,z,16)));
+  building(g,20,12,7,rx+22,-8,M.roofGrey,3);
+  // yatay hidrojen tankları (beyaz basınçlı kaplar, beton eğerler üstünde)
+  const nt=Math.min(6,1+n);for(let j=0;j<nt;j++){const x=-W/2+6+j*9,z=24,t=new THREE.Mesh(new THREE.CylinderGeometry(2.1,2.1,18,22),M.white);
+    t.rotation.x=Math.PI/2;t.position.set(x,3,z);t.castShadow=t.receiveShadow=true;g.add(t);
+    [-6,6].forEach(dz=>g.add(box(3.2,1.4,1.2,M.concrete,x,.7,z+dz)));}
+  // su arıtma: iki tank ve küçük bina
+  g.add(cyl(3,3,7,M.tankW,-W/2-18,3.5,-20,24),cyl(3,3,7,M.tankW,-W/2-18,3.5,-8,24));building(g,9,6,3.6,-W/2-30,-14,M.roofBlue,1);
+  // havalandırma bacası ve buhar (oksijen ve su buharı; elektrolizör çalışırken)
+  const vx=rx+4,vz=8;g.add(cyl(.45,.55,20,M.steel,vx,10,vz,10));
+  const pl=new THREE.Group();pl.name="h2vent";[[0,22,0,2.2],[.8,25,.4,2.8],[1.8,28.5,.6,3.4]].forEach(([dx,y,dz,r])=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),M.steam);m.position.set(vx+dx,y,vz+dz);pl.add(m);});
+  g.add(pl);parts.toggles.push({n:pl.name,k:"h2",f:"run"});parts.drifts.push({name:pl.name,ph:.4,amp:1.2,sp:.7});
+  // tüp treyler dolum alanı: iki tır (çekici ve tüp demeti)
+  const lx=rx+30;g.add(padAt(34,24,M.asphalt,lx,30,.08));
+  [24,36].forEach(z=>{g.add(box(3,3,2.5,M.white,lx-9,1.9,z),box(13,.6,2.5,M.steel,lx+1,1.3,z),
+    inst(new THREE.CylinderGeometry(.5,.5,12.5,10).rotateZ(Math.PI/2),M.frame,[[-.7,2.2],[.7,2.2],[-.7,3.3],[.7,3.3]].map(([dz,y])=>[lx+1,y,z+dz])));});
+  transformer(g,-W/2-14,10);building(g,14,8,4,-W/2-30,22,M.roofBlue,2);cars(g,[[-W/2-20,34,0],[-W/2-16,34,0]]);
+  fence(g,W+124,124,0,0,10);
+  return g;
+}
+
+// ---- CSP (kule): merkezi beton kule ve tepesinde alıcı (gündüz parlar), çevresinde halka halka heliostatlar (alan kutup
+// yönünde daha geniş: o yandaki aynalar güneşi kuleye daha verimli yansıtır), her ayna öğle güneşini kuleye yansıtacak açıda
+// (normal = güneş ve kule yönlerinin açıortayı). Kulenin dibinde sıcak ve soğuk erimiş tuz tankları, buhar üreteci, türbin
+// salonu, hava soğutmalı kondenser; ekvator yönündeki koridorda yol, şalt sahası ve enerji nakil hattı. Ayna alanı ~9.000
+// m²/MW (güneş çarpanı 2, 10 saat depo; temsilî), 8 × 8 m heliostat ----
+function cspPlant(mw,lat,parts){
+  const g=new THREE.Group(),H=Math.round(80+45*Math.sqrt(mw/10)),hs=8,nH=Math.min(3600,Math.round(mw*140)),pole=lat>=0?-1:1,eq=-pole;
+  const cand=[];let r=Math.max(95,H*.8),ring=0;
+  while(cand.length<nH*2.2&&ring<240){const n=Math.floor(2*Math.PI*r/(hs*1.55)),off=(ring%2)*.5;
+    for(let i=0;i<n;i++){const a=(i+off)/n*2*Math.PI,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<12&&z*eq>0)continue; // ekvator yönünde koridor
+      cand.push([x,z,r*(1-.35*z*pole/r)]);}
+    r+=hs*1.18+r*.012;ring++;}
+  const hel=cand.sort((a,b)=>a[2]-b[2]).slice(0,nH);
+  // alanın dış çizgisi: 48 yönde en uzak heliostat (koridor yönü komşulardan), komşularla genişletilir; yol ve çit bunu izler
+  const NB=48,rb=Array(NB).fill(0);hel.forEach(([x,z])=>{const i=((Math.round(Math.atan2(z,x)/(2*Math.PI)*NB)%NB)+NB)%NB;rb[i]=Math.max(rb[i],Math.hypot(x,z));});
+  for(let i=0;i<NB;i++)if(!rb[i])rb[i]=Math.max(rb[(i+NB-1)%NB],rb[(i+1)%NB]);
+  const out=rb.map((_,i)=>Math.max(rb[(i+NB-1)%NB],rb[i],rb[(i+1)%NB])),edge=d=>out.map((r,i)=>[Math.cos(i/NB*2*Math.PI)*(r+d),Math.sin(i/NB*2*Math.PI)*(r+d)]);
+  const rMax=out[eq>0?NB/4:3*NB/4];
+  const el=(90-Math.min(75,Math.abs(lat)))*RAD,S=new THREE.Vector3(0,Math.sin(el),eq*Math.cos(el)),Rc=new THREE.Vector3(0,H+8,0),up=new THREE.Vector3(0,1,0);
+  const mir=new THREE.InstancedMesh(new THREE.BoxGeometry(hs,.15,hs),M.mirror,hel.length),mt=new THREE.Matrix4(),q=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1),P=new THREE.Vector3(),T=new THREE.Vector3();
+  hel.forEach(([x,z],i)=>{P.set(x,4.6,z);T.copy(Rc).sub(P).normalize().add(S).normalize();mir.setMatrixAt(i,mt.compose(P,q.setFromUnitVectors(up,T),one));});
+  mir.castShadow=mir.receiveShadow=true;g.add(mir,inst(new THREE.CylinderGeometry(.28,.34,4.4,6),M.grey,hel.map(([x,z])=>[x,2.2,z])));
+  // kule, alıcı (parlayan kabuk), tepe başlığı ve uçak ikaz lambası
+  g.add(cyl(7,10,H,M.dam,0,H/2,0,28),cyl(9,9,20,M.dark,0,H+10,0,28),cyl(7.5,7.5,6,M.dam,0,H+23,0,24));
+  const gl=cyl(9.3,9.3,17,M.glow,0,H+10,0,28);gl.castShadow=false;gl.name="cspglow";g.add(gl);parts.toggles.push({n:"cspglow",k:"csp",f:"sun"});
+  const bc=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),M.beacon);bc.position.set(0,H+27,0);bc.name="beacon_csp";g.add(bc);parts.beacons.push(bc.name);
+  // güç bloğu (iç boşlukta, ekvator yönünde): tuz tankları, buhar üreteci, türbin salonu, kondenser
+  const Rt=Math.min(15,8+3*Math.sqrt(mw/5)),zs=eq*30;
+  g.add(padAt(110,60,M.concrete,0,eq*38,.07),cyl(Rt,Rt,13,M.frame,-24,6.5,zs,32),cyl(Rt+.3,Rt+.3,.6,M.grey,-24,13.2,zs,32),cyl(Rt,Rt,12,M.tankW,24,6,zs,32),cyl(Rt+.3,Rt+.3,.6,M.grey,24,12.3,zs,32));
+  g.add(box(8,18,8,M.white,0,9,eq*30),box(30,13,16,M.clad,0,6.5,eq*58),box(30.6,.7,16.6,M.roofBlue,0,13.3,eq*58));
+  const ax=-46,az=eq*52,legs=[],fans=[];for(let i=0;i<3;i++)for(let j=0;j<2;j++)legs.push([ax-10+i*10,5,az-5+j*10]);
+  for(let i=0;i<4;i++)for(let j=0;j<2;j++)fans.push([ax-10.5+i*7,10.6,az-3.5+j*7]);
+  g.add(inst(new THREE.CylinderGeometry(.4,.4,10,8),M.steel,legs),box(30,1,16,M.grey,ax,10.2,az),inst(new THREE.CylinderGeometry(3,3,.5,18),M.dark,fans));
+  [-1,1].forEach(s=>g.add(cylBetween([s*24,10,zs],[s*4,10,zs],.5,M.frame,8)));g.add(cylBetween([0,14,eq*10],[0,H-6,0],.6,M.frame,8));
+  // ekvator yönünde yol, alan çevre yolu, şalt sahası, nakil hattı, idari bina, çit
+  const zr=eq*(rMax+30);g.add(padAt(7,rMax-30,M.road,0,eq*(rMax+90)/2,.06));roadPoly(g,edge(10),5,M.road,.05);
+  const sw=[26,zr];g.add(padAt(30,24,M.gravel,sw[0],sw[1],.06));transformer(g,sw[0]-5,sw[1]);transformer(g,sw[0]+6,sw[1]);fence(g,32,26,sw[0],sw[1],0);
+  const t1=pylon(g,26,0,zr+eq*60,30),t2=pylon(g,26,0,zr+eq*140,30);wires(g,[[30,8,zr],[26,8,zr],[22,8,zr]],t1);wires(g,t1,t2);
+  building(g,14,8,4,-26,zr,M.roofBlue,2);cars(g,[[-40,zr+eq*8,0],[-36,zr+eq*8,0]]);
+  fencePoly(g,edge(18),10,[0,eq*(rMax+18)]);
+  return g;
+}
+
 // ---- trafo merkezi: iki güç trafosu (radyatör bankları, genleşme tankı, buşingler) ve aralarında yangın duvarı, çelik
 // portallar, boru baralar, ayırıcılar ve ölçü trafoları, çakıl saha, kontrol binası, çit ve çıkan enerji nakil hattı ----
 function transformer(g,x,z){
@@ -536,13 +750,17 @@ const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
 export function buildSite(id,o,ps,face=false){
   if(!M)M=materials();
   const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
-  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[],glints:[],fans:[],drifts:[],belts:[]},groups=[];
+  const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[],glints:[],fans:[],drifts:[],belts:[],toggles:[]},groups=[];
   // userData.k: rüzgâr grubunun teknolojisi (haritadaki dönen pervaneler hızını RES ve offshore için ayrı alır)
   const yaw=face?-Math.PI/2:hashYaw(id);
   if(by.res){const g=windFarm(by.res,false,parts,yaw,TURBINE_SCALE[top.res]);g.userData.k="res";groups.push(g);}
   if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off]);g.userData.k="off";groups.push(g);}
+  if(by.flo){const g=floatFarm(by.flo,parts,yaw,TURBINE_SCALE[top.flo]);g.userData.k="flo";groups.push(g);}
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges,seedOf(id)));
-  if(by.hes)groups.push(hydro(parts,seedOf(id)));
+  if(by.csp)groups.push(cspPlant(by.csp,o.lat,parts));
+  if(by.hes)groups.push(hydro(parts,seedOf(id),by.fpv||0,top.fpv,o.lat));
+  if(by.phs)groups.push(pumped(by.phs,parts,seedOf(id)));
+  if(by.h2)groups.push(electrolyser(by.h2,parts));
   if(by.jes)groups.push(geothermal(by.jes,parts));
   if(by.bes)groups.push(biomass(by.bes,parts));
   if(by.mar)groups.push(marine(by.mar,parts));

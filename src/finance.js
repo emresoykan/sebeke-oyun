@@ -17,12 +17,28 @@ export const FIN={
   ges:{capex:691,opex:12,life:25,src:"IRENA 2024"},
   res:{capex:1041,opex:40,life:25,src:"IRENA 2024"},
   off:{capex:2852,opex:80,life:25,src:"IRENA 2024"},
+  // yüzer rüzgâr: IRENA değeri yok. NREL (2020) Kaliforniya ticari ölçek yüzer santral tahmini 5.355 $/kW; 2024 ATB değeri
+  // doğrulanamadı. İşletme gideri varsayım
+  flo:{capex:5355,opex:110,life:25,src:"NREL 2020 tahmini (varsayım)"},
   hes:{capex:2267,opex:45,life:40,src:"IRENA 2024"},
   jes:{capex:4015,opex:110,life:30,src:"IRENA 2024"},
   bes:{capex:3242,opex:120,life:25,src:"IRENA 2024"},
   batt:{capex:384,opex:8,life:15,src:"IRENA 2024 (192 $/kWh × 2 saat)"},
-  mar:{capex:6000,opex:200,life:20,src:"oyun varsayımı (kaynak yok)"}
+  mar:{capex:6000,opex:200,life:20,src:"oyun varsayımı (kaynak yok)"},
+  // yüzer GES: IRENA 2024 kara GES'i 691 $/kW + yüzer prim 0,14 $/W (Wood Mackenzie 2024: 0,13–0,15 $/W, ikincil kaynak;
+  // NREL 2021 kıyaslaması 0,26 $/W, %25 prim). İşletme gideri GES'in ~1,15 katı (varsayım: şamandıra ve çapa bakımı)
+  fpv:{capex:831,opex:14,life:25,src:"IRENA 2024 GES + Wood Mackenzie 2024 yüzer primi"},
+  // pompaj depolamalı HES: NREL ATB 2023, 10 saatlik kapalı devre, sınıf 1 ortalaması 2.015 $/kW (2021 doları; ATB 2024
+  // değeri doğrulanamadı). İşletme gideri ve ömür varsayım (barajlı tesisler çok uzun yaşar; oyunda 50 yıl)
+  phs:{capex:2015,opex:20,life:50,src:"NREL ATB 2023 (2021 $)"},
+  // elektrolizör: IEA, 2024 kurulu sistem maliyeti Çin dışında 2.000–2.600 $/kW, Çin'de 600–1.200 $/kW (ikincil kaynak
+  // özeti); oyunda Çin dışının alt ucu. İşletme gideri (~yatırımın %2,5'i) ve ömür varsayım; yığın yenileme hariç
+  h2:{capex:2000,opex:50,life:20,src:"IEA (2.000–2.600 $/kW, Çin dışı)"},
+  // CSP: IRENA 2024 dünya ağırlıklı ortalaması 3.677 $/kW, kapasite faktörü %41 (Table S1). İşletme gideri ve ömür varsayım
+  csp:{capex:3677,opex:75,life:30,src:"IRENA 2024"}
 };
+// Gelirini net kaydeden teknolojiler: depolama (satış − alış) ve hidrojen (hidrojen geliri − elektrik); üretim ve LCOE yok
+export const NET=["batt","phs","h2"];
 export const DEGR=0.005;            // GES yıllık üretim kaybı (varsayım)
 export const MIN_H=72;              // gösterge için en az 72 saatlik (3 oyun günü) işletme verisi
 const KEY="sebeke-wacc";
@@ -46,10 +62,10 @@ function paybackOf(c0,flows){let cum=-c0;for(let t=0;t<flows.length;t++){const p
 // Santralin yıllık temel verisi: yatırım, gider, yıllık üretim profili ve oyunda gerçekleşen ortalama satış fiyatı
 function base(p){
   const a=p.ac,f=FIN[p.k];if(!a||a.h<MIN_H||!f)return null;
-  const q=EQUIP[p.k][tierOf(p)],kw=p.mw*1000,batt=p.k==="batt";
+  const q=EQUIP[p.k][tierOf(p)],kw=p.mw*1000,batt=NET.includes(p.k);
   const cf=a.cap>0?a.e/a.cap:0; // kapasite faktörü: üretim / (kurulu güç × saat); güç sonradan arttıysa da doğru kalır
   const e1=batt?0:cf*p.mw*8760,price=a.e>0?a.r/a.e:0,fuelPerMWh=a.e>0?a.f/a.e:0;
-  const net1=batt&&a.cap>0?a.r/a.cap*p.mw*8760:0; // batarya: MW başına net arbitraj gelirinin yıllığa çevrilmesi
+  const net1=batt&&a.cap>0?a.r/a.cap*p.mw*8760:0; // depolama ve hidrojen: MW başına net gelirin yıllığa çevrilmesi
   const E=Array.from({length:f.life},(_,t)=>p.k==="ges"?e1*(1-DEGR)**t:e1);
   return {f,batt,capex:f.capex*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,fuelPerMWh,net1,E,life:f.life,days:a.h/24};
 }
