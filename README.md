@@ -100,7 +100,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | Mevzuat uzmanı | İzin ihtimali 10 puan artar (korunan alanlar hariç), inceleme 1 gün kısalır |
 | Piyasa analisti | Rüzgâr dengesizlik maliyeti %35 azalır |
 
-Profil ayrı anahtarda (`sebeke-profile-v1`) saklanır; "Yeniden başla" oyunu sıfırlar, profili korur. Ünvan portföy değeriyle yükselir (Girişimci → Enerji devi); istatistikler ve 10 rozet oyuna aittir.
+Profil ayrı anahtarda (`sebeke-profile-v1`) saklanır; "Yeniden başla" oyunu sıfırlar ve varsayılan olarak profili de siler (kurulum ekranı yeniden açılır; onay penceresindeki kutunun işareti kaldırılırsa profil korunur). İflas ekranındaki "Yeni oyun" profili korur. Ünvan portföy değeriyle yükselir (Girişimci → Enerji devi); istatistikler ve 10 rozet oyuna aittir.
 
 Her teknolojide (GES, karada RES, offshore RES, HES, batarya) üç ekipman kademesi vardır. Markalar ve modeller kurgusaldır, değerler oyun dengesi için temsilidir:
 
