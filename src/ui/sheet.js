@@ -58,9 +58,10 @@ export function renderMySites(go){
 
 // Onay penceresi: Promise<boolean>
 // check verilirse pencerede bir onay kutusu çıkar ve sonuç {ok, checked} olur
-export function confirmBox(title,text,ok="Evet",danger=false,check=null){
+// check: isteğe bağlı onay kutusu metni; checkOn: kutu varsayılan işaretli mi
+export function confirmBox(title,text,ok="Evet",danger=false,check=null,checkOn=false){
   const d=document.getElementById("confirmDlg");
-  d.innerHTML=`<h3></h3><p></p>${check?'<label class="dlgcheck"><input type="checkbox"> <span></span></label>':""}<div class="dlgbtns"><button data-v="0">Vazgeç</button><button data-v="1" class="${danger?"dangerbtn":"pri"}"></button></div>`;
+  d.innerHTML=`<h3></h3><p></p>${check?`<label class="dlgcheck"><input type="checkbox"${checkOn?" checked":""}> <span></span></label>`:""}<div class="dlgbtns"><button data-v="0">Vazgeç</button><button data-v="1" class="${danger?"dangerbtn":"pri"}"></button></div>`;
   d.querySelector("h3").textContent=title;d.querySelector("p").textContent=text;d.querySelector('[data-v="1"]').textContent=ok;
   if(check)d.querySelector(".dlgcheck span").textContent=check;
   const out=v=>check?{ok:v,checked:d.querySelector(".dlgcheck input").checked}:v;
