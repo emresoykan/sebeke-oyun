@@ -11,11 +11,17 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const dlg=()=>document.getElementById("profileDlg");
 let onCreated=null;
 
+// avatar: oyuncunun rengi üstünde beyaz ya da koyu yazı, hangisinin kontrastı yüksekse (WCAG göreli parlaklık)
+function avatarStyle(c){
+  const m=/^#([0-9a-f]{6})$/i.exec(c||"");if(!m)return `background:${c}`;
+  const L=[0,2,4].map(i=>{const x=parseInt(m[1].slice(i,i+2),16)/255;return x<=0.03928?x/12.92:((x+0.055)/1.055)**2.4;}),l=0.2126*L[0]+0.7152*L[1]+0.0722*L[2];
+  return `background:${c};color:${1.05/(l+0.05)>=(l+0.05)/0.0598?"#fff":"#111A21"}`;
+}
 export function renderProfileChip(){
   const el=document.getElementById("profileBtn"),P=getProfile();if(!el)return;
   if(!P){el.innerHTML=`<span class="avatar">?</span><span><b>Profil oluştur</b></span>`;return;}
   const t=titleOf(netWorth());
-  el.innerHTML=`<span class="avatar" style="background:${P.color}">${esc(initials(P.company))}</span><span><b>${esc(P.company)}</b><small>${t.n} • ${SPECS[P.spec].n}</small></span>`;
+  el.innerHTML=`<span class="avatar" style="${avatarStyle(P.color)}">${esc(initials(P.company))}</span><span><b>${esc(P.company)}</b><small>${t.n} • ${SPECS[P.spec].n}</small></span>`;
 }
 
 // Şirket kurma / düzenleme formu. Uzmanlık yalnızca oyun başında (henüz santral yokken) seçilebilir.
@@ -55,7 +61,7 @@ function openView(){
   const byTier=TIER_ORDER.map(q=>[q,S.plants.filter(p=>tierOf(p)===q).reduce((a,p)=>a+p.mw,0)]);
   const byTech=Object.keys(TECH).map(k=>[k,S.plants.filter(p=>p.k===k).reduce((a,p)=>a+p.mw,0)]).filter(x=>x[1]);
   d.innerHTML=`<div class="pview">
-    <div class="phead"><span class="avatar big" style="background:${P.color}">${esc(initials(P.company))}</span>
+    <div class="phead"><span class="avatar big" style="${avatarStyle(P.color)}">${esc(initials(P.company))}</span>
       <div><h3>${esc(P.company)}</h3><div class="pmuted">${esc(P.name)} • ${SPECS[P.spec].n}</div></div></div>
     <div class="ptitle"><div><b>${t.n}</b>${t.next?`<span class="pmuted"> → ${t.next} (${fmt$(t.need)} portföy)</span>`:""}</div><div class="goal"><div style="width:${Math.round(t.pct*100)}%"></div></div></div>
     <div class="pmuted pspec">${SPECS[P.spec].d}</div>
@@ -70,7 +76,7 @@ function openView(){
     ${mw?`<h4>Filo</h4><div class="pfleet">${byTech.map(([k,v])=>`<span style="--c:var(${TECH[k].c})">${TECH[k].n} ${v} MW</span>`).join("")}</div>
       <div class="pfleet tiers">${byTier.filter(x=>x[1]).map(([q,v])=>`<span class="t-${q}">${TIERS[q]} ${v} MW</span>`).join("")}</div>`:""}
     <h4>Rozetler <span class="pmuted">${got.size}/${ACH.length}</span></h4>
-    <ul class="pach">${ACH.map(a=>`<li class="${got.has(a.id)?"on":""}" title="${esc(a.d)}"><b>${a.n}</b><small>${a.d}</small></li>`).join("")}</ul>
+    <ul class="pach">${ACH.map(a=>`<li class="${got.has(a.id)?"on":""}" title="${esc(a.d)}"><b>${got.has(a.id)?"✓ ":""}${a.n}</b><small>${a.d}</small></li>`).join("")}</ul>
     <div class="pact"><button data-a="edit">Profili düzenle</button><button class="pri" data-a="close">Kapat</button></div>
   </div>`;
   d.querySelector('[data-a="edit"]').onclick=()=>openForm(P);

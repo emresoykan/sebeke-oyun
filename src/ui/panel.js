@@ -56,6 +56,9 @@ function buildHtml(t){
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
+  // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
+  const used=siteMW(S.sel.id),cap=siteCap(t);
+  if(used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 

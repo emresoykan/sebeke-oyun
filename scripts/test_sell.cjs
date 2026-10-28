@@ -13,6 +13,7 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   await p.goto(URL0);await p.waitForTimeout(3500);
   // eğitim sürerken satış bölümü yok
   const tut=await p.evaluate(async()=>{const st=await import("/src/state.js"),ac=await import("/src/actions.js"),S=st.S;S.money=5e6;S.won=true;S.win1=1;S.evCool=999;
+    for(const r in S.rivals||{})S.rivals[r].sites=S.rivals[r].sites.filter(x=>Math.hypot(x.lat-38.1,x.lon-32.6)>1); // rastgele rakip sahası test noktasına düşmesin
     S.sel={id:null,lat:38.1,lon:32.6};ac.buyLand();(await import("/src/ui/panel.js")).renderPanel();return !!document.querySelector("#panel details.sell");});
   ok(!tut,"eğitim sürerken 'Sahayı sat' görünmez");
   // eğitim bitti; aynı sahada izinli, iki GES bloğu (biri kredili), 7 gün işletme
@@ -41,6 +42,13 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   await p.evaluate(async()=>(await import("/src/ui/panel.js")).renderPanel());
   ok(await p.evaluate(()=>document.querySelector("#panel details.sell").open),"yeniden çizimde kutu açık kalıyor");
   if(SHOT){await p.evaluate(()=>document.querySelector("#panel details.sell").scrollIntoView({block:"start"}));await p.waitForTimeout(300);await p.screenshot({path:`${SHOT}/sell-${vp.width}.png`});}
+  // saha dolu: kurulum düğmeleri kapalı ve nedeni yazıyor (batarya da sınıra sayılır)
+  const full=await p.evaluate(async id=>{const S=(await import("/src/state.js")).S,o=S.sites[id],c0=o.cap;o.cap=10;const P=await import("/src/ui/panel.js");P.renderPanel();
+    document.querySelector('#panel .eqtabs [data-k="batt"]')?.click();
+    const r={msg:document.querySelector("#panel .sitefull")?.textContent||"",dis:[...document.querySelectorAll('#panel button[data-a="build"]')].every(b=>b.disabled)};
+    if(c0==null)delete o.cap;else o.cap=c0;P.renderPanel();return r;},setup.id);
+  ok(/Saha dolu: 10\/10 MW/.test(full.msg)&&/batarya dahil/.test(full.msg)&&full.dis,"saha doluyken kurulum kapalı ve nedeni yazıyor");
+  await p.evaluate(()=>{const d=document.querySelector("#panel details.sell");if(d&&!d.open)d.querySelector("summary").click();});
   // vazgeç
   await p.click('#panel [data-a="sell"]');await p.waitForTimeout(200);
   ok(await p.evaluate(()=>document.getElementById("confirmDlg").open),"onay penceresi açıldı");
