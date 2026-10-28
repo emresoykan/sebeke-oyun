@@ -64,9 +64,9 @@ async function flow(b, vp, tag) {
   await p.click('#panel button[data-a="permit"]'); lap("izne başvuruldu");
   s = await st(p); ok(s.sites[0].permit === "pending" && s.sites[0].days === 2 && s.sites[0].tg === 1, `ilk izin kısa sürüyor (2 gün) ve onaylanacak`);
   ok(await p.evaluate(() => document.body.dataset.tut === "speed"), "4. adım beklerken hız düğmesi vurgulu");
-  ok(/hız düğmesine bas/.test(await p.textContent("#mission")), "görev kartı hızlandırmayı öğretiyor");
-  await p.click("#speedBtn"); // 3x
-  ok((await p.textContent("#speedBtn")).trim() === "3x", "hız 3x");
+  ok(/3x düğmesine bas/.test(await p.textContent("#mission")), "görev kartı hızlandırmayı öğretiyor");
+  await p.click('.speedgrp [data-sp="3"]');
+  ok(await p.evaluate(() => [...document.querySelectorAll(".speedgrp [data-sp]")].map(b => b.getAttribute("aria-pressed")).join() === "false,true,false"), "hız 3x (üç düğmeden 3x basılı)");
   await waitFor(p, () => document.querySelector("#panel .eqtabs"), 30000); lap("izin çıktı");
   s = await st(p); ok(s.sites[0].permit === "ok", "ilk izin onaylandı");
   ok(await p.evaluate(() => document.body.dataset.tut === "tech"), "teknoloji sekmeleri vurgulu");

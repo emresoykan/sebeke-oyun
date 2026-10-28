@@ -350,6 +350,12 @@ header{align-items:center}
 .hright{display:flex;align-items:center;gap:10px}
 .clockbtns{display:flex;gap:6px}
 .clockbtns button{min-width:44px;padding:6px 10px;font-weight:800}
+/* hız: bitişik üç düğme; seçili olan koyu */
+.speedgrp{display:flex}
+.speedgrp button{min-width:40px;padding:6px 8px;border-radius:0;margin-left:-1px}
+.speedgrp button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.speedgrp button:last-child{border-radius:0 10px 10px 0}
+.speedgrp button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink);position:relative;z-index:1}
 .stage{position:relative}
 .mapwrap{height:min(62vh,540px)}
 .mapbtns{position:absolute;top:10px;left:10px;z-index:3;display:flex;flex-direction:column;gap:6px}
@@ -603,13 +609,13 @@ a.btnlink:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
 /* vurgulanan kontrol: body[data-tut] anahtarı (panel yeniden çizilse de geçerli) */
 body[data-tut="pick"] #potBtn,body[data-tut="land"] #panel button[data-a="land"],body[data-tut="permit"] #panel button[data-a="permit"],
 body[data-tut="tech"] #panel .eqtabs button,body[data-tut="build"] #panel .eqcard.t-std button[data-a="build"]:not(.loan),
-body[data-tut="speed"] #speedBtn,body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:tutpulse 1.6s ease-in-out infinite;position:relative;z-index:1}
+body[data-tut="speed"] .speedgrp [data-sp="3"],body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:tutpulse 1.6s ease-in-out infinite;position:relative;z-index:1}
 @keyframes tutpulse{0%,100%{box-shadow:0 0 0 0 rgba(242,180,44,0)}50%{box-shadow:0 0 0 4px rgba(242,180,44,.9)}}
 @media (prefers-reduced-motion: reduce){
   .mission.mdone{animation:none}
   body[data-tut="pick"] #potBtn,body[data-tut="land"] #panel button[data-a="land"],body[data-tut="permit"] #panel button[data-a="permit"],
   body[data-tut="tech"] #panel .eqtabs button,body[data-tut="build"] #panel .eqcard.t-std button[data-a="build"]:not(.loan),
-  body[data-tut="speed"] #speedBtn,body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:none;box-shadow:0 0 0 3px rgba(242,180,44,.9)}}
+  body[data-tut="speed"] .speedgrp [data-sp="3"],body[data-tut="resume"] #pauseBtn,body[data-tut="report"] .tabs [data-tab="rapor"]{animation:none;box-shadow:0 0 0 3px rgba(242,180,44,.9)}}
 .status.tutspot{font-weight:600}
 /* izin reddinden sonra başvuru yolları */
 .popts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}

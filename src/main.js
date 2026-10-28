@@ -39,14 +39,14 @@ window.addEventListener("sebeke:land",loop);
 window.addEventListener("sebeke:hold",()=>{held++;loop();});
 window.addEventListener("sebeke:release",()=>{held=Math.max(0,held-1);loop();});
 initSound(document.getElementById("soundBtn"));initAmbient();initGfxToggle(document.getElementById("gfxBtn"));initLeagueUI(document.getElementById("leagueBtn"));initWeatherToggle(document.getElementById("wxBtn"));initMap3DUI();
-const pauseBtn=document.getElementById("pauseBtn"),speedBtn=document.getElementById("speedBtn");
+const pauseBtn=document.getElementById("pauseBtn"),speedBtns=[...document.querySelectorAll(".speedgrp [data-sp]")];
 const ICON={pause:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>',
   play:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L4.9 1.7a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>'};
 function setPaused(v){paused=v;pauseBtn.innerHTML=paused?ICON.play:ICON.pause;pauseBtn.setAttribute("aria-pressed",String(paused));pauseBtn.setAttribute("aria-label",paused?"Devam et":"Duraklat");loop();}
-const nextSpeed=v=>v===1?3:v===3?8:1;
-function setSpeed(v){speed=v;speedBtn.textContent=speed+"x";speedBtn.setAttribute("aria-label",`Oyun hızı: ${speed}x`);speedBtn.title=`Oyun hızı ${speed}x • tıkla: ${nextSpeed(speed)}x (klavye: 1, 3, 8)`;loop();}
+// hız: üç ayrı düğme (1x, 3x, 8x); seçili olan basılı görünür (aria-pressed)
+function setSpeed(v){speed=v;speedBtns.forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.sp===v)));loop();}
 pauseBtn.onclick=()=>setPaused(!paused);pauseBtn.innerHTML=ICON.pause;
-speedBtn.onclick=()=>setSpeed(nextSpeed(speed));speedBtn.title="Oyun hızı 1x • tıkla: 3x (klavye: 1, 3, 8)";
+speedBtns.forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
 document.getElementById("deskBtn").onclick=()=>openDesk(true);
 if(new URLSearchParams(location.search).has("perf"))import("./ui/perfprobe.js").then(m=>m.initPerfProbe()); // ?perf=1: takılma ölçümü
 // açılış koruması (index.html): sayfa 10 sn çalıştıysa ya da normal kapandıysa açılış başarılı sayılır
