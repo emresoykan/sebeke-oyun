@@ -3,6 +3,7 @@
 // ve "Sinematik tur" istenince Cesium tabanlı 3D görünüm (globe3d.js) harita alanının üstündeki pencerede açılır;
 // Cesium yalnızca o zaman yüklenir.
 import * as maplibregl from "maplibre-gl";
+import { fxOf } from "./wxfx.js";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { TECH, SITE_MIN_KM, TER_N } from "../config.js";
@@ -392,6 +393,9 @@ export function drawMap(){
   rivalSites().forEach(({r,s})=>bndFeatures(bf,s,bndOf(null),r.c,`${r.sh} • ${occText(s.mw)}${s.build>0?" • inşaat":""}`));
   map.getSource("bnd").setData(fc(bf));
   syncFacilities();
+  // karla kaplı saha: tesis görüntüsü soluk ve açık (yalnızca değişince boyama özelliği yazılır; wxfx.js)
+  for(const [id,f] of facs){const o=S.sites[id],L="fac-"+id;if(!o||!map.getLayer(L))continue;const sn=fxOf(o).snowy;if(f.snow===sn)continue;f.snow=sn;
+    map.setPaintProperty(L,"raster-saturation",sn?-0.6:0);map.setPaintProperty(L,"raster-brightness-min",sn?0.35:0);}
 }
 
 // saha sınırı dikdörtgeni (metre kapsamı → derece) ve sol üst köşesinde doluluk yazısı

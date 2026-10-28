@@ -30,5 +30,15 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   const after=await p.evaluate(async()=>{window.__lt.length=0;await new Promise(r=>setTimeout(r,4000));return {lt:Math.max(0,...window.__lt),hidden:document.getElementById("map3d").hidden};});
   ok(after.hidden,"kapatınca harita geri geldi");ok(after.lt<600,`kapattıktan sonra 4 sn'de en uzun görev ${after.lt} ms (< 600)`);
   const c=await open();ok(c.lt<200&&c.ms<500,`aynı saha yeniden: ${c.ms} ms, en uzun görev ${c.lt} ms (önbellek)`);
+  // yakınlaştırma: düğme, tekerlek, çift tık ile sığdırma; görüntü sahne dışına kaymaz
+  const zs=()=>p.evaluate(()=>{const t=getComputedStyle(document.querySelector(".cvpic")).transform;return t==="none"?1:new DOMMatrix(t).a;});
+  await p.click('.cvzoom [data-z="in"]');await p.click('.cvzoom [data-z="in"]');const z1=await zs();
+  ok(z1>2.4&&z1<2.7,`+ düğmesi iki kez: ölçek ${z1.toFixed(2)}`);
+  const st=await p.$(".cvstage"),bb=await st.boundingBox();await p.mouse.move(bb.x+bb.width*.3,bb.y+bb.height*.5);await p.mouse.wheel(0,-400);await p.waitForTimeout(200);
+  const z2=await zs();ok(z2>z1&&z2<=6,`tekerlekle yakınlaşır, en çok 6x (${z2.toFixed(2)})`);
+  const cover=await p.evaluate(()=>{const s=document.querySelector(".cvstage").getBoundingClientRect(),r=document.querySelector(".cvpic").getBoundingClientRect();
+    return r.left<=s.left+1||r.right>=s.right-1;});ok(cover,"yakınken görüntü sahneyi doldurur (boşluğa kaymaz)");
+  if(process.argv[3])await p.screenshot({path:`${process.argv[3]}/closeview-zoom-${vp.width}.png`});
+  await p.mouse.dblclick(bb.x+bb.width*.5,bb.y+bb.height*.5);await p.waitForTimeout(200);ok(await zs()===1,"çift tıkla sığdırılır");
   await p.click(".close3d");ok(errs.length===0,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));await p.close();}
 await b.close();console.log(fails?`\n${fails} denetim başarısız`:"\nTüm denetimler geçti");process.exit(fails?1:0);})();

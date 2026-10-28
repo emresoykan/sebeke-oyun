@@ -7,6 +7,7 @@
 // Oyun katmanları: sahalar, rakipler ve seçim halkası HTML işaretleri; korunan alanlar ve fırtınalar daire katmanı;
 // gece tarafı ve bulutlar karo katmanı (karolar tarayıcıda tuvalden üretilir).
 import { wp } from "../perfmark.js";
+import { fxOf } from "./wxfx.js";
 import { S } from "../state.js";
 import { TECH } from "../config.js";
 import { cssv } from "../utils.js";
@@ -289,6 +290,7 @@ function drawImpl(){
     const st=plantStatus(id),lv=liveText(id),bh=battHtml(st.batt),lk=lv+bh;
     if(m.liveKey!==lk){m.liveKey=lk;m.live.innerHTML=lv?`<span>${lv}</span>${bh}`:"";if(m.bndOn)m.live.style.display=lv?"":"none";}
     spinRot(m,id);
+    if(m.fac)m.fac.classList.toggle("snowy",fxOf(o).snowy); // karla kaplı saha (wxfx.js)
   }
   for(const [id,m] of sites)if(!seen.has(id)){map.removeAnnotation(m.a);sites.delete(id);}
   syncFac();

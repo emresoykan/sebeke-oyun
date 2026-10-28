@@ -13,7 +13,11 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 // gölge haritası ve 4x kenar yumuşatmayla 20 MW sahada ~3,5 sn. Orada gölge haritası 1024, kenar yumuşatma kapalı ve
 // görüntü en çok 1000 piksel (ekran kartında kalite aynı)
 const SOFT=/swiftshader|llvmpipe|softpipe|software|basic render/i.test(gpuName());
-const TILT=28*Math.PI/180, MAX_PX=SOFT?1000:1400, MIN_RES=0.3, SHADOW=SOFT?1024:4096;
+// Ekran kartlı masaüstünde görüntü 2800 piksele kadar (~0,2 m/piksel; yakın görünümde yakınlaştırınca ayrıntı seçilir),
+// dokunmatik cihazda 1600 (iPhone bellek sınırı), yazılımla çizimde 1000. ?siteres=N ölçüm için üst sınırı değiştirir.
+const COARSE=matchMedia("(pointer:coarse)").matches;
+const RES_Q=+new URLSearchParams(location.search).get("siteres")||0;
+const TILT=28*Math.PI/180, MAX_PX=RES_Q||(SOFT?1000:COARSE?1600:2800), MIN_RES=SOFT?0.3:0.16, SHADOW=SOFT?1024:4096;
 const cache=new Map(); // saha id -> {sig, p}
 let R=null,ENV=null;
 
@@ -36,7 +40,9 @@ const ROTOR=/^rotor\d/,BLADE=61; // kanat boyu (m, sitemodel.js bladeGeometry)
 // aynı malzeme tek bir Lambert karşılığına çevrilir (shader programı paylaşılır)
 const LAM=new WeakMap();
 function lambert(m){let l=LAM.get(m);if(l)return l;
-  l=new THREE.MeshLambertMaterial({color:m.color,map:m.map||null,transparent:m.transparent,opacity:m.opacity,depthWrite:m.depthWrite,side:m.side});
+  l=new THREE.MeshLambertMaterial({color:m.color,map:m.map||null,transparent:m.transparent,opacity:m.opacity,depthWrite:m.depthWrite,side:m.side,
+    vertexColors:!!m.vertexColors,normalMap:m.normalMap||null}); // köşe renkleri (HES arazisi, su kenarı saydamlığı) ve su dalgacıkları korunur
+  if(m.normalMap)l.normalScale.copy(m.normalScale);
   if(m.emissive)l.emissive=m.emissive.clone();if(m.isMeshBasicMaterial){l.emissive=m.color.clone();l.color.setScalar(0);}LAM.set(m,l);return l;}
 
 async function render(id,bare){
