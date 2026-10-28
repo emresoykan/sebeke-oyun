@@ -36,7 +36,9 @@ const ROTOR=/^rotor\d/,BLADE=61; // kanat boyu (m, sitemodel.js bladeGeometry)
 // aynı malzeme tek bir Lambert karşılığına çevrilir (shader programı paylaşılır)
 const LAM=new WeakMap();
 function lambert(m){let l=LAM.get(m);if(l)return l;
-  l=new THREE.MeshLambertMaterial({color:m.color,map:m.map||null,transparent:m.transparent,opacity:m.opacity,depthWrite:m.depthWrite,side:m.side});
+  l=new THREE.MeshLambertMaterial({color:m.color,map:m.map||null,transparent:m.transparent,opacity:m.opacity,depthWrite:m.depthWrite,side:m.side,
+    vertexColors:!!m.vertexColors,normalMap:m.normalMap||null}); // köşe renkleri (HES arazisi, su kenarı saydamlığı) ve su dalgacıkları korunur
+  if(m.normalMap)l.normalScale.copy(m.normalScale);
   if(m.emissive)l.emissive=m.emissive.clone();if(m.isMeshBasicMaterial){l.emissive=m.color.clone();l.color.setScalar(0);}LAM.set(m,l);return l;}
 
 async function render(id,bare){

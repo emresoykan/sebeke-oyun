@@ -50,7 +50,7 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   await tab("rapor");await p.click('section[data-tab="rapor"] [data-gloss]');await p.waitForTimeout(300);
   ok((await fit("#glossDlg")).open,"Rapor › 'Terimler: Sözlük' sözlüğü açar");await p.keyboard.press("Escape");
   // GÖP masası girişindeki bağlantı (masa açıkken üstüne açılır)
-  await p.evaluate(async()=>{const st=await import("/src/state.js"),ac=await import("/src/actions.js"),S=st.S;S.money=9e6;S.won=true;S.win1=1;S.evCool=99;S.mi=8;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1});S.sel={id:null,lat:38.1,lon:32.6};ac.buyLand();
+  await p.evaluate(async()=>{const st=await import("/src/state.js"),ac=await import("/src/actions.js"),S=st.S;S.money=9e6;S.won=true;S.win1=1;S.evCool=99;S.mi=8;for(const r in S.rivals||{})S.rivals[r].sites=S.rivals[r].sites.filter(x=>Math.hypot(x.lat-38.1,x.lon-32.6)>1);Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1});S.sel={id:null,lat:38.1,lon:32.6};ac.buyLand();
     S.sites[S.sel.id].permit="ok";ac.build(S.sel.id,"ges","std");(await import("/src/sim.js")).newDay();document.querySelectorAll("dialog[open]").forEach(x=>x.close());S.ob.desk=0;const d=await import("/src/ui/desk.js");d.openDesk(true);});await p.waitForTimeout(500);
   const dg=await p.$('#deskDlg [data-gloss="imb"]');ok(!!dg,"GÖP masası girişinde sözlük bağlantıları");
   if(dg){await dg.click();await p.waitForTimeout(300);ok(await p.evaluate(()=>document.getElementById("glossDlg").open&&document.getElementById("g-imb").classList.contains("hit")),"masadan 'dengesizlik' terimi açıldı");
