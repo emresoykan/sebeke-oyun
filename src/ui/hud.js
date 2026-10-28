@@ -109,7 +109,9 @@ export function renderReport(){
   ${L.fit>0?`<tr><td>Alım garantisi desteği <small class="mut">taban fiyatla piyasa farkı</small></td><td></td><td class="pos">+${fmt$(L.fit)}</td><td></td></tr>`:""}
   ${L.bNet||S.plants.some(p=>p.k==="batt")?`<tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>`:""}
   ${L.pNet||S.plants.some(p=>p.k==="phs")?`<tr><td>Pompaj HES arbitrajı</td><td></td><td>${fmt$(L.pNet||0)}</td><td></td></tr>`:""}
+  ${L.cap>0?`<tr><td>Kapasite ödemesi <small class="mut">depolama, zirveye hazır güç</small></td><td></td><td class="pos">+${fmt$(L.cap)}</td><td></td></tr>`:""}
   ${H.kg>0?`<tr><td>Hidrojen <small class="mut">${Math.round(H.kg).toLocaleString("tr-TR")} kg × ${H2.price} $</small></td><td></td><td class="pos">+${fmt$(H.r)}</td><td></td></tr><tr><td>Elektrolizörün elektriği</td><td></td><td class="neg">−${fmt$(H.c)}</td><td></td></tr>`:""}
+  ${H.s>0?`<tr><td>Hidrojen desteği <small class="mut">yeşil ${Math.round(H.g).toLocaleString("tr-TR")} kg</small></td><td></td><td class="pos">+${fmt$(H.s)}</td><td></td></tr>`:""}
   <tr><td>Tahmin ve dengesizlik</td><td></td><td class="neg">−${fmt$(L.imb+(L.fee||0))}</td><td></td></tr>
   <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr>
   ${L.loan&&L.loan.paid>0?`<tr><td>Kredi taksiti <small class="mut">faiz ${fmt$(L.loan.int)}</small></td><td></td><td class="neg">−${fmt$(L.loan.paid)}</td><td></td></tr>`:""}</table></div><div class="note">${note}</div>
