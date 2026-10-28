@@ -11,6 +11,8 @@ import { capexOf, eqName, TIERS } from "./equipment.js";
 import { checkMissions } from "./missions.js";
 import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
+import { siteWx } from "./wxsite.js";
+import { dirName } from "./weather.js";
 import { rivalNear } from "./rivals.js";
 import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
 import { saleOffer } from "./sale.js";
@@ -70,13 +72,16 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
   if(!S.fitDone&&["ges","res","off","flo","mar","fpv"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
     addLog(`${placeName(o)}: ilk projen alım garantisi kapsamında. Piyasa fiyatı ${FIT.p} $/MWh'nin altına düştüğü saatlerde fark ödenir (${FIT.years} ekonomik yıl, ${days} oyun günü).`);}
+  // rüzgâr santrali kurulurken türbinler o saatte esen rüzgâra bakacak şekilde dizilir (sitemodel.js buildSite); sahadaki
+  // sonraki bloklar aynı yönde eklenir
+  let wd="";if((k==="res"||k==="off"||k==="flo")&&o.wdir==null){o.wdir=Math.round(siteWx(o).dir);wd=`; türbinler ${dirName(o.wdir)} rüzgârına dönük dizildi`;}
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);
   if(k==="phs")planStore(p);
   if(k==="h2")planH2(p,S.hour);
   if(k==="csp")planCSP(p,S.hour);
   sfx("build");
-  addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}.`);
+  addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}${wd}.`);
   if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null});
   refresh();window.dispatchEvent(new CustomEvent("sebeke:build"));}
 

@@ -295,6 +295,7 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .cvpic .mk-rot{position:absolute;inset:0}
 .cvpic.night img{filter:brightness(.42) saturate(.6)}
 .cvpic.night .mk-rotor .bl{fill:#9AA3AA}
+.cvpic.night .mk-rotor .tip{fill:#7A3436}
 .cvload{position:absolute;inset:0;display:grid;place-items:center;font-size:.9rem}
 /* Yakın görünümde hava ve mevsim (wxfx.js): zemin rengi mevsime göre, kar örtüsü; yağış ve şimşek yalnızca transform ve
    opacity ile canlanır (ekran kartında birleştirilir, her karede yeniden boyama yok). Yağış deseni bir döşemede birkaç
@@ -384,6 +385,9 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 /* pervanenin gölgesi: görüntüdeki kule gölgesiyle aynı koyulukta (siteimage.js gölge düzlemi 0,42) */
 .mk-rotsh{opacity:.4}
 .mk-rotsh .bl{fill:#000;stroke:none}
+/* kanat uçlarındaki havacılık ikaz bantları (blade.js); gölgede siyah */
+.mk-rotor .tip{fill:#C62B2E;stroke:none}
+.mk-rotsh .bl .tip{fill:#000}
 .cvpic.night .mk-rotsh{display:none}
 
 /* ===== Düzen: harita sahnesi + panel (masaüstünde yan sütun, mobilde alttan açılan kart) ===== */

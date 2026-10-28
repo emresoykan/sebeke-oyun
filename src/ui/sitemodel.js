@@ -3,7 +3,10 @@
 // Ölçüler yaygın tesis düzenlerinden alınmış temsilî değerlerdir (belirli bir santralin kopyası değildir). Tekrarlanan
 // parçalar (çit, panel masası, fan, araç) tek çizim çağrısında toplanır (InstancedMesh).
 import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { tierOf, TIER_ORDER } from "../equipment.js";
+import { BLADE_ROOT, BLADE_BANDS, bladePart } from "./blade.js";
 
 const RAD=Math.PI/180;
 let M=null;
@@ -66,7 +69,7 @@ function materials(){
   return {
     fpv:{eco:fpvMat("eco",.28,.15),std:fpvMat("std",.22,.2),pre:fpvMat("pre",.2,.2)},
     float:std({color:0xE3E6E1,roughness:.75}), lining:std({color:0x33383D,roughness:.8}),
-    mirror:std({color:0xA8BCCB,roughness:.06,metalness:.85}), embank:std({color:0x7B8566,roughness:1}), glow:new THREE.MeshBasicMaterial({color:0xFFE6A0}),
+    mirror:std({color:0xA8BCCB,roughness:.06,metalness:.85}), red:std({color:0xC62B2E,roughness:.45,metalness:.05}), embank:std({color:0x7B8566,roughness:1}), glow:new THREE.MeshBasicMaterial({color:0xFFE6A0}),
     pv:{eco:std({map:moduleTex("eco"),roughness:.28,metalness:.15}),std:std({map:moduleTex("std"),roughness:.22,metalness:.2}),pre:std({map:moduleTex("pre"),roughness:.2,metalness:.2})},
     clad:std({map:clad,roughness:.6,metalness:.3}), tarp:std({map:tarp,roughness:.55,metalness:.05}),
     silage:std({map:noiseTex(["#B4A55A","#8E8240","#CDBE73","#6E6A3A"],900,[3,3],[1,4]),roughness:1}),
@@ -163,14 +166,30 @@ function pylon(g,x,y0,z,h=30){
 }
 function wires(g,A,B){for(let i=0;i<Math.min(A.length,B.length);i++)g.add(cylBetween(A[i],B[i],.12,M.dark,5));}
 
-// ---- rüzgâr türbini: konik kule, gövde, burun ve kanat profilli üç kanat ----
+// ---- rüzgâr türbini: Türkiye'deki rüzgâr santrallerinin fotoğraflarına göre: beyaz, sade, ince ve hafif konik kule,
+// köşeleri yuvarlatılmış kutu gövde (yanında kırmızı işaret), mermi biçimli burun, kökte geniş, uca doğru incelip sivrilen
+// ince uzun kanatlar; kanat uçlarında havacılık ikaz işareti (kırmızı-beyaz-kırmızı bantlar; plan blade.js) ----
 let bladeGeo=null;
 function bladeGeometry(){
   if(bladeGeo)return bladeGeo;
-  const s=new THREE.Shape();
-  s.moveTo(-1.2,1.6);s.bezierCurveTo(-2.6,6,-2.3,15,-1.3,30);s.lineTo(-.35,60.5);s.lineTo(.3,61);s.bezierCurveTo(.9,40,1.5,14,1.4,5);s.lineTo(1.2,1.6);s.closePath();
-  bladeGeo=new THREE.ExtrudeGeometry(s,{depth:.5,bevelEnabled:true,bevelThickness:.25,bevelSize:.18,bevelSegments:1,curveSegments:8});
-  bladeGeo.translate(0,0,-.25);bladeGeo.rotateY(Math.PI/2);return bladeGeo;
+  // açıklık dilimi: çokgen (blade.js) kalınlık verilerek çıkarılır, rotor düzlemine çevrilir
+  const part=(y0,y1)=>{const s=new THREE.Shape(bladePart(y0,y1).map(([x,y])=>new THREE.Vector2(x,y)));
+    const g=new THREE.ExtrudeGeometry(s,{depth:.45,bevelEnabled:true,bevelThickness:.2,bevelSize:.1,bevelSegments:1});g.translate(0,0,-.225);g.rotateY(Math.PI/2);return g;};
+  const cuts=[BLADE_ROOT,...BLADE_BANDS.flat()],w=[],r=[];
+  for(let i=0;i<cuts.length-1;i++)(i%2?r:w).push(part(cuts[i],cuts[i+1]));
+  bladeGeo={w:mergeGeometries(w),r:mergeGeometries(r)};return bladeGeo;
+}
+// üç kanat (beyaz gövde, kırmızı uç bantları, burundan çıkan silindirik kök ve bileziği) ve iri, yuvarlak burun
+let rootGeo=null;
+function blades(rotor){
+  const {w,r}=bladeGeometry();
+  // kök: burundan çıkan, hafif incelen silindir; yassı kanat (blade.js, kökte 2,2 m) silindirin içinden çıkar
+  if(!rootGeo){const c=new THREE.CylinderGeometry(.95,1.22,6.4,18);c.translate(0,5.3,0);const k=new THREE.CylinderGeometry(1.38,1.38,.45,18);k.translate(0,2.7,0);
+    rootGeo={c,k};}
+  for(let i=0;i<3;i++)for(const [geo,mat] of [[w,M.white],[r,M.red],[rootGeo.c,M.white],[rootGeo.k,M.frame]]){
+    const b=new THREE.Mesh(geo,mat);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
+  const sp=new THREE.LatheGeometry([[0,0],[2.7,0],[2.72,1],[2.55,2.1],[2.15,3.2],[1.5,4.2],[.7,4.9],[0,5.15]].map(([x,y])=>new THREE.Vector2(x,y)),28);
+  sp.rotateZ(Math.PI/2);sp.translate(1.2,0,0);const m=new THREE.Mesh(sp,M.white);m.castShadow=true;rotor.add(m);
 }
 function turbine(sea,parts){
   const g=new THREE.Group(),base=sea?16:0,top=base+100;
@@ -180,15 +199,20 @@ function turbine(sea,parts){
     g.add(box(1.2,10,1.2,M.yellow,0,base-6,4)); // tekne yanaşma merdiveni
     const ring=new THREE.Mesh(new THREE.RingGeometry(3.4,9,32),M.seaFoam);ring.rotation.x=-Math.PI/2;ring.position.y=.3;g.add(ring);}
   else g.add(cyl(9.5,10,.6,M.concrete,0,.3,0,28)); // temel
-  const tower=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2.7,100,24),M.white);tower.position.y=base+50;tower.castShadow=true;g.add(tower);
-  g.add(box(.9,2.2,.15,M.dark,0,base+1.6,2.68)); // kule kapısı
-  g.add(box(12,4.2,4.4,M.white,2.8,top+2,0),box(3.2,1.3,3.6,M.white,7.4,top+4.7,0)); // gövde ve soğutucu
-  g.add(cyl(.07,.07,2.4,M.grey,6.2,top+5.6,1.2,6),box(.9,.12,.12,M.grey,6.2,top+6.8,1.2)); // anemometre ve rüzgâr gülü
-  const rotor=new THREE.Group();rotor.position.set(-3.8,top+2,0);
-  const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
-  for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
+  // kule: ince, hafif konik (dipte ~4,4 m, tepede ~3 m çap), iki flanş halkası, kapı ve basamaklar
+  const tower=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2.2,100,32),M.white);tower.position.y=base+50;tower.castShadow=true;g.add(tower);
+  [33,66].forEach(h=>g.add(cyl(2.2-.7*h/100+.03,2.2-.7*h/100+.03,.15,M.tankW,0,base+h,0,32)));
+  g.add(box(.9,2.2,.15,M.dark,0,base+1.6,2.2),box(1.6,.5,1.2,M.concrete,0,base+.25,2.8)); // kule kapısı ve basamak
+  // gövde: köşeleri yuvarlatılmış kutu; yanlarda nötr bir şerit (üretici logosu yerine) ve arkada gri havalandırma
+  // panjurları; arka üstte korkuluklu çerçeve içinde iki ölçüm cihazı (anemometre ve rüzgâr gülü)
+  const nac=new THREE.Mesh(new RoundedBoxGeometry(12,4.2,4.4,3,.9),M.white);nac.position.set(2.8,top+2,0);nac.castShadow=true;g.add(nac);
+  [-1,1].forEach(sd=>{g.add(box(4,.32,.06,M.grey,1.4,top+2.9,sd*2.22));for(let i=0;i<4;i++)g.add(box(2.4,.2,.06,M.grey,6.4,top+.8+i*.55,sd*2.22));});
+  g.add(box(3.2,.1,.1,M.frame,6.9,top+5.4,1.3),box(3.2,.1,.1,M.frame,6.9,top+5.4,-1.3),box(.1,.1,2.7,M.frame,5.3,top+5.4,0),box(.1,.1,2.7,M.frame,8.5,top+5.4,0));
+  [[5.3,1.3],[8.5,1.3],[5.3,-1.3],[8.5,-1.3]].forEach(([x,z])=>g.add(box(.1,1.3,.1,M.frame,x,top+4.75,z)));
+  g.add(box(.9,.7,.7,M.grey,6.2,top+4.5,.6),box(.9,.7,.7,M.grey,7.6,top+4.5,-.6),cyl(.06,.06,1.6,M.grey,6.2,top+5.6,.6,6),cyl(.06,.06,1.6,M.grey,7.6,top+5.6,-.6,6));
+  const rotor=new THREE.Group();rotor.position.set(-3.8,top+2,0);blades(rotor);
   const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);g.name=`tw${k}`;
-  const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(4,top+4.6,0);bc.name=`beacon${k}`;g.add(bc);
+  const bc=new THREE.Mesh(new THREE.SphereGeometry(.45,10,8),M.beacon);bc.position.set(3.6,top+4.5,0);bc.name=`beacon${k}`;g.add(bc); // uçak ikaz lambası
   parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});parts.beacons.push(bc.name);
   return g;
 }
@@ -199,24 +223,28 @@ function boat(g,x,z,ry=0){
   const w=new THREE.Mesh(new THREE.PlaneGeometry(30,9),M.seaFoam);w.rotation.x=-Math.PI/2;w.position.set(-24,.2,0);b.add(w);g.add(b);
 }
 // ~5 MW'lık türbin başına bir ünite (rotor ~128 m, göbek ~100 m: 4,5–5 MW sınıfı); türbinler arası rotor çapının ~3,5 katı,
-// sıralar arası ~5 katı (yaygın yerleşim aralıkları)
+// sıralar arası ~5 katı (yaygın yerleşim aralıkları). Düzen türbinlerin baktığı yöne göre döner (yaw: rüzgârın estiği yön,
+// yawOf): sıralar rüzgâra dik uzanır, aynı sıradaki türbinler yan yana durur ve birbirinin rüzgâr gölgesinde kalmaz.
+// Yerel eksenler: u rüzgâr ekseni boyunca (sıralar arası), v rüzgâra dik (sıra içi)
 function windFarm(mw,sea,parts,yaw,sc=1){
   const n=Math.min(8,Math.max(1,Math.ceil(mw/5))),g=new THREE.Group(),cols=Math.min(4,n),nr=Math.ceil(n/cols),D=128*sc,sp=3.5*D,rs=5*D,rows=[],kiosk=[];
+  const cy=Math.cos(yaw),sy=Math.sin(yaw),at=(u,v)=>({x:u*cy+v*sy,z:-u*sy+v*cy});
   for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols),cnt=Math.min(cols,n-r*cols);t.scale.setScalar(sc);
-    t.position.set((c-(cnt-1)/2)*sp+(r%2?sp*.5:0),0,(r-(nr-1)/2)*rs);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
+    const P=at((r-(nr-1)/2)*rs,(c-(cnt-1)/2)*sp+(r%2?sp*.5:0));t.position.set(P.x,0,P.z);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
     (rows[r]=rows[r]||[]).push(t.position);
-    // vinç platformu (kurulumda ana vincin durduğu sıkıştırılmış alan) ve kule dibindeki trafo köşkü
-    if(!sea){g.add(padAt(26,26,M.gravel,t.position.x,t.position.z),padAt(22,40,M.gravel,t.position.x+24,t.position.z+4));kiosk.push([t.position.x+11,1.3,t.position.z+7]);}}
+    // vinç platformu (kurulumda ana vincin durduğu sıkıştırılmış alan) ve kule dibindeki trafo köşkü; türbinle birlikte döner
+    if(!sea){const L=at(24,4),K=at(11,7),a=padAt(26,26,M.gravel,P.x,P.z),b=padAt(22,40,M.gravel,P.x+L.x,P.z+L.z);a.rotation.z=b.rotation.z=yaw;g.add(a,b);
+      kiosk.push([P.x+K.x,1.3,P.z+K.z,1,1,1,yaw]);}}
   if(kiosk.length)g.add(inst(new THREE.BoxGeometry(2.6,2.6,3.2),M.wall,kiosk));
   // servis yolları: her sıra boyunca ve sıraları birbirine bağlayan; sahadan dışarı (trafo merkezine) çıkan yol
   const road=(a,b)=>{const r=pad(Math.hypot(b.x-a.x,b.z-a.z)+20,6,M.road,.05);r.position.x=(a.x+b.x)/2;r.position.z=(a.z+b.z)/2;r.rotation.z=-Math.atan2(b.z-a.z,b.x-a.x);g.add(r);};
   if(!sea){rows.forEach(r=>{if(r.length>1)road(r[0],r[r.length-1]);});for(let r=1;r<rows.length;r++)road(rows[r-1][0],rows[r][0]);
-    const e=rows[0][rows[0].length-1];road(e,{x:e.x+sp*.55,z:e.z});
+    const e=rows[0][rows[0].length-1],x=at(0,sp*.55);road(e,{x:e.x+x.x,z:e.z+x.z});
     // rüzgâr ölçüm direği (kafes, ~göbek yüksekliğinde) ve kolları
-    const mx=rows[0][0].x-sp*.45,mz=rows[0][0].z+40;g.add(new THREE.Mesh(new THREE.CylinderGeometry(.35,.6,100*sc,4),M.steel).translateX(mx).translateY(50*sc).translateZ(mz));
+    const m0=at(-40,-sp*.45),mx=rows[0][0].x+m0.x,mz=rows[0][0].z+m0.z;g.add(new THREE.Mesh(new THREE.CylinderGeometry(.35,.6,100*sc,4),M.steel).translateX(mx).translateY(50*sc).translateZ(mz));
     [.95,.7,.45].forEach(f=>g.add(box(6,.2,.2,M.steel,mx+3,100*sc*f,mz)));g.add(padAt(12,12,M.gravel,mx,mz));}
   if(sea&&n>=3){const p=new THREE.Group();[[-6,-4],[6,-4],[-6,4],[6,4]].forEach(([x,z])=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,22,10),M.dark);l.position.set(x,9,z);p.add(l);});
-    p.add(box(20,9,14,M.yellow,0,24,0),box(16,4,10,M.grey,0,30.5,0),box(6,.4,6,M.white,-4,32.7,0));p.position.set(0,0,(nr-1)/2*rs+sp*.6);g.add(p);}
+    p.add(box(20,9,14,M.yellow,0,24,0),box(16,4,10,M.grey,0,30.5,0),box(6,.4,6,M.white,-4,32.7,0));const pp=at((nr-1)/2*rs+sp*.6,0);p.position.set(pp.x,0,pp.z);p.rotation.y=yaw;g.add(p);}
   if(sea)boat(g,rows[0][0].x+30,rows[0][0].z+22,.3);
   return g;
 }
@@ -243,8 +271,7 @@ function floatUnit(parts,yaw,sc){
   // makine daireleri ve rotorlar (kanatlar 61 m × 1,5 ≈ 91 m), uçak ikaz lambaları
   for(const sd of [-1,1]){const z=sd*S;g.add(box(16,5.6,5.6,M.white,4,H,z),box(3.2,1.4,3.6,M.white,10,H+3.4,z));
     const rotor=new THREE.Group();rotor.position.set(-5,H,z);rotor.scale.setScalar(1.5*sc);
-    const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
-    for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
+    blades(rotor);
     const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});
     const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(6,H+3.2,z);bc.name=`beacon${k}`;g.add(bc);parts.beacons.push(bc.name);}
   g.rotation.y=yaw;g.name=`tw${k0}`;parts.yaws.push({name:g.name,base:yaw,cur:yaw});
@@ -252,7 +279,8 @@ function floatUnit(parts,yaw,sc){
 }
 function floatFarm(mw,parts,yaw,sc=1){
   const g=new THREE.Group(),n=Math.min(3,Math.max(1,Math.ceil(mw/17))),sp=620*sc;
-  for(let i=0;i<n;i++){const u=floatUnit(parts,yaw,sc);u.position.x=(i-(n-1)/2)*sp;g.add(u);}
+  // platformlar rüzgâra dik bir hatta (her biri kendi bağlama noktası çevresinde rüzgâra döner)
+  for(let i=0;i<n;i++){const u=floatUnit(parts,yaw,sc),v=(i-(n-1)/2)*sp;u.position.set(v*Math.sin(yaw),0,v*Math.cos(yaw));g.add(u);}
   boat(g,-(n-1)/2*sp+70,95,.4);
   return g;
 }
@@ -739,20 +767,22 @@ function substation(g0){
   return g;
 }
 
-function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return ((Math.abs(h)%50)-25)*RAD;}
+// Rüzgârın estiği yön (derece, kuzeyden saat yönünde; weather.js dir) → türbinin yaw açısı: yaw 0'da rotor batıya (−x)
+// bakar, artı yaw haritada saat yönünün tersine döndürür; rotor rüzgârın geldiği yöne bakar
+export const yawOf=dir=>(270-dir)*RAD;
 const seedOf=id=>{let h=7;for(const c of String(id))h=(h*131+c.charCodeAt(0))|0;return Math.abs(h)%100000;};
 
 // türbin boyu ekipman kademesine göre (rotor çapı ve göbek yüksekliği birlikte ölçeklenir)
 const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
-// face: harita görüntüsü için türbinlerin hepsi tam güneye (kameraya) döner: tepeden bakan eğik görüntüde rotor diski
-// çizgi yerine simetrik bir elips görünür (rastgele ±25° sapma diski kayık bir elipse çeviriyordu). 3D görünümde (face
-// yok) sahaya özgü yön kalır ve türbinler rüzgâra döner.
-export function buildSite(id,o,ps,face=false){
+// Türbinler sahaya ilk rüzgâr bloğu kurulurken esen rüzgâra bakar (o.wdir, actions.js); düzen de o yöne göre döner.
+// Bu yönü kaydetmeyen eski sahalarda batıdan (270°, orta enlemlerin hâkim rüzgârı). 3D görünümde türbinler sonra canlı
+// rüzgâra döner (models.js); haritadaki görüntü kurulum yönünü gösterir.
+export function buildSite(id,o,ps){
   if(!M)M=materials();
   const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
   const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[],glints:[],fans:[],drifts:[],belts:[],toggles:[]},groups=[];
   // userData.k: rüzgâr grubunun teknolojisi (haritadaki dönen pervaneler hızını RES ve offshore için ayrı alır)
-  const yaw=face?-Math.PI/2:hashYaw(id);
+  const yaw=yawOf(o.wdir??270);
   if(by.res){const g=windFarm(by.res,false,parts,yaw,TURBINE_SCALE[top.res]);g.userData.k="res";groups.push(g);}
   if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off]);g.userData.k="off";groups.push(g);}
   if(by.flo){const g=floatFarm(by.flo,parts,yaw,TURBINE_SCALE[top.flo]);g.userData.k="flo";groups.push(g);}

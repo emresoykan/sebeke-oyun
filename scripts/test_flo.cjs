@@ -47,20 +47,33 @@ ok(/Yüzer RES/.test(r2.txt),`durum metni: "${r2.txt}"`);
 ok(r2.row,"gün sonu raporunda RES yüzer satırı");
 // harita görüntüsü: her platformda iki rotor (göbek), yakın görünüm
 const im=await p.evaluate(async id=>{const F=await import("/src/ui/siteimage.js"),R=await import("/src/ui/rotors.js"),x=await F.siteImage(id,true);
-  // pervane gölgesi: göbeğin gölgesi kuzeydoğuda (güneş güney-güneybatıdan), gölge pervanesi pervaneyle aynı zamanda döner
+  // pervane gölgesi: göbeğin gölgesi kuzeybatıda (güneş güneydoğudan), gölge pervanesi pervaneyle aynı zamanda döner
   const box=document.createElement("div");document.body.appendChild(box);const sp=R.addRotors(box,x.hubs);
   const sync=sp.every(s=>!s.a||(s.s&&Math.abs(s.a.currentTime-s.s.currentTime)<1));R.spinRotors(sp,{flo:{f:0.8}});
   const sync2=sp.every(s=>!s.a||Math.abs(s.a.currentTime-s.s.currentTime)<1&&s.a.playbackRate===s.s.playbackRate);box.remove();
-  return {hubs:x.hubs.length,k:[...new Set(x.hubs.map(h=>h.k))].join(","),sym:x.hubs.every(h=>Math.abs(h.m[1])<1e-3),
-    sh:x.hubs.every(h=>h.sm&&h.sx>h.x&&h.sy<h.y),nsh:box.querySelectorAll(".mk-rotsh").length,sync:sync&&sync2};},r.id);
+  return {hubs:x.hubs.length,k:[...new Set(x.hubs.map(h=>h.k))].join(","),side:x.hubs.every(h=>Math.abs(h.m[0]*h.m[3]-h.m[1]*h.m[2])<=0.23&&Math.hypot(h.m[0],h.m[1])>0.85),
+    sh:x.hubs.every(h=>h.sm&&h.sx<h.x&&h.sy<h.y),nsh:box.querySelectorAll(".mk-rotsh").length,sync:sync&&sync2};},r.id);
 ok(im.hubs===2&&im.k==="flo",`tesis görüntüsünde ${im.hubs} rotor göbeği (${im.k})`);
-ok(im.sym,"rotor diski kameraya dönük (kaymasız)");
-ok(im.sh&&im.nsh===im.hubs,`her pervanenin gölgesi var, göbeğin kuzeydoğusunda (${im.nsh})`);
+ok(im.side,"haritada rotor diski tepeden ince çizgi (burnu göğe bakmaz), pervanenin şekli gölgede");
+ok(im.sh&&im.nsh===im.hubs,`her pervanenin gölgesi var, göbeğin kuzeybatısında (${im.nsh})`);
 ok(im.sync,"gölge pervanesi pervaneyle aynı açı ve hızda döner");
 if(SHOT){await p.evaluate(async id=>{const S=(await import("/src/state.js")).S,o=S.sites[id];S.hour=12;S.sel={id,lat:o.lat,lon:o.lon};(await import("/src/ui/panel.js")).renderPanel();(await import("/src/ui/sheet.js")).openSheet("saha");},r.id);
   await p.click("#pauseBtn");await p.evaluate(()=>{const b=document.querySelector('#panel button[data-a="fly"]');b.scrollIntoView();b.click();});await p.waitForTimeout(6000);
   await (await p.$("#map3d")).screenshot({path:`${SHOT}/flo-close.png`});
   const fs=require("fs"),b64=await p.evaluate(async id=>{const F=await import("/src/ui/siteimage.js"),x=await F.siteImage(id,true),bl=await (await fetch(x.lods[0].url)).blob();
     return await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result.split(",")[1]);f.readAsDataURL(bl);});},r.id);fs.writeFileSync(`${SHOT}/flo-img.png`,Buffer.from(b64,"base64"));}
+// kurulurken rüzgâra dönük: ilk rüzgâr bloğunda o saatteki rüzgâr yönü kaydedilir; türbinler o yöne bakar, aynı sıradaki
+// türbinler rüzgâra dik hatta durur. Birkaç farklı rüzgâr yönü denenir (yön elle verilir)
+const wd=await p.evaluate(async id=>{const st=await import("/src/state.js"),w=await import("/src/world.js"),ac=await import("/src/actions.js"),M=await import("/src/ui/sitemodel.js"),S=st.S,out={flo:S.sites[id].wdir};
+  S.sites.w={...w.describe(40.05,26.6),permit:"ok"};ac.build("w","res","std");out.res=S.sites.w.wdir;ac.build("w","res","std");out.kept=S.sites.w.wdir===out.res;
+  out.log=S.log.find(l=>/rüzgârına dönük/.test(l))||"";
+  const R=Math.PI/180;out.dirs=[0,90,200,315].map(d=>{S.sites.w.wdir=d;const {root,parts}=M.buildSite("w",S.sites.w,S.plants.filter(q=>q.t==="w"));
+    const ts=parts.yaws.map(y=>root.getObjectByName(y.name)),F=t=>[-Math.cos(t.rotation.y),Math.sin(t.rotation.y)],W=[Math.sin(d*R),-Math.cos(d*R)];
+    const face=Math.min(...ts.map(t=>{const f=F(t);return f[0]*W[0]+f[1]*W[1];})),dv=[ts[1].position.x-ts[0].position.x,ts[1].position.z-ts[0].position.z];
+    return {d,face:+face.toFixed(3),cross:+Math.abs((dv[0]*W[0]+dv[1]*W[1])/Math.hypot(...dv)).toFixed(3)};});
+  return out;},r.id);
+ok(Number.isFinite(wd.flo)&&Number.isFinite(wd.res)&&wd.kept,`kurulumda rüzgâr yönü kaydedildi (yüzer ${wd.flo}°, kara ${wd.res}°), ikinci blokta değişmedi`);
+ok(/rüzgârına dönük dizildi/.test(wd.log),`günlükte: "${wd.log.slice(0,110)}…"`);
+ok(wd.dirs.every(x=>x.face>0.999&&x.cross<0.001),`türbinler rüzgâra bakıyor, sıra rüzgâra dik: ${wd.dirs.map(x=>`${x.d}°`).join(", ")}`);
 ok(errs.length===0,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));
 await b.close();console.log(fails?`\n${fails} denetim başarısız`:"\nTüm denetimler geçti");process.exit(fails?1:0);})();

@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { S } from "../state.js";
 import { tierOf } from "../equipment.js";
+import { BLADE_LEN } from "./blade.js";
 import { buildSite, padAlpha } from "./sitemodel.js";
 import { gpuName } from "./quality.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -36,7 +37,9 @@ export function siteImage(id,bare=false){
   if(c)c.p.then(o=>{if(o)setTimeout(()=>o.lods.forEach(l=>URL.revokeObjectURL(l.url)),15000);});
   cache.set(key,{sig,p});return p;
 }
-const ROTOR=/^rotor\d/,BLADE=61; // kanat boyu (m, sitemodel.js bladeGeometry)
+const ROTOR=/^rotor\d/,BLADE=BLADE_LEN; // kanat boyu (m, blade.js)
+// tepeden görülen rotor diskinin kalınlığı (disk dikey: uydu görüntüsünde ince bir çizgi; sıfırda kanatlar görünmez)
+const EDGE=0.22;
 // aynı malzeme tek bir Lambert karşılığına çevrilir (shader programı paylaşılır)
 const LAM=new WeakMap();
 function lambert(m){let l=LAM.get(m);if(l)return l;
@@ -47,15 +50,17 @@ function lambert(m){let l=LAM.get(m);if(l)return l;
 
 async function render(id,bare){
   const o=S.sites[id],ps=S.plants.filter(p=>p.t===id);
-  const {root}=buildSite(id,o,ps,bare);
+  const {root}=buildSite(id,o,ps);
   // haritada anlamsız olan parçalar: GES parıltı bantları, su sıçraması, elektrolizör bacasının buharı
   root.traverse(n=>{if(/^glint|^spray|^h2vent/.test(n.name||""))n.visible=false;});
   if(bare)root.traverse(n=>{if(ROTOR.test(n.name||""))n.visible=false;});
   // zemin alanları yarı saydam: altındaki uydu görüntüsü (toprak, bitki örtüsü) sezilir
   root.traverse(n=>{if(n.name==="pad"){n.material=n.material.clone();n.material.transparent=true;n.material.opacity=padAlpha(n.material);}});
   const box=new THREE.Box3().setFromObject(root);
-  // güneş: öğleden sonra, güney-güneybatıdan ~50° yükseklikte (güney yarıkürede kuzeyden); gölgeler zemine düşer
-  const sd=new THREE.Vector3(-0.34,1.19,o.lat>=0?0.94:-0.94).normalize();
+  // güneş: sabah, güneydoğudan ~50° yükseklikte (güney yarıkürede kuzeydoğudan); gölgeler zemine, kuzeybatıya düşer.
+  // Altlık uydu görüntüsü de sabah çekilir (Sentinel-2 yerel saatle ~10:30 geçer): ağaç ve bina gölgeleriyle aynı yön.
+  // Yandan görülen rotor diskinin (kuzey-güney düzleminde) gölgesi bu açıda üç kanadıyla belirgin düşer
+  const sd=new THREE.Vector3(0.455,0.766,o.lat>=0?0.455:-0.455).normalize();
   // gölgeler sınırların dışına taşar: görüntü alanı gölge boyunca genişletilir
   const sh=new THREE.Vector3(-sd.x,0,-sd.z).multiplyScalar(box.max.y/sd.y);
   box.expandByPoint(box.min.clone().add(sh).setY(0)).expandByPoint(box.max.clone().add(sh).setY(0));
@@ -73,10 +78,14 @@ async function render(id,bare){
     const yaw=n.parent.rotation.y,ct=Math.cos(TILT),f4=a=>a.map(x=>+x.toFixed(4));
     // rotor diski (türbin ekseninde dik düzlem) görüntüde bir elipse izdüşer: diskin yatay ekseni (sin yaw, cos TILT·cos yaw),
     // aşağı ekseni (0, sin TILT) piksele gider (görüntünün üstü kuzey, kamera güneyden TILT eğimle bakar). m: CSS matrix(a,b,c,d)
+    // Harita tepeden bakan bir uydu görüntüsü gibi okunur: dikey rotor diskini eğik kameranın gördüğü gibi (kameraya dönük
+    // diskte elips) çizmek türbini göğe bakıyormuş gibi gösteriyordu. Disk tepeden bakışla çizilir: yatay ekseni zemindeki
+    // izdüşümüyle (sin yaw, cos TILT·cos yaw), dikey ekseni ona dik ince bir çizgi (EDGE); kanatlar bu çizgi boyunca gidip
+    // gelir, pervanenin şekli gölgede görünür. Türbinin hangi yöne baktığını gövde gösterir.
     // Gölge: disk güneş yönünde (sd) zemine (y=0) izdüşer. Yatay eksen zeminde kalır; dikey eksen (aşağı) zeminde
     // (sd.x/sd.y, sd.z/sd.y) olur, görüntüde güney yönü cos TILT ile kısalır. sx, sy: göbeğin gölgesinin yeri; sm: gölge matrisi
     const sh=w.clone().addScaledVector(sd,-w.y/sd.y).applyMatrix4(inv);
-    hubs.push({x:(v.x-x0)/(x1-x0),y:(y1-v.y)/(y1-y0),r:BLADE*s/(x1-x0),k:g?g.userData.k:"res",m:f4([Math.sin(yaw),ct*Math.cos(yaw),0,Math.sin(TILT)]),
+    hubs.push({x:(v.x-x0)/(x1-x0),y:(y1-v.y)/(y1-y0),r:BLADE*s/(x1-x0),k:g?g.userData.k:"res",m:f4([Math.sin(yaw),ct*Math.cos(yaw),-EDGE*ct*Math.cos(yaw)/Math.hypot(Math.sin(yaw),ct*Math.cos(yaw)),EDGE*Math.sin(yaw)/Math.hypot(Math.sin(yaw),ct*Math.cos(yaw))]),
       sx:(sh.x-x0)/(x1-x0),sy:(y1-sh.y)/(y1-y0),sm:f4([Math.sin(yaw),ct*Math.cos(yaw),sd.x/sd.y,ct*sd.z/sd.y])});});}
   Object.assign(cam,{left:x0,right:x1,bottom:y0,top:y1});cam.updateProjectionMatrix();
   const res=Math.max(MIN_RES,Math.max(x1-x0,y1-y0)/MAX_PX),W=Math.round((x1-x0)/res),H=Math.round((y1-y0)/res);
