@@ -11,7 +11,7 @@ import { NOTES, LATEST } from "../changelog.js";
 const SEEN="sebeke-notes-seen",coarse=matchMedia("(pointer:coarse)");
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const fold=s=>s.toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ı/g,"i");
-const dateTR=id=>new Date(id+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"});
+const dateTR=id=>new Date(id.slice(0,10)+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"});
 const getSeen=()=>{try{return localStorage.getItem(SEEN)||"";}catch(e){return "";}};
 const setSeen=v=>{try{localStorage.setItem(SEEN,v);}catch(e){}};
 
@@ -45,7 +45,7 @@ export function openGlossary(k){
 function notesHtml(){
   return `<div class="hhead"><h3 id="notesTitle">Sürüm notları</h3><button type="button" class="hclose" aria-label="Kapat">✕</button></div>
     <p class="hsub">Oyunda neler değişti; en yenisi üstte.</p>
-    ${NOTES.map((n,i)=>`<details class="rel"${i===0?" open":""}><summary><b>${esc(n.t)}</b> <time datetime="${n.id}">${dateTR(n.id)}</time></summary>
+    ${NOTES.map((n,i)=>`<details class="rel"${i===0?" open":""}><summary><b>${esc(n.t)}</b> <time datetime="${n.id.slice(0,10)}">${dateTR(n.id)}</time></summary>
       <ul>${n.items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></details>`).join("")}`;
 }
 export function openNotes(){

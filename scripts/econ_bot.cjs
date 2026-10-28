@@ -15,11 +15,13 @@
 //          (5346 sayılı Kanun I sayılı cetveldeki ABD doları sent/kWh değerleri), 10 ekonomik yıl (~58 oyun günü)
 //   capex  tüm yatırım maliyetleri %30 düşük (yalnızca bot içinde)
 // --loan 1: ilk satıştan sonra kurulumlar banka kredili (özsermaye payı nakitten)
+// --sell 1: kur-sat stratejisi (sale.js): gün başında alıcı gelir yöntemiyle değerliyorsa (işletme geçmişi tamam) ve
+//   satış defter değerine göre kâr ediyorsa saha satılır; aday listesi baştan taranır (aynı yer yeniden alınabilir)
 // Kullanım: npx vite --port 5182 &  sonra
 //   node scripts/econ_bot.cjs --s base --seeds 3 --days 300 --url http://localhost:5182/sebeke-oyun/
 const { chromium } = require("playwright");
 const A = Object.fromEntries(process.argv.slice(2).join(" ").split("--").filter(Boolean).map(x => x.trim().split(/\s+/)));
-const SCN = A.s || "base", SEEDS = +(A.seeds || 3), DAYS = +(A.days || 300), LOAN = A.loan === "1", URL0 = A.url || "http://localhost:5182/sebeke-oyun/";
+const SCN = A.s || "base", SEEDS = +(A.seeds || 3), DAYS = +(A.days || 300), LOAN = A.loan === "1", SELL = A.sell === "1", URL0 = A.url || "http://localhost:5182/sebeke-oyun/";
 // aday sahalar: [ad, enlem, boylam]; Türkiye'de güneşli ova ve rüzgârlı kıyılar, Avrupa'da İspanya iç kesimi ve Kuzey Almanya
 const CAND = [["Konya", 37.9, 32.5], ["Karaman", 37.25, 33.25], ["Çanakkale", 40.1, 26.5], ["Endülüs", 37.6, -4.6], ["Kastilya", 39.4, -3.3],
   ["Schleswig", 54.4, 9.3], ["Aksaray", 38.4, 33.9], ["Balıkesir", 39.6, 27.9], ["Extremadura", 38.9, -6.3], ["Murcia", 38.0, -1.4],
@@ -35,16 +37,16 @@ async function run(b, seed) {
   }, seed);
   if (A.dbg) p.on("console", m => { if (/^gün /.test(m.text())) console.log("   " + m.text()); });
   await p.goto(URL0); await p.waitForTimeout(4000);
-  const r = await p.evaluate(async ([SCN, DAYS, LOAN, CAND, DBG]) => {
+  const r = await p.evaluate(async ([SCN, DAYS, LOAN, CAND, DBG, SELL]) => {
     const st = await import("/src/state.js"), ac = await import("/src/actions.js"), sim = await import("/src/sim.js"), cfg = await import("/src/config.js"),
-      w = await import("/src/world.js"), ru = await import("/src/rules.js"), eq = await import("/src/equipment.js"), we = await import("/src/weather.js"), tu = await import("/src/tutorial.js"), lo = await import("/src/loans.js");
+      w = await import("/src/world.js"), ru = await import("/src/rules.js"), eq = await import("/src/equipment.js"), we = await import("/src/weather.js"), tu = await import("/src/tutorial.js"), lo = await import("/src/loans.js"), sa = await import("/src/sale.js");
     globalThis.__dbg = DBG; const S = st.S; document.querySelectorAll("dialog[open]").forEach(d => d.close()); document.getElementById("pauseBtn")?.click();
     // GÖP masası "her gün otomatik gönder" modunda (masa açılıp kapanmadan teklif varsayılan ayarlarla gider)
     S.desk = { ratio: 1, fc: "std", batt: "arb", auto: true };
     if (SCN === "capex") for (const k in cfg.TECH) cfg.TECH[k].capex = Math.round(cfg.TECH[k].capex * 0.7);
     if (SCN === "nofit" || SCN === "fit") S.fitDone = 1;
     const FIT = { ges: 133, res: 73 }, FIT_N = 2, FIT_DAYS = Math.round(10 * lo.ECON_YEAR), fitSites = [], fitFrom = {};
-    let ci = 0, extraFit = 0;
+    let ci = 0, extraFit = 0, sold = 0, gain = 0;
     const kindOf = t => { const ks = ru.allowed(t); const sun = ks.includes("ges") && t.solar >= 0.5, cf = we.expectedCF(we.windSpeedOf(t));
       return sun && !(ks.includes("res") && cf >= 0.34) ? "ges" : ks.includes("res") && cf >= 0.22 ? "res" : ks.includes("ges") ? "ges" : null; };
     const buyNext = () => { while (ci < CAND.length) { const [n, lat0, lon0] = CAND[ci++];
@@ -66,6 +68,8 @@ async function run(b, seed) {
       break; } };
     for (let d = 0; d < DAYS; d++) {
       // gün başı kararları
+      if (SELL && tu.fullOn()) for (const id of Object.keys(S.sites)) { const f = sa.saleOffer(id);
+        if (f.items.length && f.items.every(x => x.how === "income" || x.how === "cap") && f.gain > 0 && f.ok) { ac.sellSite(id); sold++; gain += f.gain; ci = 0; } }
       for (const [id, o] of Object.entries(S.sites)) if (o.permit === "rejected") { const opt = S.money > ru.permitFee(o) * 3 + 40000 ? "ced" : "n"; ac.applyPermit(id, opt); }
       for (let guard = 0; guard < 40; guard++) {
         const open = Object.entries(S.sites).find(([id, o]) => o.permit === "ok" && o.kind && sim.siteMW(id) + cfg.BLOCK <= ru.siteCap(o));
@@ -90,16 +94,16 @@ async function run(b, seed) {
     }
     const mw = S.plants.reduce((a, q) => a + q.mw, 0);
     return { ms, days: S.dayNo, nw: Math.round(sim.netWorth()), cash: Math.round(S.money), mw, sites: Object.keys(S.sites).length, mi: S.mi, extraFit: Math.round(extraFit),
-      eu: Object.values(S.sites).filter(o => o.mreg === "E").length, gameFit: Math.round(S.stats.fit || 0), hist: hist.filter((_, i) => i % 10 === 0) };
-  }, [SCN, DAYS, LOAN, CAND, !!A.dbg]);
+      eu: Object.values(S.sites).filter(o => o.mreg === "E").length, gameFit: Math.round(S.stats.fit || 0), sold, gain: Math.round(gain), hist: hist.filter((_, i) => i % 10 === 0) };
+  }, [SCN, DAYS, LOAN, CAND, !!A.dbg, SELL]);
   await p.close(); return r;
 }
 (async () => {
   const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const out = [];
   for (let s = 1; s <= SEEDS; s++) { const r = await run(b, 1000 + s); out.push(r);
-    console.log(`tohum ${1000 + s}: 0,5 M$ gün ${r.ms[5e5] ?? "-"} • 1 M$ gün ${r.ms[1e6] ?? "-"} • 2 M$ gün ${r.ms[2e6] ?? "-"} • 5 M$ gün ${r.ms[5e6] ?? "-"}${r.ms.over ? " • İFLAS gün " + r.ms.over : ""} | son gün ${r.days}, ${r.mw} MW, ${r.sites} saha (${r.eu} Avrupa), portföy ${r.nw}, nakit ${r.cash}${r.extraFit ? ", bot garantisi ek geliri " + r.extraFit : ""}${r.gameFit ? ", oyun garantisi ek geliri " + r.gameFit : ""}`); }
+    console.log(`tohum ${1000 + s}: 0,5 M$ gün ${r.ms[5e5] ?? "-"} • 1 M$ gün ${r.ms[1e6] ?? "-"} • 2 M$ gün ${r.ms[2e6] ?? "-"} • 5 M$ gün ${r.ms[5e6] ?? "-"}${r.ms.over ? " • İFLAS gün " + r.ms.over : ""} | son gün ${r.days}, ${r.mw} MW, ${r.sites} saha (${r.eu} Avrupa), portföy ${r.nw}, nakit ${r.cash}${r.extraFit ? ", bot garantisi ek geliri " + r.extraFit : ""}${r.gameFit ? ", oyun garantisi ek geliri " + r.gameFit : ""}${r.sold ? `, ${r.sold} satış (defter kârı ${r.gain})` : ""}`); }
   const med = g => { const v = out.map(r => r.ms[g]).filter(x => x != null).sort((a, b) => a - b); return v.length ? v[v.length >> 1] + (v.length < out.length ? ` (${v.length}/${out.length} ulaştı)` : "") : "ulaşılmadı"; };
-  console.log(`\n${SCN}${LOAN ? " + kredi" : ""} medyan: 0,5 M$ ${med(5e5)} • 1 M$ ${med(1e6)} • 2 M$ ${med(2e6)} • 5 M$ ${med(5e6)} (oyun günü; 1x'te gün 12 sn, 8x'te 1,5 sn)`);
+  console.log(`\n${SCN}${LOAN ? " + kredi" : ""}${SELL ? " + kur-sat" : ""} medyan: 0,5 M$ ${med(5e5)} • 1 M$ ${med(1e6)} • 2 M$ ${med(2e6)} • 5 M$ ${med(5e6)} (oyun günü; 1x'te gün 12 sn, 8x'te 1,5 sn)`);
   await b.close();
 })();

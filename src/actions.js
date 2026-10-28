@@ -13,6 +13,7 @@ import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
 import { rivalNear } from "./rivals.js";
 import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
+import { saleOffer } from "./sale.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -75,3 +76,14 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}.`);
   if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null});
   refresh();window.dispatchEvent(new CustomEvent("sebeke:build"));}
+
+// Sahayı sat (sale.js saleOffer): bedel nakde girer, sahaya bağlı krediler bedelden kapanır; saha, santralleri ve
+// kredileri portföyden çıkar. Nakit kredileri kapatmaya yetmiyorsa satış yapılmaz. Geri alınamaz.
+export function sellSite(id){const f=saleOffer(id);if(!f||!f.ok)return null;const o=S.sites[id];
+  S.money+=f.net;S.loans=(S.loans||[]).filter(L=>L.t!==id);
+  for(let i=S.plants.length-1;i>=0;i--)if(S.plants[i].t===id)S.plants.splice(i,1);
+  delete S.sites[id];if(U&&U.id===id){U=null;clearTimeout(uT);}
+  if(S.sel.id===id)S.sel={id:null,lat:o.lat,lon:o.lon};
+  const st=S.stats;st.sold=(st.sold||0)+1;st.saleGain=(st.saleGain||0)+f.gain;
+  addLog(`${placeName(o)} satıldı: ${fmt$(f.price)}${f.debt>0?`, ${fmt$(f.debt)} kredi kapatıldı, nakde ${fmt$(f.net)} geçti`:""}. Defter değerine göre ${f.gain>=0?"kâr":"zarar"}: ${fmt$(Math.abs(f.gain))}.`);
+  sfx("coin");refresh();window.dispatchEvent(new CustomEvent("sebeke:sell",{detail:f}));return f;}

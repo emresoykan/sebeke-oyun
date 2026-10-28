@@ -1,7 +1,11 @@
 // --- Sürüm notları: oyuncunun göreceği değişiklikler, en yenisi önce ---
-// id: yayın tarihi (YYYY-MM-DD; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
+// id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.2",t:"Saha satışı",items:[
+    "Sahayı sat: portföydeki bir sahayı bir altyapı fonunun teklifiyle satabilirsin (saha paneli, eğitimden sonra).",
+    "Teklif santralin oyunda gerçekleşen nakit akışından hesaplanır; sahanın kredisi bedelden kapanır, defter değerine göre kâr ya da zarar gösterilir.",
+    "Sözlüğe defter değeri ve gelir yöntemi eklendi."]},
   {id:"2026-10-28",t:"Daha hızlı ilk büyüme, daha net kontroller",items:[
     "Sözlük: piyasa, proje, finans ve teknoloji terimleri tek yerde (Ayarlar).",
     "Sürüm notları: bu pencere. Yeni bir sürüm gelince Ayarlar'da işaret görünür.",
