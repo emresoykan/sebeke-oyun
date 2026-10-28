@@ -88,7 +88,7 @@ function sellHtml(id,o){
 async function askSell(id){
   const f=saleOffer(id),o=S.sites[id];if(!f||!o)return;
   const r=await confirmBox("Sahayı sat",`${o.city||o.country} sahası ${fmt$(f.price)} bedelle satılsın mı?${f.debt>0?` ${fmt$(f.debt)} kredi bedelden kapanır, nakde ${fmt$(f.net)} geçer.`:""} ${f.gain>=0?"Kâr":"Zarar"}: ${fmt$(Math.abs(f.gain))}. Bu işlem geri alınamaz.`,"Sat",true);
-  if(!r.ok)return;const x=sellSite(id);if(!x)return;sellOpen=null;
+  if(!r)return;const x=sellSite(id);if(!x)return;sellOpen=null;
   toast("Saha satıldı",`Nakde ${fmt$(x.net)} geçti • ${x.gain>=0?"kâr":"zarar"} ${fmt$(Math.abs(x.gain))}`,x.gain>=0?"win":"");
 }
 
