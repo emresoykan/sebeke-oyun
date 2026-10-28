@@ -9,6 +9,7 @@
 //   4. İkinci proje: izin reddinde dört başvuru yolu (maliyet, süre, ihtimal görünür), Ek ÇED seçimi uygulanır.
 //   5. Eski kayıt (görev zinciri v1) yeni zincire çevrilir.
 //   6. GÖP masası: ilk açılışta kısa giriş açık, sonraki açılışlarda kapalı.
+//   7. Ekonomi: alım garantisi yalnızca ilk sahada, fark ödenir; 1 M$ ara zafer bir kez; görev zinciri v3 çevirisi.
 // Her adımda yatay taşma ve açık pencerenin ekrana sığması denetlenir. Çıkış kodu: hata varsa 1.
 const { chromium } = require("playwright");
 const URL0 = process.argv[2] || "http://localhost:5182/sebeke-oyun/";
@@ -157,7 +158,20 @@ async function logic(b) {
     out.small = { cap: o2.cap, capF: ru.siteCap(o2) };
     // eski kayıt: v1 görev 4 (santral kurulu) → v2 görev 8, eğitim işaretli
     const old = { ...st.fresh(), mv: undefined, ob: undefined, mi: 4, plants: [{ t: "s1", k: "ges", q: "std", mw: 5 }], sites: { s1: { lat: 38, lon: 33, permit: "ok", mreg: "T", reg: "T", ter: "pl" } } };
-    localStorage.setItem("sebeke-world-v3", JSON.stringify(old)); const L = st.load(); out.mig = { mi: L.mi, mv: L.mv, sale: L.ob.sale, card: L.ob.card };
+    localStorage.setItem("sebeke-world-v3", JSON.stringify(old)); const L = st.load(); out.mig = { mi: L.mi, mv: L.mv, sale: L.ob.sale, card: L.ob.card, fitDone: L.fitDone };
+    // görev zinciri v2 kaydı (9. görev ve sonrası): kredi görevi eklendiği için bir kaydırılır
+    localStorage.setItem("sebeke-world-v3", JSON.stringify({ ...old, mv: 2, mi: 10, ob: { sale: 1, rep: 1 } })); out.mig2 = st.load().mi;
+    // alım garantisi: ilk yenilenebilir santralin sahası alır, ikinci saha almaz; gün içinde fark ödenir
+    st.setS(st.fresh()); sim.newDay(); S().money = 1e6; S().mi = 8; S().ob = { g: 1, sale: 1, card: 1 };
+    S().sel = { id: null, lat: P.lat, lon: P.lon }; ac.buyLand(); const f1 = S().sel.id; S().sites[f1].permit = "ok"; ac.build(f1, "ges", "std");
+    S().sel = { id: null, lat: P.lat + 0.6, lon: P.lon + 0.8 }; ac.buyLand(); const f2 = S().sel.id; S().sites[f2].permit = "ok"; ac.build(f2, "ges", "std");
+    S().hour = 0; for (let h = 0; h < 23; h++) sim.tick(); const stt = (await import("/src/state.js")).D.st;
+    out.fit = { f1: S().sites[f1].fit, f2: S().sites[f2].fit || null, paid: Math.round(stt.fit) };
+    // 1 M$ ara zafer bir kez açılır
+    document.querySelectorAll("dialog[open]").forEach(d => d.close()); S().money = 1.2e6; S().won = false; S().win1 = 0;
+    const hud = await import("/src/ui/hud.js"); hud.render(); await new Promise(r => setTimeout(r, 120));
+    const wd = document.getElementById("winDlg"); out.win1 = { open: wd.open, txt: wd.textContent.slice(0, 40), flag: S().win1 };
+    wd.close(); hud.render(); await new Promise(r => setTimeout(r, 120)); out.win1.again = wd.open;
     return out;
   }, SPOT);
   ok(r.easy === 30, `uygun ilk sahada ilk izin ${r.easy}/30 onaylandı`);
@@ -166,7 +180,11 @@ async function logic(b) {
   ok(r.opts.length === 4 && r.opts.every(o => /gün/.test(o.label) && /yüzde \d+/.test(o.label) && /\$/.test(o.label)), "red sonrası 4 yol; maliyet, süre ve ihtimal etikette: " + r.opts.map(o => o.k).join(","));
   ok(r.ced.paid === 15000 && r.ced.pk === "ced" && r.ced.permit === "pending" && r.ced.days >= 5, `Ek ÇED: 15 b$ ödendi, inceleme ${r.ced.days} gün`);
   ok(r.small.cap === 20 && r.small.capF === 20, "Projeyi küçült: saha sınırı 20 MW");
-  ok(r.mig.mi === 8 && r.mig.mv === 2 && r.mig.sale === 1 && r.mig.card === 1, "eski kayıt: görev 4 → 8, eğitim tamam sayıldı");
+  ok(r.mig.mi === 8 && r.mig.mv === 3 && r.mig.sale === 1 && r.mig.card === 1 && r.mig.fitDone === 1, "eski kayıt: görev 4 → 8, eğitim tamam sayıldı, alım garantisi verilmez");
+  ok(r.mig2 === 11, `v2 kaydı: görev 10 → ${r.mig2} (kredi görevi eklendi)`);
+  ok(r.fit.f1 && r.fit.f1.p === 90 && !r.fit.f2, "alım garantisi yalnızca ilk sahada (90 $/MWh)");
+  ok(r.fit.paid > 0, `alım garantisi farkı ödendi (bir günde ${r.fit.paid} $)`);
+  ok(r.win1.open && /Bölgesel/.test(r.win1.txt) && r.win1.flag === 1 && !r.win1.again, "1 M$ ara zafer bir kez açıldı");
 }
 
 (async () => {
