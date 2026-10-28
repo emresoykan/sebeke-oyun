@@ -31,7 +31,8 @@ async function measure(lat,lon){
   const px=40075016.7*Math.cos(lat*Math.PI/180)/(n*256),r=Math.ceil(R_M/px)+1; // piksel boyu (m) ve pencere yarıçapı (piksel)
   const x0=Math.floor(fx-r),x1=Math.floor(fx+r),y0=Math.floor(fy-r),y1=Math.floor(fy+r),need=new Map();
   for(let ty=Math.floor(y0/256);ty<=Math.floor(y1/256);ty++)for(let tx=Math.floor(x0/256);tx<=Math.floor(x1/256);tx++)need.set(tx+"/"+ty,tile(((tx%n)+n)%n,ty));
-  const T=new Map();for(const [k,p] of need)T.set(k,await p);
+  // hepsi birlikte beklenir: biri başarısız olunca diğer karoların hatası yakalanmadan kalmasın
+  const T=new Map(await Promise.all([...need].map(async([k,p])=>[k,await p])));
   const el=(X,Y)=>{const tx=Math.floor(X/256),ty=Math.floor(Y/256);return T.get(tx+"/"+ty)[(Y-ty*256)*256+(X-tx*256)];};
   let sum=0,cnt=0,gx=0,gy=0;
   for(let Y=y0+1;Y<y1;Y++)for(let X=x0+1;X<x1;X++){

@@ -2,10 +2,10 @@
 import { BLOCK, REG, TECH, UNDO_MS, FIT } from "./config.js";
 import { describe, placeName } from "./world.js";
 import { S, save, addLog } from "./state.js";
-import { landCost, permitFee, permitDays, allowed, siteCap, permitOptions, SHRINK_MW } from "./rules.js";
+import { landCost, permitFee, permitDays, allowed, permitOptions, SHRINK_MW, siteBlock, fits } from "./rules.js";
 import { easyPermit, ob } from "./tutorial.js";
 import { slopeCached } from "./slope.js";
-import { siteMW, newDayHydro, planBio, awardAch } from "./sim.js";
+import { siteMW, newDayHydro, planBio, planStore, planH2, planCSP, awardAch } from "./sim.js";
 import { locked } from "./rules.js";
 import { capexOf, eqName, TIERS } from "./equipment.js";
 import { checkMissions } from "./missions.js";
@@ -58,7 +58,7 @@ export function applyPermit(id,opt="n"){const t=S.sites[id];if(!t||(t.permit!=="
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer.
 // loan: yatırımın bir kısmı banka kredisiyle (loans.js); nakitten yalnızca özsermaye payı düşer, borç portföy değerinden çıkar
 export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):null;if(loan&&!(lt&&lt.debt>0))return;
-  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||siteMW(id)+BLOCK>siteCap(S.sites[id])||locked(k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
+  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||!fits(id,k,BLOCK)||locked(k)||siteBlock(id,k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
   const L=lt?openLoan(id,k,q,lt):null;
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
@@ -68,10 +68,13 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
   // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
-  if(!S.fitDone&&["ges","res","off","flo","mar"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
+  if(!S.fitDone&&["ges","res","off","flo","mar","fpv"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
     addLog(`${placeName(o)}: ilk projen alım garantisi kapsamında. Piyasa fiyatı ${FIT.p} $/MWh'nin altına düştüğü saatlerde fark ödenir (${FIT.years} ekonomik yıl, ${days} oyun günü).`);}
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);
+  if(k==="phs")planStore(p);
+  if(k==="h2")planH2(p,S.hour);
+  if(k==="csp")planCSP(p,S.hour);
   sfx("build");
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}.`);
   if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null});

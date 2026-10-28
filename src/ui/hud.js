@@ -1,6 +1,6 @@
 // --- Grafik ve göstergeler ---
 import { wp } from "../perfmark.js";
-import { GOAL, WIN1, REG, MARKETS, BANKRUPT_DAYS } from "../config.js";
+import { GOAL, WIN1, REG, MARKETS, BANKRUPT_DAYS, H2 } from "../config.js";
 import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth, dayNet } from "../sim.js";
@@ -21,7 +21,7 @@ export function drawChart(){
   const k=selMarket(),M=D[k],CAP=110*REG[k].mult,padT=34,padB=20,padL=8,padR=8,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
   const mw=Math.max(5,S.plants.filter(p=>S.sites[p.t].mreg===k).reduce((a,p)=>a+p.mw,0)),sc=(ph*0.55)/mw;
   for(let h=0;h<S.hour;h++){const g=M.gen[h],bx=padL+h*cw+cw*.15,bw=cw*.7;let y=bot;
-    [["s","--solar"],["w","--wind"],["h","--hydro"],["j","--geo"],["o","--bio"],["m","--marine"]].forEach(([q,c])=>{const v=(g[q]||0)*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
+    [["s","--solar"],["c","--csp"],["w","--wind"],["h","--hydro"],["j","--geo"],["o","--bio"],["m","--marine"]].forEach(([q,c])=>{const v=(g[q]||0)*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
     if(g.b>0){const v=g.b*sc;x.fillStyle=cssv("--batt");x.fillRect(bx,y-v,bw,v);}
     if(g.b<0){const v=-g.b*sc;x.strokeStyle=cssv("--batt");x.lineWidth=2;x.strokeRect(bx+1,bot-v+1,bw-2,Math.max(0,v-2));}}
   x.strokeStyle="rgba(255,255,255,.95)";x.lineWidth=2.5;x.beginPath();
@@ -40,7 +40,7 @@ function renderImpl(){
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);
   document.getElementById("roPrice").textContent=fmtP(M.price[h]);
-  let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+(x.j||0)+(x.o||0)+(x.m||0)+Math.max(0,x.b);});
+  let g=0;if(S.hour>0)MARKETS.forEach(q=>{const x=D[q].gen[S.hour-1];g+=x.s+x.w+x.h+(x.j||0)+(x.o||0)+(x.m||0)+(x.c||0)+Math.max(0,x.b);});
   document.getElementById("roGen").textContent=g.toLocaleString("tr-TR",{minimumFractionDigits:1,maximumFractionDigits:1})+" MW";
   const net=dayNet(st),r=document.getElementById("roRev");r.textContent=fmt$(net);r.className=net<0?"neg":"pos";
   document.getElementById("roCap").textContent=S.plants.reduce((a,p)=>a+p.mw,0)+" MW";
@@ -83,9 +83,13 @@ let repOpen=false;
 export function renderReport(){
   renderFin();
   const L=S.last;if(!L)return;
-  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["flo","RES yüzer"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
+  const rows=[["ges","GES"],["fpv","GES yüzer"],["csp","CSP (erimiş tuz)"],["res","RES karada"],["off","RES offshore"],["flo","RES yüzer"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
-  if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur.`;
+  const H=L.h2||{};
+  if(H.z>0)note=`Öğle fiyatı sıfıra düştüğü saatlerde elektrolizör ${H.z.toFixed(0)} MWh bedava elektriği hidrojene çevirdi. Satılamayan güneş, sabit fiyatlı bir ürüne dönüştü.`;
+  else if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur; elektrolizör bu elektriği hidrojene çevirebilir.`;
+  else if(L.E.csp>0)note=`CSP güneşi ısı olarak erimiş tuzda depolar ve günün en pahalı saatlerinde üretir: bu yüzden ortalama fiyatı GES'ten yüksektir. Bedeli yüksek yatırımdır.`;
+  else if(L.pNet>0)note=`Pompaj HES ucuz saatlerde suyu üst hazneye bastı, pahalı saatlerde türbinden geçirdi: ${fmt$(L.pNet)} net arbitraj. Çevrimde enerjinin ~%20'si kaybolur; fiyat farkı bunu karşılamalı.`;
   else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off+(L.R.flo||0)))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
   else if(L.E.bes>0&&L.fuel>0)note=`Biyokütle santrali yalnızca fiyat yakıt maliyetini aştığında çalıştı: ${L.E.bes.toFixed(0)} MWh için ${fmt$(L.fuel)} yakıt yaktın. Ucuz saatlerde durması marjinal maliyet mantığıdır; fiyat düşükse çalışmamak kâr ettirir.`;
   else if(L.E.jes>0)note=`JES hava ve saatten bağımsız, gece gündüz aynı güçle üretir; bu yüzden tahmin hatası ve dengesizlik maliyeti yoktur. Bedeli yüksek yatırım ve sondaj riskidir.`;
@@ -104,6 +108,8 @@ export function renderReport(){
   ${L.fuel>0?`<tr><td>Biyokütle yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
   ${L.fit>0?`<tr><td>Alım garantisi desteği <small class="mut">taban fiyatla piyasa farkı</small></td><td></td><td class="pos">+${fmt$(L.fit)}</td><td></td></tr>`:""}
   ${L.bNet||S.plants.some(p=>p.k==="batt")?`<tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>`:""}
+  ${L.pNet||S.plants.some(p=>p.k==="phs")?`<tr><td>Pompaj HES arbitrajı</td><td></td><td>${fmt$(L.pNet||0)}</td><td></td></tr>`:""}
+  ${H.kg>0?`<tr><td>Hidrojen <small class="mut">${Math.round(H.kg).toLocaleString("tr-TR")} kg × ${H2.price} $</small></td><td></td><td class="pos">+${fmt$(H.r)}</td><td></td></tr><tr><td>Elektrolizörün elektriği</td><td></td><td class="neg">−${fmt$(H.c)}</td><td></td></tr>`:""}
   <tr><td>Tahmin ve dengesizlik</td><td></td><td class="neg">−${fmt$(L.imb+(L.fee||0))}</td><td></td></tr>
   <tr><td>İşletme gideri</td><td></td><td class="neg">−${fmt$(L.opex)}</td><td></td></tr>
   ${L.loan&&L.loan.paid>0?`<tr><td>Kredi taksiti <small class="mut">faiz ${fmt$(L.loan.int)}</small></td><td></td><td class="neg">−${fmt$(L.loan.paid)}</td><td></td></tr>`:""}</table></div><div class="note">${note}</div>

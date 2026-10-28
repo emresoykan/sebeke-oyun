@@ -1,8 +1,8 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL } from "../config.js";
 import { S, selSite, save } from "../state.js";
-import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions } from "../rules.js";
+import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
 import { checkMissions } from "../missions.js";
 import { slopeOf } from "../slope.js";
@@ -48,18 +48,23 @@ function buildHtml(t){
   const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
   let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="--c:var(${TECH[k].c})" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
   h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
-    const perf=tab==="batt"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>2 saat</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
+    const perf=tab==="batt"||tab==="phs"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>${tab==="phs"?PHS_H:2} saat</b>`:tab==="h2"?`<span>Tüketim</span><b>${Math.round(H2.kwh/e.perf)} kWh/kg</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
-      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
+      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":tab==="phs"?` / ${5*PHS_H} MWh`:""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     flo:locked("flo")?`Yüzer rüzgâr deneyim ister: toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Çift rotorlu yüzer platform: tek nokta bağlamayla rüzgâra kendiliğinden döner, derin suya da kurulur. Yatırımı sabit tabanlının ~1,9 katı. Fırtınada türbinler durur ama tayfun sınıfı gövde hasar görmez (fırtına kartında arıza riski yok).`,
+    fpv:(siteBlock(S.sel.id,"fpv")==="lake"?`Yüzer GES baraj gölüne kurulur: önce bu sahaya HES kur. `:siteBlock(S.sel.id,"fpv")==="lakefull"?`Göl dolu: yüzer GES en çok HES'in gücü kadar kurulabilir. Daha çok HES kurarsan göl ve bağlantı büyür. `:"")+
+      `Baraj gölünde yüzer ve HES'in şebeke bağlantısını paylaşır: saha sınırına sayılmaz, gücü HES'in kurulu gücüne kadar çıkabilir. Su panelleri soğuttuğu için aynı panelden ~%${Math.round((FPV_COOL-1)*100)} fazla üretir (varsayım). Yatırımı kara GES'inin ~1,2 katı (şamandıra ve çapa).`,
+    phs:`Ucuz saatlerde suyu alt hazneden üst hazneye basar, pahalı saatlerde türbinden geçirir: ${PHS_H} saatlik depo, bataryanın 5 katı. Çevrimde enerjinin ~%20'si kaybolur. GÖP masasındaki batarya modundan bağımsız, hep arbitraj yapar.`,
+    h2:`Elektrolizör, satış fiyatı hidrojenden elde edilecek gelirin altına düştüğü saatlerde şebekeden elektrik alıp hidrojen üretir (standart kademe ${H2.kwh} kWh/kg; hidrojen ${H2.price} $/kg sabit alım, varsayım: başabaş ~${Math.round(1000/H2.kwh*H2.price)} $/MWh). Öğle fiyatı sıfıra düştüğünde satılamayan güneşi bedavaya hidrojene çevirir.`,
+    csp:`Aynalar güneşi kuledeki alıcıya odaklar; ısı erimiş tuzda ${CSP.h} saat saklanır, türbin günün en pahalı saatlerinde (akşam zirvesi, gece) üretir. Yalnızca doğrudan güneş ışığı işe yarar: bulutlu havada toplama hızla düşer. Yatırımı GES'in ~5 katı.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
   // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
-  const used=siteMW(S.sel.id),cap=siteCap(t);
-  if(used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
+  const used=capMW(S.sel.id),cap=siteCap(t);
+  if(tab!=="fpv"&&used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
@@ -107,7 +112,8 @@ function slopeRow(t){
 function steepTxt(t){
   const s=slopeOfSite(t),ks=baseAllowed(t).filter(k=>tooSteep(k,t));if(!s||!ks.length)return "";
   const lim={ges:`GES en çok %${SLOPE.flat}, güneye bakan yamaçta %${SLOPE.south}`,res:`rüzgâr türbini yolu ve platformu en çok %${SLOPE.res}`,
-    batt:`batarya en çok %${SLOPE.flat}`,bes:`biyokütle santrali en çok %${SLOPE.flat}`,jes:`jeotermal santral en çok %${SLOPE.flat}`};
+    batt:`batarya en çok %${SLOPE.flat}`,bes:`biyokütle santrali en çok %${SLOPE.flat}`,jes:`jeotermal santral en çok %${SLOPE.flat}`,
+    h2:`elektrolizör en çok %${SLOPE.flat}`,csp:`CSP ayna alanı en çok %${SLOPE.flat}`};
   return `Arazi eğimi %${s.mean.toLocaleString("tr-TR")}: ${ks.map(k=>TECH[k].n).join(", ")} için fazla eğimli (${ks.map(k=>lim[k]).join("; ")}).`;
 }
 // seçili noktanın eğimi henüz ölçülmediyse ölç; satın alınmış sahaya kaydet
@@ -180,8 +186,9 @@ function renderPanelImpl(){
   }else if(o.permit==="pending"){
     html+=`<div class="status wait">İzin inceleniyor: yaklaşık ${o.days} gün kaldı.</div>`;
   }else{
-    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
-    html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${list?": "+list:""}.</div>`;
+    const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:q.k==="phs"?` / ${q.mw*PHS_H} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
+    const fpv=mw-capMW(id);
+    html+=`<div class="status ok">İzin var. Bu sahada ${mw-fpv}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${fpv?`, gölde ayrıca ${fpv} MW yüzer GES (saha sınırına sayılmaz)`:""}${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi: piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir (YEKDEM benzeri taban fiyat). ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
@@ -195,4 +202,4 @@ function renderPanelImpl(){
     else if(a==="tab"){tab=b.dataset.k;if(o&&o.permit==="ok"&&!ob().tech){ob().tech=1;checkMissions();}renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }
-export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(siteMW(S.sel.id)+BLOCK>siteCap(S.sites[S.sel.id])||locked(b.dataset.k)))d=true;b.disabled=d;});}
+export function updateButtons(){const wb=document.getElementById("wxBox");if(wb){const t=selSite();if(t&&t.lat!=null)wb.innerHTML=wxHtml(t);}const ls=document.getElementById("liveStatus");if(ls&&S.sel.id)ls.textContent=statusText(plantStatus(S.sel.id));document.querySelectorAll("#panel button[data-c]").forEach(b=>{let d=S.money<+b.dataset.c||!!b.dataset.wait;if(b.dataset.a==="build"&&(!fits(S.sel.id,b.dataset.k,BLOCK)||locked(b.dataset.k)||siteBlock(S.sel.id,b.dataset.k)))d=true;b.disabled=d;});}

@@ -14,9 +14,12 @@ import { siteWx } from "./wxsite.js";
 import { sunRel, powerCurve } from "./weather.js";
 import { CAL, noonAmp } from "./calendar.js";
 import { spec } from "./profile.js";
+import { FPV_COOL, CSP } from "./config.js";
 
 export const K_SHORT=0.35, K_SURP=0.30;
-export const RENEW=["ges","res","off","flo","mar"];
+export const RENEW=["ges","res","off","flo","mar","fpv"];
+// Güneş paneli (öğle fiyatı sıfırsa kısılır, GÖP'te o saat teklif edilmez)
+export const PV=["ges","fpv"];
 export const FC_FEE=4; // premium tahmin servisi: yenilenebilir MW başına günlük ücret ($)
 export const deskDefaults=()=>({ratio:1,fc:"std",batt:"arb",auto:false});
 
@@ -24,7 +27,7 @@ export const deskDefaults=()=>({ratio:1,fc:"std",batt:"arb",auto:false});
 export function production(p,h){
   if(p.down)return {e:0,w:siteWx(S.sites[p.t],h)};
   const t=S.sites[p.t],q=eqOf(p),of=factor("out",t.mreg,p.k,h),w=siteWx(t,h);
-  if(p.k==="ges")return {e:p.mw*t.solar*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*q.perf*of*(t.snowDays>0?0.25:1),w};
+  if(p.k==="ges"||p.k==="fpv")return {e:p.mw*t.solar*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*q.perf*of*(t.snowDays>0?0.25:1)*(p.k==="fpv"?FPV_COOL:1),w};
   if(p.k==="res"||p.k==="off"||p.k==="flo")return {e:p.mw*clamp(powerCurve(w.hub)*q.perf*of,0,1),w,v:w.hub};
   if(p.k==="mar"){const m=marine(t,h,w);return {e:p.mw*clamp((m.tide+m.wave)*q.perf*of,0,1),w,tide:m.tide,wave:m.wave};}
   return {e:0,w};
@@ -36,9 +39,16 @@ export function marine(t,h,w){
   const tide=0.6*t.tide*Math.abs(Math.sin(Math.PI*(hr+ph)/6.21)),wave=0.25*clamp((w.hub-4)/14,0,1)**1.4;
   return {tide,wave};
 }
+// CSP: heliostat alanının o saatte topladığı ısının elektrik karşılığı (MWh). Güneş çarpanı CSP.sm: alan türbin gücünün
+// sm katı ısı toplar. Yoğunlaştırıcı yalnızca doğrudan ışınımı kullanır; bulut ve pus onu küresel ışınımdan hızlı düşürür
+// (sunRel^1,5: temsilî)
+export function cspHeat(p,h){
+  const t=S.sites[p.t],w=siteWx(t,h);
+  return p.mw*CSP.sm*(t.solar||0)*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)**1.5*eqOf(p).perf*factor("out",t.mreg,p.k,h);
+}
 // Saatlik tahmin hatası belirsizliği (σ, oran): rüzgârda güç eğrisinin dik bölgesi ve fırtına, güneşte parçalı bulut
 function sigma(p,w,h){
-  if(p.k==="ges")return 0.05+0.55*w.c*(1-w.c);
+  if(PV.includes(p.k))return 0.05+0.55*w.c*(1-w.c);
   if(p.k==="mar"){const m=marine(S.sites[p.t],h,w);return 0.04+0.3*m.wave/Math.max(0.05,m.tide+m.wave);}
   const v=w.hub;return 0.12+(v>4.5&&v<11.5?0.16:0.05)+0.25*w.storm;
 }
@@ -68,7 +78,7 @@ export function applyDesk(from=0){
     if(!p.fc)p.fc=Array(24).fill(0),p.cm=Array(24).fill(0);
     const t=S.sites[p.t],M=D[t.mreg];
     for(let h=from;h<24;h++){const e=production(p,h).e,f=clamp(e*(1+k*p.sg[h]*p.fz[h]),0,p.mw);p.fc[h]=f;
-      p.cm[h]=p.k==="ges"&&salePrice(t.mreg,p.k,h,M.price[h])<=0?0:f*d.ratio;}
+      p.cm[h]=PV.includes(p.k)&&salePrice(t.mreg,p.k,h,M.price[h])<=0?0:f*d.ratio;}
   });
 }
 // Masada gösterilecek özet: toplam tahmin, taahhüt, fiyat (seçili piyasa), beklenen GÖP geliri, belirsizlik

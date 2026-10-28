@@ -48,8 +48,8 @@ function lambert(m){let l=LAM.get(m);if(l)return l;
 async function render(id,bare){
   const o=S.sites[id],ps=S.plants.filter(p=>p.t===id);
   const {root}=buildSite(id,o,ps,bare);
-  // haritada anlamsız olan parçalar: GES parıltı bantları, su sıçraması
-  root.traverse(n=>{if(/^glint|^spray/.test(n.name||""))n.visible=false;});
+  // haritada anlamsız olan parçalar: GES parıltı bantları, su sıçraması, elektrolizör bacasının buharı
+  root.traverse(n=>{if(/^glint|^spray|^h2vent/.test(n.name||""))n.visible=false;});
   if(bare)root.traverse(n=>{if(ROTOR.test(n.name||""))n.visible=false;});
   // zemin alanları yarı saydam: altındaki uydu görüntüsü (toprak, bitki örtüsü) sezilir
   root.traverse(n=>{if(n.name==="pad"){n.material=n.material.clone();n.material.transparent=true;n.material.opacity=padAlpha(n.material);}});
@@ -69,11 +69,15 @@ async function render(id,bare){
   const m=2;x0-=m;x1+=m;y0-=m;y1+=m;
   const hubs=[];
   if(bare){root.updateMatrixWorld(true);root.traverse(n=>{if(!ROTOR.test(n.name||""))return;
-    const v=n.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv),s=n.getWorldScale(new THREE.Vector3()).x;let g=n.parent;while(g&&!g.userData.k)g=g.parent;
-    const yaw=n.parent.rotation.y;
+    const w=n.getWorldPosition(new THREE.Vector3()),v=w.clone().applyMatrix4(inv),s=n.getWorldScale(new THREE.Vector3()).x;let g=n.parent;while(g&&!g.userData.k)g=g.parent;
+    const yaw=n.parent.rotation.y,ct=Math.cos(TILT),f4=a=>a.map(x=>+x.toFixed(4));
     // rotor diski (türbin ekseninde dik düzlem) görüntüde bir elipse izdüşer: diskin yatay ekseni (sin yaw, cos TILT·cos yaw),
     // aşağı ekseni (0, sin TILT) piksele gider (görüntünün üstü kuzey, kamera güneyden TILT eğimle bakar). m: CSS matrix(a,b,c,d)
-    hubs.push({x:(v.x-x0)/(x1-x0),y:(y1-v.y)/(y1-y0),r:BLADE*s/(x1-x0),k:g?g.userData.k:"res",m:[Math.sin(yaw),Math.cos(TILT)*Math.cos(yaw),0,Math.sin(TILT)].map(x=>+x.toFixed(4))});});}
+    // Gölge: disk güneş yönünde (sd) zemine (y=0) izdüşer. Yatay eksen zeminde kalır; dikey eksen (aşağı) zeminde
+    // (sd.x/sd.y, sd.z/sd.y) olur, görüntüde güney yönü cos TILT ile kısalır. sx, sy: göbeğin gölgesinin yeri; sm: gölge matrisi
+    const sh=w.clone().addScaledVector(sd,-w.y/sd.y).applyMatrix4(inv);
+    hubs.push({x:(v.x-x0)/(x1-x0),y:(y1-v.y)/(y1-y0),r:BLADE*s/(x1-x0),k:g?g.userData.k:"res",m:f4([Math.sin(yaw),ct*Math.cos(yaw),0,Math.sin(TILT)]),
+      sx:(sh.x-x0)/(x1-x0),sy:(y1-sh.y)/(y1-y0),sm:f4([Math.sin(yaw),ct*Math.cos(yaw),sd.x/sd.y,ct*sd.z/sd.y])});});}
   Object.assign(cam,{left:x0,right:x1,bottom:y0,top:y1});cam.updateProjectionMatrix();
   const res=Math.max(MIN_RES,Math.max(x1-x0,y1-y0)/MAX_PX),W=Math.round((x1-x0)/res),H=Math.round((y1-y0)/res);
   // ışık: gökyüzü ve güneş, gölgeli; saydam bir gölge yakalayıcı gölgeleri uydu görüntüsünün üstüne düşürür
@@ -82,7 +86,9 @@ async function render(id,bare){
   sun.castShadow=true;const sc=sun.shadow.camera,r=Math.max(size.x,size.z)*0.75+60;Object.assign(sc,{left:-r,right:r,top:r,bottom:-r,near:10,far:4000});
   sun.shadow.mapSize.set(SHADOW,SHADOW);sun.shadow.bias=-0.0006;root.add(sun,sun.target);
   const catcher=new THREE.Mesh(new THREE.PlaneGeometry(size.x+40,size.z+40),new THREE.ShadowMaterial({opacity:0.42}));
-  catcher.rotation.x=-Math.PI/2;catcher.position.set(ctr.x,0.02,ctr.z);catcher.receiveShadow=true;root.add(catcher);
+  // derinlik yazmaz: tek parça arazili modellerde (HES vadisi, pompaj HES) sıfırın altında kalan zemin gölge düzleminin
+  // arkasında kalıp görünmez oluyordu
+  catcher.material.depthWrite=false;catcher.rotation.x=-Math.PI/2;catcher.position.set(ctr.x,0.02,ctr.z);catcher.receiveShadow=true;root.add(catcher);
   if(!R){R=new THREE.WebGLRenderer({alpha:true,antialias:!SOFT,preserveDrawingBuffer:true});R.setClearColor(0x000000,0);R.shadowMap.enabled=true;R.outputColorSpace=THREE.SRGBColorSpace;
     // metal yüzeyler (paneller) yansıtacak bir gökyüzü bulamazsa simsiyah görünür: yumuşak bir ortam ışığı verilir
     if(!SOFT){const pm=new THREE.PMREMGenerator(R);ENV=pm.fromScene(new RoomEnvironment(),0.04).texture;pm.dispose();}}

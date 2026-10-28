@@ -21,9 +21,9 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
     await new Promise(r=>{const c=()=>{const e=document.querySelector(".cv .cvpic");if(e&&e.style.visibility!=="hidden"&&e.offsetWidth>50&&!document.querySelector(".cv").hidden)r();else setTimeout(c,50);};c();});
     const ms=Math.round(performance.now()-t);await new Promise(r=>setTimeout(r,1500)); // pervaneler ve yerleşim otursun
     const pic=document.querySelector(".cvpic").getBoundingClientRect(),info=document.querySelector(".cvinfo").getBoundingClientRect();
-    return {ms,lt:Math.max(0,...window.__lt),rotors:document.querySelectorAll(".cv .mk-rotor").length,cesium:!!window.__viewer,fits:pic.bottom<=info.top+1&&pic.width>50};});
+    return {ms,lt:Math.max(0,...window.__lt),rotors:document.querySelectorAll(".cv .mk-rotor:not(.mk-rotsh)").length,shadows:document.querySelectorAll(".cv .mk-rotsh").length,cesium:!!window.__viewer,fits:pic.bottom<=info.top+1&&pic.width>50};});
   const a=await open();
-  ok(!a.cesium,"Cesium yüklenmedi (hafif görünüm)");ok(a.rotors===2,`pervaneler göbeklerde (${a.rotors})`);ok(a.fits,"görüntü bilgi panelinin üstünde, taşmıyor");
+  ok(!a.cesium,"Cesium yüklenmedi (hafif görünüm)");ok(a.rotors===2,`pervaneler göbeklerde (${a.rotors})`);ok(a.shadows===2,`pervane gölgeleri (${a.shadows})`);ok(a.fits,"görüntü bilgi panelinin üstünde, taşmıyor");
   ok(a.lt<3000,`ilk açılışta en uzun görev ${a.lt} ms (< 3000; ölçüm makineye bağlı)`);console.log(`    açılış ${a.ms} ms`);
   if(process.argv[3])await p.screenshot({path:`${process.argv[3]}/closeview-${vp.width}.png`});
   await p.click(".close3d");

@@ -21,7 +21,7 @@ import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
 import { bndOf, occText, liveText, battHtml } from "./sitelive.js";
 import { addRotors, spinRotors } from "./rotors.js";
-import { siteCap } from "../rules.js";
+import { siteCap, capMW } from "../rules.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
@@ -286,7 +286,7 @@ function drawImpl(){
     const col=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.background=col;m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
     m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
     const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
-    ensureBnd(m,true);const b=occText(mw,siteCap(o));if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
+    ensureBnd(m,true);const b=occText(capMW(id),siteCap(o));if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
     const st=plantStatus(id),lv=liveText(id),bh=battHtml(st.batt),lk=lv+bh;
     if(m.liveKey!==lk){m.liveKey=lk;m.live.innerHTML=lv?`<span>${lv}</span>${bh}`:"";if(m.bndOn)m.live.style.display=lv?"":"none";}
     spinRot(m,id);

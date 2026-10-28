@@ -2,6 +2,15 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.8",t:"Dört yeni teknoloji",items:[
+    "Yüzer GES: HES'in baraj gölüne kurulur, HES'in şebeke bağlantısını paylaşır. Saha sınırına sayılmaz, en çok HES'in gücü kadar olabilir; su panelleri soğuttuğu için biraz fazla üretir.",
+    "Pompaj depolamalı HES: dağlık sahada iki hazne. Ucuz saatte suyu üst hazneye basar, pahalı saatte üretir; 10 saatlik depo (bataryanın 5 katı).",
+    "Yeşil hidrojen: elektrolizör, elektrik ucuzken hidrojen üretip sabit fiyattan satar. Öğle fiyatı sıfıra düştüğünde satılamayan güneşi hidrojene çevirir.",
+    "CSP (kule, erimiş tuz): çölde ya da çok güneşli yerde. Isıyı depolar, akşam zirvesinde ve gece üretir; yatırımı yüksek.",
+    "Dördünün de haritada ve yakın görünümde kendi modeli var: göldeki panel adası, iki hazne ve cebri borular, elektrolizör tesisi, heliostat alanı ve kule.",
+    "Rapor ve proje ekonomisi yeni satırları gösterir; olay kartları (toz fırtınası, sıcak hava, şebeke kısıtı) yeni tesisleri de kapsar.",
+    "HES vadisinde nehir yatağının bir kısmı haritadaki görüntüde eksik çiziliyordu; düzeldi.",
+    "Haritada ve yakın görünümde dönen pervanelerin gölgesi de var: kule gölgesinin ucunda, pervaneyle eş zamanlı döner."]},
   {id:"2026-10-28.7",t:"Yüzer rüzgâr",items:[
     "Yeni teknoloji: Yüzer RES (çift rotor). V biçimli iki kule, üç yüzer kolon, rüzgâra kendiliğinden dönen tek nokta bağlamalı platform.",
     "Derin deniz artık boş değil: kıyıya 200–350 km'lik bantta yalnızca yüzer RES kurulabilir; sığ denizde sabit tabanlıyla birlikte seçilebilir.",

@@ -32,7 +32,7 @@ export const MISSIONS=[
     d:"Standart ekipmanlı +5 MW bloğu kur. Kurulduğu saatten itibaren üretip satmaya başlar."},
   {id:"run",n:"İlk üretimi gerçekleştir",r:4000,quiet:true,ok:()=>!!ob().prod,
     d:()=>night()&&S.plants.some(p=>p.k==="ges")&&!S.plants.some(p=>p.k==="res"||p.k==="off")?"Gece: GES güneş doğunca (06:00 civarı) üretmeye başlar. 3x ya da 8x düğmesiyle sabahı öne çekebilirsin.":
-      S.plants.every(p=>p.k==="batt")?"Batarya elektrik üretmez, yalnızca depolar. İlk üretim için bir GES ya da RES bloğu kur.":"Zamanın akmasını izle: santralin hava uygun olduğu ilk saatte üretir."},
+      S.plants.every(p=>["batt","phs","h2"].includes(p.k))?"Batarya ve pompaj HES elektrik üretmez, yalnızca depolar; elektrolizör elektrik tüketir. İlk üretim için bir GES ya da RES bloğu kur.":"Zamanın akmasını izle: santralin hava uygun olduğu ilk saatte üretir."},
   {id:"sale",n:"Elektriği piyasaya sat",r:4000,quiet:true,ok:()=>!!ob().sale,
     d:"Üretimin o saatin piyasa fiyatından satılır. Fiyat sıfırsa güneş üretimi satılamaz; bir sonraki saati bekle."},
   {id:"report",n:"İlk günlük raporu incele",r:3000,ok:()=>!!ob().rep,

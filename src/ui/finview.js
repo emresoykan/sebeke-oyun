@@ -6,10 +6,10 @@ import { S, save } from "../state.js";
 import { loanDSCR, prepay, totalDebt, dailyDS, dueOf, ECON_YEAR } from "../loans.js";
 import { fmt$ } from "../utils.js";
 import { render } from "./hud.js";
-import { TECH, BLOCK } from "../config.js";
+import { TECH, BLOCK, H2 } from "../config.js";
 import { placeName } from "../world.js";
 import { eqName, tierOf } from "../equipment.js";
-import { FIN, DEGR, MIN_H, SHORT_DAYS, wacc, setWacc, plantFinance, projectFinance, pf, setPf, resetPf, PF_SRC } from "../finance.js";
+import { FIN, NET, DEGR, MIN_H, SHORT_DAYS, wacc, setWacc, plantFinance, projectFinance, pf, setPf, resetPf, PF_SRC } from "../finance.js";
 
 const nf=(v,d=1)=>v.toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const M$=v=>`${v<0?"−":""}${nf(Math.abs(v)/1e6,2)} M$`;
@@ -22,7 +22,7 @@ function rows(){
   return ps.map(p=>{
     const o=S.sites[p.t],f=plantFinance(p),name=`${o?placeName(o):p.t}<br><small class="mut">${TECH[p.k].n} ${p.mw} MW • ${eqName(p.k,tierOf(p))}</small>`;
     if(f.wait)return `<tr><td>${name}</td><td colspan="8" style="text-align:left;color:var(--muted)">Veri toplanıyor: ${Math.floor(f.h/24)}/${MIN_H/24} gün</td></tr>`;
-    const batt=p.k==="batt",short=f.days<SHORT_DAYS;
+    const batt=NET.includes(p.k),short=f.days<SHORT_DAYS;
     return `<tr><td>${name}</td>
       <td>${batt?"—":pct(f.cf)}${short?' <small class="mut" title="Kısa veri dönemi: mevsimsellik yıllık değeri saptırabilir">*</small>':""}</td>
       <td>${batt?`${M$(f.net1)}/yıl`:`${nf(f.price,0)} $/MWh`}</td>
@@ -44,10 +44,10 @@ function pfRows(){
     const o=S.sites[p.t],mk=o?.mreg,name=`<b>${o?placeName(o):p.t}</b> <small class="mut">${TECH[p.k].n} ${p.mw} MW</small>`;
     const pf0=plantFinance(p);if(pf0.wait)return `<div class="pfcard"><div>${name}</div><p class="mut" style="margin:4px 0 0">Veri toplanıyor</p></div>`;
     const star=pf0.days<SHORT_DAYS?' <small class="mut" title="Kısa veri dönemi: mevsimsellik yıllık değeri saptırabilir">*</small>':"";
-    const modes=p.k==="batt"?["spot"]:["spot","ppa"],F=modes.map(m=>projectFinance(p,m,mk)),X=modes.map(m=>projectFinance(p,m,mk,STRESS));
+    const modes=NET.includes(p.k)?["spot"]:["spot","ppa"],F=modes.map(m=>projectFinance(p,m,mk)),X=modes.map(m=>projectFinance(p,m,mk,STRESS));
     const dscr=v=>v==null?"—":nf(Math.floor(v*100)/100,2)+(v<1?" ⚠":""),row=(l,f,cls)=>`<tr><th scope="row">${l}</th>${modes.map((_,i)=>`<td class="${cls?cls(i):""}">${f(i)}</td>`).join("")}</tr>`;
     return `<div class="pfcard"><div>${name}${star}</div><table class="pfmini"><thead><tr><th></th>${modes.map(m=>`<th>${m==="ppa"?"PPA":"Spot"}</th>`).join("")}</tr></thead><tbody>
-      ${row("Satış fiyatı ($/MWh)",i=>p.k==="batt"?"arbitraj":nf(F[i].ppaPrice??F[i].price,0))}
+      ${row("Satış fiyatı ($/MWh)",i=>p.k==="h2"?`hidrojen ${H2.price} $/kg`:NET.includes(p.k)?"arbitraj":nf(F[i].ppaPrice??F[i].price,0))}
       ${row("Borç oranı",i=>`${pct(F[i].gear)}<br><small class="mut">${M$(F[i].debt)}</small>`)}
       ${row("En düşük DSCR",i=>dscr(F[i].minDscr))}
       ${row("Proje IRR (vergi sonrası)",i=>pct(F[i].projIrr))}

@@ -46,9 +46,17 @@ ok(r2.E>0,`bir günde üretim ${Math.round(r2.E||0)} MWh`);
 ok(/Yüzer RES/.test(r2.txt),`durum metni: "${r2.txt}"`);
 ok(r2.row,"gün sonu raporunda RES yüzer satırı");
 // harita görüntüsü: her platformda iki rotor (göbek), yakın görünüm
-const im=await p.evaluate(async id=>{const F=await import("/src/ui/siteimage.js"),x=await F.siteImage(id,true);return {hubs:x.hubs.length,k:[...new Set(x.hubs.map(h=>h.k))].join(","),sym:x.hubs.every(h=>Math.abs(h.m[1])<1e-3)};},r.id);
+const im=await p.evaluate(async id=>{const F=await import("/src/ui/siteimage.js"),R=await import("/src/ui/rotors.js"),x=await F.siteImage(id,true);
+  // pervane gölgesi: göbeğin gölgesi kuzeydoğuda (güneş güney-güneybatıdan), gölge pervanesi pervaneyle aynı zamanda döner
+  const box=document.createElement("div");document.body.appendChild(box);const sp=R.addRotors(box,x.hubs);
+  const sync=sp.every(s=>!s.a||(s.s&&Math.abs(s.a.currentTime-s.s.currentTime)<1));R.spinRotors(sp,{flo:{f:0.8}});
+  const sync2=sp.every(s=>!s.a||Math.abs(s.a.currentTime-s.s.currentTime)<1&&s.a.playbackRate===s.s.playbackRate);box.remove();
+  return {hubs:x.hubs.length,k:[...new Set(x.hubs.map(h=>h.k))].join(","),sym:x.hubs.every(h=>Math.abs(h.m[1])<1e-3),
+    sh:x.hubs.every(h=>h.sm&&h.sx>h.x&&h.sy<h.y),nsh:box.querySelectorAll(".mk-rotsh").length,sync:sync&&sync2};},r.id);
 ok(im.hubs===2&&im.k==="flo",`tesis görüntüsünde ${im.hubs} rotor göbeği (${im.k})`);
 ok(im.sym,"rotor diski kameraya dönük (kaymasız)");
+ok(im.sh&&im.nsh===im.hubs,`her pervanenin gölgesi var, göbeğin kuzeydoğusunda (${im.nsh})`);
+ok(im.sync,"gölge pervanesi pervaneyle aynı açı ve hızda döner");
 if(SHOT){await p.evaluate(async id=>{const S=(await import("/src/state.js")).S,o=S.sites[id];S.hour=12;S.sel={id,lat:o.lat,lon:o.lon};(await import("/src/ui/panel.js")).renderPanel();(await import("/src/ui/sheet.js")).openSheet("saha");},r.id);
   await p.click("#pauseBtn");await p.evaluate(()=>{const b=document.querySelector('#panel button[data-a="fly"]');b.scrollIntoView();b.click();});await p.waitForTimeout(6000);
   await (await p.$("#map3d")).screenshot({path:`${SHOT}/flo-close.png`});

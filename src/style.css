@@ -1,6 +1,6 @@
 :root{
   --bg:#EEF2F3; --surface:#FFFFFF; --ink:#1D2B36; --muted:#5B6B77; --line:#D3DCE0;
-  --solar:#E59E00; --wind:#2F7FC1; --hydro:#7A5CC2; --batt:#1F9D74; --geo:#C8553D; --bio:#7A9A2E; --marine:#1A9BA8; --neg:#C2364A; --pos:#1F9D74; --warn:#D9A400;
+  --solar:#E59E00; --wind:#2F7FC1; --hydro:#7A5CC2; --batt:#1F9D74; --geo:#C8553D; --bio:#7A9A2E; --marine:#1A9BA8; --h2:#A93C93; --csp:#B8550F; --neg:#C2364A; --pos:#1F9D74; --warn:#D9A400;
   --on-c:#fff; /* teknoloji renkli zemindeki yazı (karanlık temada renkler açık: koyu yazı) */
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -9,12 +9,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
-    --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --on-c:#111A21;
+    --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --h2:#DA7FCB; --csp:#F2934A; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --on-c:#111A21;
   }
 }
 :root[data-theme="dark"]{
   --bg:#111A21; --surface:#18242D; --ink:#E5ECF0; --muted:#93A4B0; --line:#2A3A45;
-  --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --on-c:#111A21;
+  --solar:#F2B42C; --wind:#5AA2E0; --hydro:#A58BEA; --batt:#3CC495; --geo:#E8755A; --bio:#A6C44E; --marine:#3CCFD9; --h2:#DA7FCB; --csp:#F2934A; --neg:#F06A7D; --pos:#3CC495; --warn:#F2C94C; --on-c:#111A21;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -381,6 +381,10 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .mk-rotor{position:absolute;aspect-ratio:1}
 .mk-rotor svg{display:block;width:100%;height:100%;overflow:visible}
 .mk-rotor .bl{fill:#F4F6F7;stroke:rgba(40,48,56,.55);stroke-width:1.2;transform-box:view-box;transform-origin:50% 50%}
+/* pervanenin gölgesi: görüntüdeki kule gölgesiyle aynı koyulukta (siteimage.js gölge düzlemi 0,42) */
+.mk-rotsh{opacity:.4}
+.mk-rotsh .bl{fill:#000;stroke:none}
+.cvpic.night .mk-rotsh{display:none}
 
 /* ===== Düzen: harita sahnesi + panel (masaüstünde yan sütun, mobilde alttan açılan kart) ===== */
 button{min-height:44px}
