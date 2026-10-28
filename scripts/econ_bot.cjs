@@ -9,10 +9,10 @@
 // sahalar dolunca alınır. Olay kartlarında ilk uygun seçeneği seçer. Batarya, offshore ve diğer teknolojileri kullanmaz.
 //
 // Senaryolar (--s):
-//   base   bugünkü oyun
-//   fit    alım garantisi (YEKDEM benzeri, tavan değil taban fiyat): ilk iki sahanın üretimi, piyasa fiyatı altında
-//          kalırsa farkı tamamlanarak GES 133, RES 73 $/MWh'den satılır (5346 sayılı Kanun I sayılı cetveldeki ABD
-//          doları sent/kWh değerleri), 10 ekonomik yıl (~58 oyun günü). Yalnızca bot içinde taklit edilir.
+//   base   bugünkü oyun (ilk projeye alım garantisi dahil: config.js FIT, 90 $/MWh taban, 5 ekonomik yıl)
+//   nofit  oyunun alım garantisi kapalı (garantiden önceki oyun)
+//   fit    yasal düzeyde alım garantisi (oyununki kapalı; bot içinde taklit): ilk iki saha, GES 133, RES 73 $/MWh taban
+//          (5346 sayılı Kanun I sayılı cetveldeki ABD doları sent/kWh değerleri), 10 ekonomik yıl (~58 oyun günü)
 //   capex  tüm yatırım maliyetleri %30 düşük (yalnızca bot içinde)
 // --loan 1: ilk satıştan sonra kurulumlar banka kredili (özsermaye payı nakitten)
 // Kullanım: npx vite --port 5182 &  sonra
@@ -42,7 +42,8 @@ async function run(b, seed) {
     // GÖP masası "her gün otomatik gönder" modunda (masa açılıp kapanmadan teklif varsayılan ayarlarla gider)
     S.desk = { ratio: 1, fc: "std", batt: "arb", auto: true };
     if (SCN === "capex") for (const k in cfg.TECH) cfg.TECH[k].capex = Math.round(cfg.TECH[k].capex * 0.7);
-    const FIT = { ges: 133, res: 73 }, FIT_DAYS = Math.round(10 * lo.ECON_YEAR), fitSites = [], fitFrom = {};
+    if (SCN === "nofit" || SCN === "fit") S.fitDone = 1;
+    const FIT = { ges: 133, res: 73 }, FIT_N = 2, FIT_DAYS = Math.round(10 * lo.ECON_YEAR), fitSites = [], fitFrom = {};
     let ci = 0, extraFit = 0;
     const kindOf = t => { const ks = ru.allowed(t); const sun = ks.includes("ges") && t.solar >= 0.5, cf = we.expectedCF(we.windSpeedOf(t));
       return sun && !(ks.includes("res") && cf >= 0.34) ? "ges" : ks.includes("res") && cf >= 0.22 ? "res" : ks.includes("ges") ? "ges" : null; };
@@ -50,7 +51,7 @@ async function run(b, seed) {
         for (let j = 0; j < 9; j++) { const lat = +(lat0 + (j % 3 - 1) * 0.12).toFixed(3), lon = +(lon0 + (Math.floor(j / 3) - 1) * 0.12).toFixed(3), t = w.describe(lat, lon);
           if (t.urban || t.sea || !t.mreg || !kindOf(t) || ru.permitProb(t) < 0.6) continue; const c = ru.landCost(t) + ru.permitFee(t);
           if (S.money < c + 20000) { ci--; return false; } S.sel = { id: null, lat, lon }; ac.buyLand(); const id = S.sel.id; if (!id) continue;
-          S.sites[id].kind = kindOf(S.sites[id]); S.sites[id].bot = n; ac.applyPermit(id); if (fitSites.length < 2) fitSites.push(id); return true; } }
+          S.sites[id].kind = kindOf(S.sites[id]); S.sites[id].bot = n; ac.applyPermit(id); if (fitSites.length < FIT_N) fitSites.push(id); return true; } }
       return false; };
     const ms = {}, hist = [];
     // pencereler oyuncu gibi kapatılır (zorla kapatmak pencere sırasını kilitler): olay kartında ilk uygun seçenek,
@@ -89,7 +90,7 @@ async function run(b, seed) {
     }
     const mw = S.plants.reduce((a, q) => a + q.mw, 0);
     return { ms, days: S.dayNo, nw: Math.round(sim.netWorth()), cash: Math.round(S.money), mw, sites: Object.keys(S.sites).length, mi: S.mi, extraFit: Math.round(extraFit),
-      eu: Object.values(S.sites).filter(o => o.mreg === "E").length, hist: hist.filter((_, i) => i % 10 === 0) };
+      eu: Object.values(S.sites).filter(o => o.mreg === "E").length, gameFit: Math.round(S.stats.fit || 0), hist: hist.filter((_, i) => i % 10 === 0) };
   }, [SCN, DAYS, LOAN, CAND, !!A.dbg]);
   await p.close(); return r;
 }
@@ -97,7 +98,7 @@ async function run(b, seed) {
   const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const out = [];
   for (let s = 1; s <= SEEDS; s++) { const r = await run(b, 1000 + s); out.push(r);
-    console.log(`tohum ${1000 + s}: 0,5 M$ gün ${r.ms[5e5] ?? "-"} • 1 M$ gün ${r.ms[1e6] ?? "-"} • 2 M$ gün ${r.ms[2e6] ?? "-"} • 5 M$ gün ${r.ms[5e6] ?? "-"}${r.ms.over ? " • İFLAS gün " + r.ms.over : ""} | son gün ${r.days}, ${r.mw} MW, ${r.sites} saha (${r.eu} Avrupa), portföy ${r.nw}, nakit ${r.cash}${r.extraFit ? ", alım garantisi ek geliri " + r.extraFit : ""}`); }
+    console.log(`tohum ${1000 + s}: 0,5 M$ gün ${r.ms[5e5] ?? "-"} • 1 M$ gün ${r.ms[1e6] ?? "-"} • 2 M$ gün ${r.ms[2e6] ?? "-"} • 5 M$ gün ${r.ms[5e6] ?? "-"}${r.ms.over ? " • İFLAS gün " + r.ms.over : ""} | son gün ${r.days}, ${r.mw} MW, ${r.sites} saha (${r.eu} Avrupa), portföy ${r.nw}, nakit ${r.cash}${r.extraFit ? ", bot garantisi ek geliri " + r.extraFit : ""}${r.gameFit ? ", oyun garantisi ek geliri " + r.gameFit : ""}`); }
   const med = g => { const v = out.map(r => r.ms[g]).filter(x => x != null).sort((a, b) => a - b); return v.length ? v[v.length >> 1] + (v.length < out.length ? ` (${v.length}/${out.length} ulaştı)` : "") : "ulaşılmadı"; };
   console.log(`\n${SCN}${LOAN ? " + kredi" : ""} medyan: 0,5 M$ ${med(5e5)} • 1 M$ ${med(1e6)} • 2 M$ ${med(2e6)} • 5 M$ ${med(5e6)} (oyun günü; 1x'te gün 12 sn, 8x'te 1,5 sn)`);
   await b.close();

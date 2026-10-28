@@ -1,5 +1,5 @@
 // --- Aksiyonlar ---
-import { BLOCK, REG, TECH, UNDO_MS } from "./config.js";
+import { BLOCK, REG, TECH, UNDO_MS, FIT } from "./config.js";
 import { describe, placeName } from "./world.js";
 import { S, save, addLog } from "./state.js";
 import { landCost, permitFee, permitDays, allowed, siteCap, permitOptions, SHRINK_MW } from "./rules.js";
@@ -12,7 +12,7 @@ import { checkMissions } from "./missions.js";
 import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
 import { rivalNear } from "./rivals.js";
-import { loanTerms, openLoan, dropLoan } from "./loans.js";
+import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -66,6 +66,9 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
     addLog(`${placeName(o)}: jeotermal sondaj tamamlandı, rezervuar ${r} (beklenenin %${Math.round(o.well*100)}'i). Sahadaki tüm JES blokları bu verimle üretir.`);}
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
+  // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
+  if(!S.fitDone&&["ges","res","off","mar"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
+    addLog(`${placeName(o)}: ilk projen alım garantisi kapsamında. Piyasa fiyatı ${FIT.p} $/MWh'nin altına düştüğü saatlerde fark ödenir (${FIT.years} ekonomik yıl, ${days} oyun günü).`);}
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);
   sfx("build");

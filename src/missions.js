@@ -38,6 +38,7 @@ export const MISSIONS=[
   {id:"report",n:"İlk günlük raporu incele",r:3000,ok:()=>!!ob().rep,
     d:()=>ob().repReady?"Gün kapandı. Rapor sekmesini aç: üretimini, gelirini ve giderlerini gör.":"Gün bitince (24:00) ilk raporun hazır olur. İstersen hızlandır."},
   {n:"Bir günü kârla kapat",d:"Gün sonu raporunda net gelire bak: satış geliri eksi dengesizlik ve işletme giderleri.",r:8000,ok:()=>S.last&&S.last.net>0&&S.plants.length>0},
+  {n:"İlk kredili bloğunu kur",d:"Nakit yetmediğinde banka kredisiyle büyüyebilirsin: yatırımın bir kısmını banka karşılar, sen özsermaye payını ödersin. Santralin nakit akışı taksiti karşıladıkça (DSCR 1'in üstünde) kaldıraç büyümeyi hızlandırır; karşılamazsa fark nakitten çıkar. İzinli bir sahada \"Kredili\" düğmesiyle kur.",r:10000,ok:()=>(S.loanId||0)>0},
   {n:"Bir olay kartında karar ver",d:"Piyasa her gün aynı değil. Bir olay kartı çıktığında seçeneklerin etkisini tartıp karar ver.",r:8000,ok:()=>(S.evDone||0)>0},
   {n:"Rüzgârla çeşitlendir",d:"Güneş yalnızca gündüz üretir ve öğle fiyatını düşürür. Rüzgâr gece de üretir; ikisi birbirini dengeler. Bir RES kur.",r:15000,ok:()=>mw("res")+mw("off")>0},
   {n:"Batarya kur",d:"Batarya ucuz saatte şarj olup pahalı saatte satar (arbitraj). Fiyat farkı ne kadar büyükse kazanç o kadar yüksek.",r:15000,ok:()=>mw("batt")>0},

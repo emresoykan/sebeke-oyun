@@ -37,7 +37,7 @@ export function newDay(){
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));
-  setD({st:{E:z(),R:z(),imb:0,bNet:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0},wxf:forecast(S.wx,24)});
+  setD({st:{E:z(),R:z(),imb:0,bNet:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0,fit:0},wxf:forecast(S.wx,24)});
   MARKETS.forEach(k=>{
     // piyasanın temsilî noktasındaki saatlik hava tahmini: bulut güneş üretimini, rüzgâr rüzgâr üretimini, sıcak hava akşam talebini belirler
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
@@ -98,6 +98,9 @@ export function tick(){
       cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)+e-c;val[m]=(val[m]||0)+(e-c)*sp;
       ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
       if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;ac.r+=x;} // yenilik desteği gerçekleşen üretime ödenir
+      // alım garantisi (ilk proje, config.js FIT): piyasa fiyatı tabanın altındaysa fark gerçekleşen üretime ödenir. Proje
+      // ekonomisine (ac) katılmaz: ömür boyu getiri hesabı desteksiz piyasa fiyatıyla kalır
+      if(t.fit&&S.dayNo<=t.fit.until&&e>0&&sp<t.fit.p){const x=e*(t.fit.p-Math.max(0,sp));cash+=x;st.fit+=x;}
       if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="mar")g.m+=e;else g.w+=e;}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
     else if(p.k==="jes"){const e=geoOut(p,h);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
@@ -123,7 +126,7 @@ export function endDay(){
   const st=D.st, E=st.E, R=st.R;
   const net=dayNet(st);
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
-  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,err:st.fcE>0?st.fcErr/st.fcE:0};
+  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
   MARKETS.forEach(k=>S.mSolar[k]=Math.min(solarCap(k),S.mSolar[k]+PRICE.grow));
   // izin süreçleri
@@ -135,7 +138,7 @@ export function endDay(){
       else{o.permit="rejected";o.why=rejectWhy(o);addLog(`${nm} için izin reddedildi: ${o.why}.`);}}
   });
   // istatistikler
-  const mwh=PROD.reduce((a,k)=>a+E[k],0),ss=S.stats;ss.mwh+=mwh;ss.net+=net;if(!ss.best||net>ss.best.net)ss.best={day:S.dayNo,net};
+  const mwh=PROD.reduce((a,k)=>a+E[k],0),ss=S.stats;ss.mwh+=mwh;ss.net+=net;if(st.fit)ss.fit=(ss.fit||0)+st.fit;if(!ss.best||net>ss.best.net)ss.best={day:S.dayNo,net};
   // HES: günün yağışı rezervuarı besler (yavaş değişen nem göstergesi); kışın kar birikir, ilkbaharda erir ve suya dönüşür
   const melt=CAL.decl>-4&&CAL.decl<18;
   S.plants.forEach(p=>{if(p.k!=="hes")return;p.snowpack=(p.snowpack||0)+(p.snowAcc||0)/24*3;p.snowAcc=0;
@@ -185,7 +188,7 @@ export function netWorth(){let v=S.money-totalDebt();Object.values(S.sites).forE
 export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p.mw,0);}
 
 // Günün net kazancı: satış gelirleri (destek primleri dahil) − dengesizlik + batarya − işletme − tahmin servisi − yakıt
-export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet-st.opex-st.fee-(st.fuel||0);
+export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet-st.opex-st.fee-(st.fuel||0)+(st.fit||0);
 
 // JES: rezervuar verimine (ilk sondajda belli olur) bağlı sabit, hava ve saatten bağımsız üretim
 function geoOut(p,h){const t=site(p.t);return p.mw*Math.min(0.96,GEO_CF*(t.well??1)*eqOf(p).perf)*factor("out",t.mreg,"jes",h);}

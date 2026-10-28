@@ -6,6 +6,11 @@ export const COAST_KM=150, SHALLOW_KM=200;
 export const START_MONEY=250000, START_TOPUP=100000;
 // Satın almayı geri alma süresi (ms) ve iflas: nakit art arda bu kadar gün sonu eksi kalırsa oyun biter
 export const UNDO_MS=10000, BANKRUPT_DAYS=7;
+// Ara zafer: portföy değeri WIN1'e ulaşınca "Bölgesel oyuncu" ekranı (hedef GOAL sürer)
+export const WIN1=1e6;
+// İlk projeye alım garantisi (YEKDEM benzeri taban fiyat): ilk yenilenebilir santralin kurulduğu saha, p $/MWh'nin altında
+// kalan saatlerde farkı alır; süre ekonomik yıl cinsinden (oyunda ~5,8 gün/yıl). Bot ölçümü: scripts/econ_bot.cjs --s fit2
+export const FIT={p:90,years:5};
 // Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
 // lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
 // grow/capK: piyasanın güneş doygunluğu her gün grow kadar artar, başlangıç değerinin capK katında durur; wind: rüzgârın fiyat etkisi;

@@ -26,7 +26,8 @@ function show(done){
     <p class="fsub">${t?placeName(t):""}${ks?` • ${ks}`:""} • saat ${String(f.h).padStart(2,"0")}:00–${String((f.h+1)%24).padStart(2,"0")}:00</p>
     <div class="winstats">${cell("Üretilen enerji",`${nf(f.mwh,f.mwh<10?2:1)} MWh`)}${cell("Satış fiyatı",`${f.price} $/MWh`)}${cell("Gelir",fmt$(f.rev))}${cell("Hava",f.wx)}</div>
     <p class="fwx">${f.fx}</p>
-    <p class="frw">Görev ödülleri: <b>+${fmt$(rw)}</b>. Kredili kurulum ve Rapor sekmesindeki proje ekonomisi (Uzman ayrıntıları) artık açık.</p>
+    ${t&&t.fit?`<p class="frw">Bu proje <b>alım garantisi</b> kapsamında: piyasa fiyatı ${t.fit.p} $/MWh'nin altına düştüğü saatlerde fark sana ödenir (${t.fit.until-S.dayNo+1} gün). Erken büyümeni destekler; sonraki projeler piyasa fiyatıyla satar.</p>`:""}
+    <p class="frw">Görev ödülleri: <b>+${fmt$(rw)}</b>. Artık <b>kredili kurulum</b> açık: nakit yetmediğinde yatırımın bir kısmını banka karşılar. Rapor sekmesinde proje ekonomisi (Uzman ayrıntıları) da açıldı.</p>
     <p class="fq">Sırada ne var?</p>
     <div class="fopts">
       <button type="button" data-v="cap"><b>Kapasiteyi artır</b><span>Aynı sahaya +5 MW daha kur: aynı arazi, daha çok üretim.</span></button>

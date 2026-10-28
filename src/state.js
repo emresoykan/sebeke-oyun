@@ -11,7 +11,7 @@ export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,loans:[],mv:2,ob:{}};}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,loans:[],mv:3,ob:{}};}
 export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
 // Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
 // (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
@@ -28,6 +28,8 @@ function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.topup1){o.mo
   if((o.mv||1)<2){const m=o.mi;if(m!=null)o.mi=m<=0?0:m===1?2:m<=3?3:m+4;o.ob=o.ob||{};
     if(Object.keys(o.sites).length)Object.assign(o.ob,{pick:1,g:1});
     if(o.plants.length)Object.assign(o.ob,{tech:1,prod:1,sale:1,repReady:1,rep:1,card:1});o.mv=2;}
+  // görev zinciri v3: eğitimden sonra "İlk kredili bloğunu kur" eklendi (9. sıra); alım garantisi yalnızca yeni projelere
+  if(o.mv<3){if(o.mi!=null&&o.mi>=9)o.mi++;if(o.plants.length)o.fitDone=1;o.mv=3;}
   o.resV=3;return o;}
 let frozen=false;
 // Kayıt dosyası yüklenirken sayfa yenilenene kadar mevcut durum kaydın üzerine yazılmaz

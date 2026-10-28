@@ -141,6 +141,7 @@ function renderPanelImpl(){
     const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
     html+=`<div class="status ok">İzin var. Bu sahada ${mw}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
+    if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi: piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir (YEKDEM benzeri taban fiyat). ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
     if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
