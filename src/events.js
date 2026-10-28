@@ -16,7 +16,7 @@ import { checkMissions } from "./missions.js";
 import { CAL, seasonOf } from "./calendar.js";
 import { applyDesk } from "./market.js";
 
-const RENEW=["ges","res","off","hes","jes","bes","mar"];
+const RENEW=["ges","res","off","flo","hes","jes","bes","mar"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
 const has=k=>S.plants.some(p=>p.k===k);
 // oyuncunun en çok kurulu gücü olan piyasa
@@ -35,15 +35,16 @@ export const EVENTS=[
       {l:"Tam güç üret",e:"Bugün HES tam güç, sonraki 3 gün baraj boş (%30). Fiyatlar 4 gün %15 yüksek.",run:()=>{mod({t:"out",m,k:["hes"],v:0.3,d:3,w:1,label:"Kuraklık: baraj boşaldı"});mod({t:"price",m,v:1.15,d:4,label:"Kuraklık: fiyatlar yüksek"});return "Bugün su bol, ama önümüzdeki günlerde baraj kuruyacak.";}}
     ]:[{l:"Fiyat artışından yararlan",e:"Fiyatlar 4 gün %15 yüksek.",run:()=>{mod({t:"price",m,v:1.15,d:4,label:"Kuraklık: fiyatlar yüksek"});return "HES'in yok; kuraklık senin GES ve RES gelirini artıracak.";}}]},
 
-  {id:"storm",tag:"Hava",title:"Fırtına uyarısı",ok:()=>has("res")||has("off"),
+  {id:"storm",tag:"Hava",title:"Fırtına uyarısı",ok:()=>has("res")||has("off")||has("flo"),
     text:()=>`Meteoroloji 90 km/s'yi aşan rüzgâr bekliyor. Türbinler kesme hızını aşarsa kendini durdurur; çalışmaya devam etmek daha çok üretim ama kanat ve dişli kutusu hasarı riski demek.`,
-    learn:"Türbinler belirli bir rüzgâr hızının üstünde (kesme hızı) güvenlik için durur. Sigorta, düşük olasılıklı ama pahalı hasarlara karşı korur.",
+    learn:"Türbinler belirli bir rüzgâr hızının üstünde (kesme hızı) güvenlik için durur. Sigorta, düşük olasılıklı ama pahalı hasarlara karşı korur. Tayfun sınıfı yüzer platformlar (yüzer RES) hasar riski taşımaz.",
     opts:()=>{const ins=Math.max(1500,Math.round(S.plants.filter(p=>p.k==="res"||p.k==="off").reduce((a,p)=>a+(p.cost||0),0)*0.006/100)*100);return [
-      {l:"Türbinleri güvenli moda al",e:"Bugün rüzgâr üretimi yok, hasar riski yok.",run:()=>{mod({t:"out",k:["res","off"],v:0,label:"Fırtına: türbinler durduruldu"});return "Türbinler güvenle durduruldu.";}},
-      {l:"Çalışmaya devam et",e:"Bugün üretim %30 fazla; %35 ihtimalle bir rüzgâr santrali 3 gün arızalı.",run:()=>{mod({t:"out",k:["res","off"],v:1.3,label:"Fırtına: yüksek rüzgâr"});
-        if(rnd()<0.35){const ps=S.plants.filter(p=>p.k==="res"||p.k==="off"),p=ps[Math.floor(rnd()*ps.length)];p.down=3;S.stats.outages++;return `Riskli karar pahalıya patladı: ${placeName(S.sites[p.t])} ${TECH[p.k].n} 3 gün arızalı.`;}
+      {l:"Türbinleri güvenli moda al",e:"Bugün rüzgâr üretimi yok, hasar riski yok.",run:()=>{mod({t:"out",k:["res","off","flo"],v:0,label:"Fırtına: türbinler durduruldu"});return "Türbinler güvenle durduruldu.";}},
+      {l:"Çalışmaya devam et",e:"Bugün üretim %30 fazla; %35 ihtimalle bir rüzgâr santrali 3 gün arızalı.",run:()=>{mod({t:"out",k:["res","off","flo"],v:1.3,label:"Fırtına: yüksek rüzgâr"});
+        const ps=S.plants.filter(p=>p.k==="res"||p.k==="off"); // yüzer RES tayfun sınıfı: hasar listesinde yok
+        if(ps.length&&rnd()<0.35){const p=ps[Math.floor(rnd()*ps.length)];p.down=3;S.stats.outages++;return `Riskli karar pahalıya patladı: ${placeName(S.sites[p.t])} ${TECH[p.k].n} 3 gün arızalı.`;}
         return "Şans yanındaydı: fırtına bol üretim getirdi, hasar yok.";}},
-      {l:`Sigorta yaptır ve devam et (${fmt$(ins)})`,c:ins,e:"Bugün üretim %30 fazla, hasar sigortalı.",run:()=>{pay(ins);mod({t:"out",k:["res","off"],v:1.3,label:"Fırtına: yüksek rüzgâr"});return "Sigortalı üretim: fırtınadan kazançlı çıktın.";}}];}},
+      {l:`Sigorta yaptır ve devam et (${fmt$(ins)})`,c:ins,e:"Bugün üretim %30 fazla, hasar sigortalı.",run:()=>{pay(ins);mod({t:"out",k:["res","off","flo"],v:1.3,label:"Fırtına: yüksek rüzgâr"});return "Sigortalı üretim: fırtınadan kazançlı çıktın.";}}];}},
 
   {id:"holiday",tag:"Piyasa",title:"Bayram tatili: öğle fiyatı çöküyor",ok:()=>has("ges"),
     text:m=>`Uzun tatil nedeniyle sanayi talebi düştü, ${mName(m)} piyasasında öğle saatlerinde güneş üretimi talebi aşıyor. Önümüzdeki 2 gün 10:00–15:00 arası fiyatlar sıfıra yakın olacak.`,

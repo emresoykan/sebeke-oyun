@@ -42,7 +42,7 @@ export function undoLast(){
 }
 
 // Seçili noktada yeni saha aç (arazi satın al / deniz alanı kirala)
-export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||(!t.sea&&!allowed(t).length))return;S.money-=c;
+export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||(!t.sea&&!allowed(t).length)||(t.deep&&locked("flo")))return;S.money-=c;
   const id="s"+(S.nextId++),sl=slopeCached(t.lat,t.lon);S.sites[id]={...t,permit:"none"};if(sl)S.sites[id].slope=sl;S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
 // opt: reddedilen başvurudan sonra seçilen yol (rules.js permitOptions); yoksa normal başvuru.
@@ -68,7 +68,7 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
   // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
-  if(!S.fitDone&&["ges","res","off","mar"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
+  if(!S.fitDone&&["ges","res","off","flo","mar"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
     addLog(`${placeName(o)}: ilk projen alım garantisi kapsamında. Piyasa fiyatı ${FIT.p} $/MWh'nin altına düştüğü saatlerde fark ödenir (${FIT.years} ekonomik yıl, ${days} oyun günü).`);}
   if(k==="hes")newDayHydro(p);
   if(k==="bes")planBio(p,S.hour);

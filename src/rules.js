@@ -1,5 +1,5 @@
 // Kare bazlı kurallar: izinli teknolojiler, arazi/izin maliyeti ve olasılıkları
-import { REG, MAR_UNLOCK, SITE_LIMIT } from "./config.js";
+import { REG, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
@@ -26,12 +26,12 @@ export const allowed=t=>baseAllowed(t).filter(k=>!tooSteep(k,t));
 // eğim kuralı uygulanmadan önceki liste (panelde hangi teknolojinin eğim yüzünden düştüğünü söylemek için)
 export function baseAllowed(t){
   fillRes(t);
-  if(t.urban)return[];if(t.sea)return t.shallow?["off","mar"]:[];if(!t.mreg)return[];
+  if(t.urban)return[];if(t.sea)return t.shallow?["off","flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
   const a=["ges","res"];if(t.ter==="m")a.push("hes");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");a.push("batt");return a;
 }
 // Deniz enerjisi gelişmekte olan bir teknoloji: yeterli deneyim (kurulu güç) olmadan yatırım yapılamaz
 export const totalMW=()=>S.plants.reduce((a,p)=>a+p.mw,0);
-export const locked=k=>k==="mar"&&totalMW()<MAR_UNLOCK;
+export const locked=k=>(k==="mar"&&totalMW()<MAR_UNLOCK)||(k==="flo"&&totalMW()<FLO_UNLOCK);
 export function landCost(t){return t.sea?30000:REG[t.reg].land;}
 export function permitFee(t){return t.sea?10000:5000;}
 // küçültülmüş projede (Projeyi küçült seçeneği, t.cap) etki alanı daralır, onay ihtimali artar

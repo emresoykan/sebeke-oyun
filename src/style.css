@@ -303,6 +303,7 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .cv[data-season=sum]{background:radial-gradient(ellipse at 50% 45%,#8b8a55 0%,#62603a 60%,#363521 100%)}
 .cv[data-season=aut]{background:radial-gradient(ellipse at 50% 45%,#8c6c40 0%,#614a2c 60%,#352819 100%)}
 .cv[data-season=win]{background:radial-gradient(ellipse at 50% 45%,#7a817c 0%,#555b57 60%,#2f3330 100%)}
+.cv[data-season=sea]{background:radial-gradient(ellipse at 50% 45%,#2F6E8C 0%,#1E5470 60%,#113246 100%)}
 .cv.snowy{background:radial-gradient(ellipse at 50% 45%,#e3e9ee 0%,#b9c3cb 60%,#7d8790 100%)}
 .cv.snowy .cvpic img{filter:saturate(.55) brightness(1.06)}
 .cv.snowy .cvpic.night img{filter:brightness(.5) saturate(.4)}

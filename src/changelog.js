@@ -2,6 +2,11 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.7",t:"Yüzer rüzgâr",items:[
+    "Yeni teknoloji: Yüzer RES (çift rotor). V biçimli iki kule, üç yüzer kolon, rüzgâra kendiliğinden dönen tek nokta bağlamalı platform.",
+    "Derin deniz artık boş değil: kıyıya 200–350 km'lik bantta yalnızca yüzer RES kurulabilir; sığ denizde sabit tabanlıyla birlikte seçilebilir.",
+    "Toplam 60 MW kurulu güçten sonra açılır; yatırımı sabit tabanlı açık denizin ~1,9 katı, fırtınada hasar görmez.",
+    "Deniz sahalarının yakın görünümünde zemin deniz rengi."]},
   {id:"2026-10-28.6",t:"Gerçekçi sahalar",items:[
     "GES: parsele uyan düzen, iç yollarla bloklar, blok başına inverter istasyonu, mavi modüller (kademeye göre ton), satır aralarında toprak, çevre yolu ve çit, işletme binası.",
     "HES: vadiyi dolduran baraj gölü (doğal kıyı çizgisi, sığ yerler açık, derinler koyu), ormanlı yamaçlar, mansapta nehir, kret yolu, dolusavak kapakları, cebri borular, şalt sahası.",

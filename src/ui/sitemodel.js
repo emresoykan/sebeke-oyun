@@ -216,6 +216,42 @@ function windFarm(mw,sea,parts,yaw,sc=1){
   return g;
 }
 
+// ---- Yüzer RES: çift rotorlu V kule, üç sarı yüzer kolon, tek nokta bağlama ----
+// Bir platformda iki türbin (~17 MW toplam); kuleler ortak bir düğümden V biçiminde dışa açılır, rotorlar birbirine
+// çarpmasın diye göbekler ~185 m aralıklı. Platform ön kolondaki bağlama noktası çevresinde rüzgâra kendiliğinden döner
+// (3D görünümde tüm platform döner). Yerel eksenler: rotorlar −x yönüne (rüzgâra) bakar, kuleler z boyunca açılır.
+function floatUnit(parts,yaw,sc){
+  const g=new THREE.Group(),H=128*sc,S=92*sc,k0=parts.rotors.length;
+  // V kuleler (ortak düğümden dışa eğik, aşağıda kalın) ve iki gövde arasındaki gergi halatı
+  for(const sd of [-1,1]){const A=new THREE.Vector3(0,8,0),B=new THREE.Vector3(0,H-3,sd*S),L=A.distanceTo(B);
+    const tw=new THREE.Mesh(new THREE.CylinderGeometry(1.7*sc,3*sc,L,20),M.white);tw.position.copy(A).add(B).multiplyScalar(.5);
+    tw.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());tw.castShadow=true;g.add(tw);}
+  g.add(cylBetween([0,H-2,-S],[0,H-2,S],.25,M.steel,5));
+  // yüzer gövde: orta düğüm, üç sarı kolon (su hattında koyu şerit), aralarında gri kirişler; kolonlardan kulelere gergiler
+  const C=[[28,-64],[28,64],[-52,0]];
+  g.add(cyl(4.5,4.5,16,M.yellow,0,1,0,20),cyl(4.6,4.6,1,M.dark,0,.2,0,20));
+  C.forEach(([x,z])=>{g.add(cyl(6,6,14,M.yellow,x,1,z,24),cyl(6.1,6.1,1,M.dark,x,.2,z,24),cylBetween([0,3,0],[x,3,z],1.6,M.grey,12));
+    const r=new THREE.Mesh(new THREE.RingGeometry(6.5,12,24),M.seaFoam);r.rotation.x=-Math.PI/2;r.position.set(x,.25,z);g.add(r);
+    if(z)g.add(cylBetween([x,8,z],[0,H*.55,Math.sign(z)*S*.55],.22,M.steel,5));});
+  // tek nokta bağlama: ön kolonda döner bağlantı, öne doğru açılan üç bağlama hattı
+  g.add(cyl(2.4,2.4,3,M.dark,-52,8.5,0,12));[-1,0,1].forEach(d=>g.add(cylBetween([-56,0,0],[-90,-8,d*26],.3,M.dark,5))); // hatların görünen (yüzeye yakın) kısmı
+  // makine daireleri ve rotorlar (kanatlar 61 m × 1,5 ≈ 91 m), uçak ikaz lambaları
+  for(const sd of [-1,1]){const z=sd*S;g.add(box(16,5.6,5.6,M.white,4,H,z),box(3.2,1.4,3.6,M.white,10,H+3.4,z));
+    const rotor=new THREE.Group();rotor.position.set(-5,H,z);rotor.scale.setScalar(1.5*sc);
+    const hub=new THREE.Mesh(new THREE.SphereGeometry(2.3,20,14),M.white);hub.scale.set(1.6,1,1);hub.castShadow=true;rotor.add(hub);
+    for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeometry(),M.white);b.rotation.x=i*2*Math.PI/3;b.castShadow=true;rotor.add(b);}
+    const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);parts.rotors.push({name:rotor.name,a:Math.random()*Math.PI,w:0,f:.92+Math.random()*.16});
+    const bc=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),M.beacon);bc.position.set(6,H+3.2,z);bc.name=`beacon${k}`;g.add(bc);parts.beacons.push(bc.name);}
+  g.rotation.y=yaw;g.name=`tw${k0}`;parts.yaws.push({name:g.name,base:yaw,cur:yaw});
+  return g;
+}
+function floatFarm(mw,parts,yaw,sc=1){
+  const g=new THREE.Group(),n=Math.min(3,Math.max(1,Math.ceil(mw/17))),sp=620*sc;
+  for(let i=0;i<n;i++){const u=floatUnit(parts,yaw,sc);u.position.x=(i-(n-1)/2)*sp;g.add(u);}
+  boat(g,-(n-1)/2*sp+70,95,.4);
+  return g;
+}
+
 // ---- GES: ekvatora bakan eğik masalar; parsel sınırına uyan düzen, iç yollarla bloklar, blok başına inverter/trafo istasyonu ----
 // Masa: iki dikey modül (4,6 m derinlik), ~26 m boy, 25° eğim, sıra aralığı 9,5 m (~1,1 ha/MW). Satır araları zemin olarak
 // açık kalır (haritada uydu görüntüsündeki toprak görünür). Parsel kenarları tohumlu gürültüyle girintilidir, bir köşesi
@@ -541,6 +577,7 @@ export function buildSite(id,o,ps,face=false){
   const yaw=face?-Math.PI/2:hashYaw(id);
   if(by.res){const g=windFarm(by.res,false,parts,yaw,TURBINE_SCALE[top.res]);g.userData.k="res";groups.push(g);}
   if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off]);g.userData.k="off";groups.push(g);}
+  if(by.flo){const g=floatFarm(by.flo,parts,yaw,TURBINE_SCALE[top.flo]);g.userData.k="flo";groups.push(g);}
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges,seedOf(id)));
   if(by.hes)groups.push(hydro(parts,seedOf(id)));
   if(by.jes)groups.push(geothermal(by.jes,parts));

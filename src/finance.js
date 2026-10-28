@@ -17,6 +17,9 @@ export const FIN={
   ges:{capex:691,opex:12,life:25,src:"IRENA 2024"},
   res:{capex:1041,opex:40,life:25,src:"IRENA 2024"},
   off:{capex:2852,opex:80,life:25,src:"IRENA 2024"},
+  // yüzer rüzgâr: IRENA değeri yok. NREL (2020) Kaliforniya ticari ölçek yüzer santral tahmini 5.355 $/kW; 2024 ATB değeri
+  // doğrulanamadı. İşletme gideri varsayım
+  flo:{capex:5355,opex:110,life:25,src:"NREL 2020 tahmini (varsayım)"},
   hes:{capex:2267,opex:45,life:40,src:"IRENA 2024"},
   jes:{capex:4015,opex:110,life:30,src:"IRENA 2024"},
   bes:{capex:3242,opex:120,life:25,src:"IRENA 2024"},

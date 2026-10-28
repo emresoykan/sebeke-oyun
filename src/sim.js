@@ -64,7 +64,7 @@ function dailyNews(){
   let warn=0;
   Object.values(S.sites).forEach(t=>{if(warn>=2)return;const ks=new Set(S.plants.filter(p=>site(p.t)===t).map(p=>p.k));if(!ks.size)return;
     let mx=0,hm=0,snow=false;for(let h=0;h<24;h++){const w=siteWx(t,h);if(w.hub>mx){mx=w.hub;hm=h;}if(w.snow)snow=true;}
-    if((ks.has("res")||ks.has("off"))&&mx>25){news("⛈️",`Fırtına uyarısı: ${placeName(t)} için saat ${String(hm).padStart(2,"0")}:00 civarı ${mx.toFixed(0)} m/s rüzgâr bekleniyor, türbinler durabilir.`,"wx");warn++;}
+    if((ks.has("res")||ks.has("off")||ks.has("flo"))&&mx>25){news("⛈️",`Fırtına uyarısı: ${placeName(t)} için saat ${String(hm).padStart(2,"0")}:00 civarı ${mx.toFixed(0)} m/s rüzgâr bekleniyor, türbinler durabilir.`,"wx");warn++;}
     else if(ks.has("ges")&&snow&&!(t.snowDays>0)){news("🌨️",`Kar uyarısı: ${placeName(t)} için kar bekleniyor, paneller örtülebilir.`,"wx");warn++;}});
   if(!S.rec)S.rec={};
   const mk=new Set(["T",...S.plants.map(p=>site(p.t).mreg)]);
@@ -92,7 +92,7 @@ export function tick(){
     if(p.k==="hes"){if(w.snow)p.snowAcc=(p.snowAcc||0)+w.rain;else p.wetAcc=(p.wetAcc||0)+w.rain;}
     if(w.snow&&p.k==="ges")t.snowDays=2; // paneller karla kaplanır
     if(RENEW.includes(p.k)){
-      let {e,v}=production(p,h);if(p.k==="res"||p.k==="off")stormCheck(p,t,v);
+      let {e,v}=production(p,h);if(p.k==="res"||p.k==="off"||p.k==="flo")stormCheck(p,t,v);
       if(p.k==="ges"&&sp<=0){st.curt+=e;e=0;}
       const c=p.cm?p.cm[h]:e; // GÖP taahhüdü (gün ortasında kurulan santralde üretimin kendisi)
       cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)+e-c;val[m]=(val[m]||0)+(e-c)*sp;

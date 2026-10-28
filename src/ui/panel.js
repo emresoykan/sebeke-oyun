@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -54,6 +54,7 @@ function buildHtml(t){
       <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
+    flo:locked("flo")?`Yüzer rüzgâr deneyim ister: toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Çift rotorlu yüzer platform: tek nokta bağlamayla rüzgâra kendiliğinden döner, derin suya da kurulur. Yatırımı sabit tabanlının ~1,9 katı. Fırtınada türbinler durur ama tayfun sınıfı gövde hasar görmez (fırtına kartında arıza riski yok).`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
   // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
@@ -123,13 +124,13 @@ function renderPanelImpl(){
   let title,html="";
   // mobilde kapalı kartın tutamağında görünen kısa özet
   const ps=document.getElementById("peekSum");
-  if(ps)ps.textContent=t.sea&&!t.shallow?"Açık deniz":t.reg==="X"?"Antarktika":t.reg==="G"?"Grönland buz örtüsü":
+  if(ps)ps.textContent=t.sea&&!t.shallow&&!t.deep?"Açık okyanus":t.reg==="X"?"Antarktika":t.reg==="G"?"Grönland buz örtüsü":
     o?`${o.city} • ${siteMW(id)?siteMW(id)+" MW":"santral yok"} • ${{ok:"izinli",pending:"izin bekliyor",rejected:"izin reddedildi"}[o.permit]||"izin yok"}`:
-    `${t.urban?"Yerleşim alanı":t.sea?"Sığ deniz":TER_N[t.ter]} • ${near(t)} • ${fmt$(landCost(t))}`;
-  if(t.sea&&!t.shallow){el.innerHTML=`<h3>Açık deniz</h3><div class="loc">${latS} ${lonS} • En yakın şehir: ${near(t)}</div><div class="status bad">Derin deniz: sabit tabanlı türbin kurulamaz. Kıyıya en fazla 200 km mesafedeki sığ sulara bak.</div>`;return;}
+    `${t.urban?"Yerleşim alanı":t.sea?(t.deep?"Derin deniz":"Sığ deniz"):TER_N[t.ter]} • ${near(t)} • ${fmt$(landCost(t))}`;
+  if(t.sea&&!t.shallow&&!t.deep){el.innerHTML=`<h3>Açık okyanus</h3><div class="loc">${latS} ${lonS} • En yakın şehir: ${near(t)}</div><div class="status bad">Kıyıya ${FLOAT_KM} km'den uzak: şebeke bağlantısı kurulamaz. Kıyıya 200 km'ye kadar sığ sularda sabit tabanlı ya da yüzer türbin, ${FLOAT_KM} km'ye kadar derin suda yüzer türbin kurulabilir.</div>`;return;}
   if(t.reg==="X"){el.innerHTML=`<h3>Antarktika</h3><div class="loc">${latS} ${lonS}</div><div class="status bad">Antarktika Antlaşması gereği ticari enerji tesisi kurulamaz. Arazi satışa kapalı.</div>`;return;}
   if(t.reg==="G"){el.innerHTML=`<h3>Grönland buz örtüsü</h3><div class="loc">${latS} ${lonS}</div><div class="status bad">Buz örtüsü üzerinde tesis izni verilmez ve şebeke bağlantısı yok.</div>`;return;}
-  title=t.urban&&!o?`${t.country} • Yerleşim alanı`:t.sea?`${t.country} • Sığ deniz`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
+  title=t.urban&&!o?`${t.country} • Yerleşim alanı`:t.sea?`${t.country} • ${t.deep?"Derin deniz":"Sığ deniz"}`:`${t.country} • ${TER_N[t.ter]}${t.park?" ("+t.park+")":""}`;
   html+=`<h3>${title}</h3><div class="loc">${latS} ${lonS} • En yakın şehir: ${near(t)} • ${REG[t.mreg].n} piyasasına satar</div>`;
   const u=o&&undoFor(id);
   if(u)html+=`<div class="undo" role="status"><span>${u.kind==="land"?(t.sea?"Deniz alanı kiralandı":"Arazi alındı"):`+${BLOCK} MW ${TECH[u.k].n} kuruldu`} (${fmt$(u.c)}). Yanlışlıkla mı? Birkaç saniye içinde tam iadeyle geri alabilirsin.</span><button data-a="undo">Geri al</button></div>`;
@@ -141,7 +142,7 @@ function renderPanelImpl(){
     ws=`<small class="rv" title="Kapasite faktörü (KF): yıllık üretimin, santral tam güçte çalışsaydı üreteceğine oranı. Türkiye filo ortalaması ~%33 (TEİAŞ 2025).">${wv.toFixed(1).replace(".",",")} m/s • KF ≈%${Math.round(cf*100)}</small>`;
   // yerleşim alanı (kıyı kentinde kaba kıyı çizgisi yüzünden deniz de sayılabilir): yalnızca güneş ve rüzgâr; gelgit ve eğim yok
   if(t.urban&&!o)html+=`<div class="res"><span>Güneş</span><span class="dots">${dots(t.solar||0)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span></div>`;
-  else html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
+  else html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span>`+(t.deep?`<span>Temel</span><span>derin su: yalnızca yüzer platform</span>`:`<span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`):
     `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
     `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`+
     `<span>Eğim</span><span>${slopeRow(t)}</span>`)+`</div>`;
@@ -153,6 +154,8 @@ function renderPanelImpl(){
     html+=`<div class="status bad">Bu bölge rakip şirketin sahasına çok yakın: ${SITE_MIN_KM} km içinde yeni saha açılamaz.</div>`;}
   else if(!o&&t.urban){
     html+=`<div class="status bad">Yerleşim alanı${t.cityKm<5?` (${t.city})`:""}: şehir ve kasabaların yapılaşmış bölgelerinde santral için arazi satın alınamaz. Kentin dışındaki tarım arazisi, mera ya da sanayi bölgelerine bak.</div>`;
+  }else if(!o&&t.deep&&locked("flo")){
+    html+=`<div class="status bad">Derin deniz: yalnızca yüzer rüzgâr kurulabilir, o da toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW). Şimdilik kıyıya 200 km'ye kadar sığ sulara bak.</div>`;
   }else if(!o&&!t.sea&&!allowed(t).length){
     html+=`<div class="status bad">${steepTxt(t)} Bu noktada kurulabilecek tesis yok: araziyi almak için daha düz bir yer seç.</div>`;
   }else if(!o){

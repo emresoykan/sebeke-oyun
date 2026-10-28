@@ -83,10 +83,10 @@ let repOpen=false;
 export function renderReport(){
   renderFin();
   const L=S.last;if(!L)return;
-  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
+  const rows=[["ges","GES"],["res","RES karada"],["off","RES offshore"],["flo","RES yüzer"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
   if(L.curt>0)note=`Bir piyasada öğle fiyatı sıfıra düştü ve ${L.curt.toFixed(0)} MWh güneş üretimi satılamadı. Bu saatlerde batarya neredeyse bedavaya şarj olur.`;
-  else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
+  else if(L.imb>0.06*(L.R.ges+L.R.res+L.R.off+(L.R.flo||0)))note=`Tahmin hatası %${Math.round(L.err*100)} oldu: ${L.short.toFixed(0)} MWh eksik üretimi PTF'nin %35 fazlasıyla aldın, ${L.surp.toFixed(0)} MWh fazlayı %30 ucuza sattın. Premium tahmin servisi, dengelemedeki batarya veya daha temkinli bir teklif oranı bu maliyeti düşürür.`;
   else if(L.E.bes>0&&L.fuel>0)note=`Biyokütle santrali yalnızca fiyat yakıt maliyetini aştığında çalıştı: ${L.E.bes.toFixed(0)} MWh için ${fmt$(L.fuel)} yakıt yaktın. Ucuz saatlerde durması marjinal maliyet mantığıdır; fiyat düşükse çalışmamak kâr ettirir.`;
   else if(L.E.jes>0)note=`JES hava ve saatten bağımsız, gece gündüz aynı güçle üretir; bu yüzden tahmin hatası ve dengesizlik maliyeti yoktur. Bedeli yüksek yatırım ve sondaj riskidir.`;
   else if(L.E.mar>0)note=`Deniz enerjisinin gelgit kısmı günler öncesinden hesaplanabilir; yüksek maliyetini yenilik desteği (MWh başına +60 $) dengeler. Dalga kısmı ise havaya bağlıdır.`;

@@ -7,7 +7,7 @@ import cities from "./data/cities.json";
 import { PROTECTED } from "./data/protected.js";
 import { GHI, WS50 } from "./data/resource.js";
 import { urbanAt } from "./urban.js";
-import { MARKETS, COAST_KM, SHALLOW_KM } from "./config.js";
+import { MARKETS, COAST_KM, SHALLOW_KM, FLOAT_KM } from "./config.js";
 
 const R=6371, rad=Math.PI/180;
 export function km(lat1,lon1,lat2,lon2){const a=Math.sin((lat2-lat1)*rad/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin((lon2-lon1)*rad/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));}
@@ -96,7 +96,7 @@ export function potentialAt(lat,lon){
   const c=countryAt(lon,lat);
   if(c){if(c.m==="G"||c.m==="X"||!MARKETS.includes(c.m)||urbanAt(lat,lon)===true)return null;const {park,ter}=landTer(c,lat,lon);
     return {s:sunOf(lat,lon),w:windOf(lat,lon,ter,coastKm(lon,lat)<=COAST_KM,c.m,c.a3),p:park?1:0};}
-  const n=nearestCountry(lon,lat,SHALLOW_KM);
+  const n=nearestCountry(lon,lat,SHALLOW_KM)||(Math.abs(lat)<66?nearestCountry(lon,lat,FLOAT_KM):null); // derin bant: yalnızca yüzer rüzgâr
   return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66&&urbanAt(lat,lon)!==true?{s:0,w:seaWindOf(lat,lon,n.m),p:0}:null;
 }
 
@@ -115,6 +115,8 @@ export function describe(lat,lon){
     t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
     if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
+    // derin deniz bandı (kıyıya SHALLOW_KM–FLOAT_KM): sabit temel kurulamaz, yalnızca yüzer rüzgâr
+    else if(Math.abs(lat)<66){const d=nearestCountry(lon,lat,FLOAT_KM);if(d&&MARKETS.includes(d.m)){t.deep=true;t.mreg=d.m;t.country=d.n;t.a3=d.a3;t.wind=seaWindOf(lat,lon,d.m);t.solar=0;t.hydro=0;}}
   }
   const ct=nearestCity(lat,lon);t.city=ct.n;t.cityKm=Math.round(ct.km);
   // yerleşim alanı: kentsel alan poligonu (urban.js) ya da büyük bir şehrin merkezine 2 km'den yakın; arazi satın alınamaz.

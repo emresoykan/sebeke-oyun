@@ -27,6 +27,12 @@ export const EQUIP={
     std:{brand:"Tethys",model:"T-220",spec:"Rotor 220 m, monopil temel",capex:1.00,perf:1.00,avail:0.97,opex:1.00},
     pre:{brand:"Poseidon",model:"P-250",spec:"Rotor 250 m, doğrudan tahrikli jeneratör",capex:1.20,perf:1.10,avail:0.985,opex:0.88}
   },
+  // yüzer rüzgâr (markalar kurgusal): çift rotor V kule, tek nokta bağlamalı platform rüzgâra kendiliğinden döner
+  flo:{
+    eco:{brand:"Halcyon",model:"TW-12",spec:"Çift rotor (2 × 6 MW), yarı batık platform",capex:0.85,perf:0.90,avail:0.93,opex:1.20},
+    std:{brand:"Aeolia",model:"TW-17",spec:"Çift rotor (2 × 8,5 MW), V kule, tek nokta bağlama",capex:1.00,perf:1.00,avail:0.965,opex:1.00},
+    pre:{brand:"Zephyros",model:"TW-20T",spec:"Çift rotor, tayfun sınıfı gövde, uzaktan bakım",capex:1.18,perf:1.08,avail:0.985,opex:0.90}
+  },
   hes:{
     eco:{brand:"Akarsu",model:"F-80",spec:"Francis türbin, verim %86",capex:0.85,perf:0.92,avail:0.96,opex:1.10},
     std:{brand:"Kaskad",model:"F-120",spec:"Francis türbin, verim %91",capex:1.00,perf:1.00,avail:0.98,opex:1.00},

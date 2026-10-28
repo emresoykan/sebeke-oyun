@@ -17,7 +17,7 @@ export function plantStatus(id){
     if(out[p.k])return;
     if(p.down){out[p.k]={f:0,down:true};return;}
     const q=eqOf(p).perf;
-    if(p.k==="res"||p.k==="off"){const v=w.hub;out[p.k]={f:clamp(powerCurve(v)*q,0,1),cut:v>25};}
+    if(p.k==="res"||p.k==="off"||p.k==="flo"){const v=w.hub;out[p.k]={f:clamp(powerCurve(v)*q,0,1),cut:v>25};}
     else if(p.k==="ges"){const sn=o.snowDays>0,f=clamp(o.solar*shape(h)*noonAmp(o.lat,CAL.decl)*sunRel(w,w.base)*1.24*q*(sn?0.25:1),0,1);out.ges={f,curt:f>0&&M.price[h]<=0,snow:sn};}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;out.hes={run:e>0,f:e/p.mw};}
     else if(p.k==="jes")out.jes={f:Math.min(0.96,(o.well??1)*q*0.92)};
@@ -28,12 +28,13 @@ export function plantStatus(id){
   return out;
 }
 
-const DOWN={res:"RES",off:"Offshore",ges:"GES",hes:"HES",jes:"JES",bes:"Biyokütle",mar:"Deniz",batt:"Batarya"};
+const DOWN={res:"RES",off:"Offshore",flo:"Yüzer RES",ges:"GES",hes:"HES",jes:"JES",bes:"Biyokütle",mar:"Deniz",batt:"Batarya"};
 export function statusText(st){
   const pct=f=>"%"+Math.round(f*100),parts=[];
   for(const k in DOWN)if(st[k]&&st[k].down){parts.push(`${DOWN[k]}: arızalı, onarılıyor`);delete st[k];}
   if(st.res)parts.push(st.res.cut?"RES: fırtına, türbinler kesme hızında durdu":st.res.f<0.03?"RES: rüzgâr yok, türbinler durdu":`RES: ${pct(st.res.f)} kapasiteyle üretiyor`);
   if(st.off)parts.push(st.off.cut?"Offshore: fırtına, türbinler durdu":st.off.f<0.03?"Offshore: rüzgâr yok":`Offshore: ${pct(st.off.f)} kapasiteyle üretiyor`);
+  if(st.flo)parts.push(st.flo.cut?"Yüzer RES: fırtına, türbinler durdu (platform güvende)":st.flo.f<0.03?"Yüzer RES: rüzgâr yok":`Yüzer RES: ${pct(st.flo.f)} kapasiteyle üretiyor`);
   if(st.ges)parts.push(st.ges.snow&&st.ges.f>0.005?`GES: paneller karla kaplı, ${pct(st.ges.f)} kapasite`:st.ges.curt?"GES: fiyat sıfır, üretim kısıldı":st.ges.f<0.03?"GES: gece, üretim yok":`GES: ${pct(st.ges.f)} kapasiteyle üretiyor`);
   if(st.hes)parts.push(st.hes.run?"HES: türbinler çalışıyor":"HES: su biriktiriyor");
   if(st.jes)parts.push(`JES: ${pct(st.jes.f)} kapasiteyle sürekli üretiyor`);
@@ -46,5 +47,5 @@ export function statusText(st){
 // Sahada o saatte üretim (veya batarya hareketi) var mı: haritadaki "canlı" nabzı için
 export function isLive(st){
   const f=x=>x&&!x.down&&x.f>=0.03;
-  return !!((f(st.ges)&&!st.ges.curt)||f(st.res)||f(st.off)||f(st.jes)||f(st.mar)||(st.hes&&st.hes.run)||(st.bes&&st.bes.run)||(st.batt&&(st.batt.chg||st.batt.dis)));
+  return !!((f(st.ges)&&!st.ges.curt)||f(st.res)||f(st.off)||f(st.flo)||f(st.jes)||f(st.mar)||(st.hes&&st.hes.run)||(st.bes&&st.bes.run)||(st.batt&&(st.batt.chg||st.batt.dis)));
 }
