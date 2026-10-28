@@ -85,7 +85,7 @@
         </div></div>
       </section>
       <section class="tabp" data-tab="rapor" hidden>
-        <h2>Dünün raporu</h2>
+        <h2>Dünün raporu <button type="button" class="hlink" data-gloss="">Terimler: Sözlük</button></h2>
         <div class="report" id="report"><p style="margin:0;color:var(--muted)">İlk gün bitince burada santrallerinin üretimini, gelirini ve giderlerini göreceksin.</p></div>
         <h2>Proje ekonomisi <small class="mut">gerçek dünya karşılığı</small></h2>
         <div class="report" id="fin"></div>
@@ -99,6 +99,7 @@
           <button id="soundBtn" aria-pressed="false">Ses: kapalı</button>
         </div>
         <div class="controls"><button id="saveExport">Kaydı indir</button><button id="saveImport">Kayıt yükle</button><button id="guideBtn">Rehberi göster</button></div>
+        <div class="controls"><button id="glossBtn" aria-haspopup="dialog">Sözlük</button><button id="notesBtn" aria-haspopup="dialog">Sürüm notları</button></div>
         <div class="controls"><button id="fbBtn" aria-haspopup="dialog">Geri bildirim ver</button><a class="btnlink" href="vaka/">Vaka çalışması: yöntem ve bulgular</a></div>
         <p class="kbd">Kayıt dosyası oyunu ve profilini içerir; başka bir cihazda ya da tarayıcı verisi silindikten sonra geri yükleyebilirsin.</p>
         <section class="cloud" id="cloudBox" aria-label="Bulut kayıt"></section>
@@ -118,6 +119,8 @@
 <dialog id="winDlg" class="windlg" aria-label="Hedefe ulaştın"></dialog>
 <dialog id="fbDlg" aria-label="Geri bildirim"></dialog>
 <dialog id="firstDlg" class="firstdlg" aria-labelledby="firstTitle"></dialog>
+<dialog id="glossDlg" class="helpdlg" aria-labelledby="glossTitle"></dialog>
+<dialog id="notesDlg" class="helpdlg" aria-labelledby="notesTitle"></dialog>
 <script>
 // Açılış koruması: iOS Safari bellek yetmeyince sekmeyi kapatıp sayfayı yeniden açar ("A problem repeatedly occurred").
 // Açılış işaretlenir; sayfa 10 sn sorunsuz çalışınca ya da normal kapanınca (pagehide) silinir (main.js). İşaret duruyorsa

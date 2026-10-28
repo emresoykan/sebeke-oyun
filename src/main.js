@@ -28,6 +28,7 @@ import { initCloudUI } from "./ui/cloud.js";
 import { loadUrban } from "./urban.js";
 import { initGuide, restartGuide } from "./ui/guide.js";
 import { showLose } from "./ui/hud.js";
+import { initHelp } from "./ui/help.js";
 
 let timer=null, speed=1, paused=false, held=0; // held: açık bekletici pencere sayısı (olay kartı, GÖP masası, oyun sonu)
 
@@ -90,4 +91,4 @@ window.addEventListener("sebeke:select",()=>{if(inTutorial()&&!ob().pick&&!S.sel
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();initFirstSale();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}initHelp();S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();initFirstSale();});

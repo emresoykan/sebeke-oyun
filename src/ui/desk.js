@@ -36,7 +36,7 @@ function intro(){
     <li><b>Ne yapıyorsun?</b> Gün başında, bugün her saat ne kadar elektrik satacağını gün öncesi piyasasına (GÖP) teklif edersin. Teklif ettiğin miktar o saatin GÖP fiyatından satılır.</li>
     <li><b>Risk ne?</b> Üretim tahmini hiçbir zaman kesin değil. Gerçekleşen üretim teklifinden az çıkarsa eksiği PTF'nin %${Math.round(K_SHORT*100)} fazlasıyla alırsın; fazla çıkarsa fazlayı %${Math.round(K_SURP*100)} ucuza satarsın. Bu fark dengesizlik maliyetidir.</li>
     <li><b>Ne seçmeli?</b> Emin değilsen önerilen ayarla gönder: teklif %100 (tahmin kadar), standart tahmin. Ertesi gün Rapor'daki "Tahmin ve dengesizlik" satırına bakıp ayarla. Her gün sormasın istersen alttaki otomatik gönder kutusunu işaretle.</li>
-  </ol></details>`;
+  </ol><p class="dgl">Sözlükte: <button type="button" class="hlink" data-gloss="gop">GÖP</button>, <button type="button" class="hlink" data-gloss="ptf">PTF</button>, <button type="button" class="hlink" data-gloss="imb">dengesizlik</button></p></details>`;
 }
 function show(done){
   const d=dlg(),from=S.hour,mid=from>0,pre0=S.desk.fc==="pre";
