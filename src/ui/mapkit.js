@@ -19,6 +19,7 @@ import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
 import { bndOf, occText, liveText, battHtml } from "./sitelive.js";
+import { addRotors, spinRotors } from "./rotors.js";
 import { siteCap } from "../rules.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
@@ -115,27 +116,10 @@ function ensureFac(id,m){
     if(!m.fac){m.fac=document.createElement("img");m.fac.className="mk-fac";m.fac.alt="";m.anchor.insertBefore(m.fac,m.anchor.firstChild);}
     m.img=img;m.facUrl=null;buildRot(m);spinRot(m,id);sizeFac(m);});
 }
-// --- Dönen pervaneler: tesis görüntüsü pervanesiz çizilir (siteimage.js bare), her türbin göbeğine görüntünün üstünde
-// döner bir SVG rotor konur. Rotor diski CSS matrisiyle görüntünün eğik bakışına izdüşürülür; dönüş Web Animations ile
-// (kompozitörde, yeniden çizimsiz) yapılır, hız sahanın o saatteki rüzgâr üretiminden gelir. Hareket azaltılmışsa durur.
-const BLADES='<svg viewBox="-100 -100 200 200" aria-hidden="true"><g class="bl">'+[0,120,240].map(a=>`<path transform="rotate(${a})" d="M-4,-4 C-9,-30 -7,-70 -1.5,-98 L1.5,-98 C5,-60 7,-28 4,-4 Z"/>`).join("")+'<circle r="6"/></g></svg>';
+// dönen pervaneler (rotors.js): tesis görüntüsüyle aynı kutuda
 function dropRot(m){if(m.rot){m.rot.remove();m.rot=null;}m.spin=[];}
-function buildRot(m){
-  dropRot(m);const hs=m.img&&m.img.hubs;if(!hs||!hs.length||!m.fac)return;
-  m.rot=div("mk-rot");m.fac.after(m.rot);
-  for(const h of hs){const w=div("mk-rotor",m.rot);
-    Object.assign(w.style,{left:h.x*100+"%",top:h.y*100+"%",width:h.r*200+"%",transform:`translate(-50%,-50%) matrix(${h.m.join(",")},0,0)`});
-    w.innerHTML=BLADES;const g=w.firstChild;g.style.transform=`rotate(${Math.round(Math.random()*120)}deg)`;
-    const a=reduced.matches||!g.animate?null:g.animate([{transform:"rotate(0deg)"},{transform:"rotate(360deg)"}],{duration:5000,iterations:Infinity});
-    if(a){a.currentTime=Math.random()*5000;a.playbackRate=0;}m.spin.push({a,k:h.k});}
-}
-// dönüş hızı: 5 sn'de bir tur = 12 dev/dk; kapasitenin %3'ünden az üretimde (rüzgâr yok, fırtınada kesme, arıza) durur,
-// üretim arttıkça 6'dan 14 dev/dk'ya çıkar (büyük türbinlerin olağan çalışma aralığı)
-function spinRot(m,id){
-  if(!m.spin||!m.spin.length)return;const st=plantStatus(id);
-  for(const x of m.spin){if(!x.a)continue;const s=st[x.k],f=s&&!s.down&&!s.cut?s.f:0,rate=f>=0.03?(6+8*f)/12:0;
-    if(Math.abs((x.rate??-1)-rate)<0.01)continue;x.rate=rate;if(x.a.updatePlaybackRate)x.a.updatePlaybackRate(rate);else x.a.playbackRate=rate;}
-}
+function buildRot(m){dropRot(m);const hs=m.img&&m.img.hubs;if(!hs||!hs.length||!m.fac)return;m.rot=div("mk-rot");m.fac.after(m.rot);m.spin=addRotors(m.rot,hs);}
+const spinRot=(m,id)=>{if(m.spin&&m.spin.length)spinRotors(m.spin,plantStatus(id));};
 function syncFac(){
   if(!map||map.cameraDistance>FAC_H*1.3)return sites.forEach(sizeFac);
   if(!F){Fload=Fload||import("./siteimage.js").then(x=>{F=x;sites.forEach((m,id)=>ensureFac(id,m));});return;}
