@@ -36,6 +36,11 @@ for(const id of ids){
 console.log(`\nısınma (ilk çizim, batarya): ${warm} ms`);
 console.table(rows);
 if(SHOT){
+  // tesis görüntüsünün kendisi (haritadaki hali, tam çözünürlük): ayrıntıyı incelemek için
+  const fs=require("fs");
+  for(const id of ids){const b64=await p.evaluate(async id=>{const F=await import("/src/ui/siteimage.js"),im=await F.siteImage(id,true);if(!im)return null;
+      const bl=await (await fetch(im.lods[0].url)).blob();return await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(",")[1]);fr.readAsDataURL(bl);});},id);
+    if(b64)fs.writeFileSync(`${SHOT}/img-${TAG}-${id.slice(2)}.png`,Buffer.from(b64,"base64"));}
   await p.evaluate(async()=>{const st=await import("/src/state.js");st.S.hour=12;}); // öğle: gece karartması olmadan
   for(const id of ids){
     await p.evaluate(async id=>{const st=await import("/src/state.js"),S=st.S,o=S.sites[id];S.sel={id,lat:o.lat,lon:o.lon};(await import("/src/ui/panel.js")).renderPanel();

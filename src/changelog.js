@@ -2,6 +2,13 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.6",t:"Gerçekçi sahalar",items:[
+    "GES: parsele uyan düzen, iç yollarla bloklar, blok başına inverter istasyonu, mavi modüller (kademeye göre ton), satır aralarında toprak, çevre yolu ve çit, işletme binası.",
+    "HES: vadiyi dolduran baraj gölü (doğal kıyı çizgisi, sığ yerler açık, derinler koyu), ormanlı yamaçlar, mansapta nehir, kret yolu, dolusavak kapakları, cebri borular, şalt sahası.",
+    "Biyokütle ve biyogaz: beyaz kubbeli çürütücüler, brandalı silaj bunkerleri, kazan evi, işaretli baca, yakıt deposu, gaz motorları, kantar ve kamyonlar.",
+    "Deniz enerjisi platformları ve dalga şamandıraları artık hacimli; rüzgâr, batarya, jeotermal ve trafo merkezine yeni ayrıntılar.",
+    "Haritadaki pervaneler kayık değil, düzgün görünür.",
+    "Yakın görünümde yakınlaştırma (tekerlek, iki parmak, çift tık, + / −); ekran kartlı masaüstünde görüntü çok daha keskin."]},
   {id:"2026-10-28.5",t:"Sahada hava ve mevsim",items:[
     "Yakın görünümde sahanın havası: yağmur, kar ve fırtınada şimşek; zemin mevsime göre renk değiştirir (güney yarıkürede ters, dönencelerde mevsim yok).",
     "Kar panelleri örtünce saha hem yakın görünümde hem haritada karlı görünür.",

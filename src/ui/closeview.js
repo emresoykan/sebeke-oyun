@@ -19,20 +19,44 @@ let el=null,cur=null,spin=[],nat=null,onFull=null,ro=null;
 
 function build(box){
   el=document.createElement("div");el.className="cv";el.hidden=true;
-  el.innerHTML=`<div class="cvstage"><div class="cvpic"><img alt=""><div class="mk-rot"></div></div><div class="cvfx" aria-hidden="true"><i class="cvp"></i><i class="cvflash"></i></div><div class="cvload">Saha görüntüsü hazırlanıyor…</div></div>
+  el.innerHTML=`<div class="cvstage"><div class="cvpic"><img alt=""><div class="mk-rot"></div></div><div class="cvzoom" role="group" aria-label="Yakınlaştırma"><button type="button" data-z="in" aria-label="Yakınlaştır" title="Yakınlaştır (tekerlek ya da iki parmak)">+</button><button type="button" data-z="out" aria-label="Uzaklaştır">−</button><button type="button" data-z="0" aria-label="Sığdır" title="Sığdır (çift tık)">⤢</button></div><div class="cvfx" aria-hidden="true"><i class="cvp"></i><i class="cvflash"></i></div><div class="cvload">Saha görüntüsü hazırlanıyor…</div></div>
     <div class="cvinfo"><b class="cvt"></b><div class="cvlive" aria-live="polite"></div><div class="cvst"></div>
     <p class="cvnote">Bu tarayıcı ekran kartını kullanmıyor (yazılımla çizim). Tam 3D görünüm bu cihazda arayüzü saniyelerce dondurur; burada sahanın hafif görünümü var.</p>
     <button type="button" class="cvfull">Tam 3D görünümü yine de aç</button></div>`;
   box.appendChild(el);
   el.querySelector(".cvfull").onclick=()=>{const f=onFull,id=cur;close();if(f)f(id);};
   ro=new ResizeObserver(fit);ro.observe(el.querySelector(".cvstage"));
+  initZoom(el.querySelector(".cvstage"));
+}
+// --- Yakınlaştırma: tekerlek, iki parmak, sürükleme, çift tık ve düğmeler. Görüntü (pervaneleriyle) CSS transform ile
+// büyür; tam çözünürlüklü görüntü zaten yüklü olduğu için yakınlaşınca ayrıntı seçilir. Yağış katmanı ölçeklenmez.
+const ZMAX=6;let Z={z:1,x:0,y:0};
+function applyZ(){const pic=el&&el.querySelector(".cvpic");if(!pic)return;const w=pic.offsetWidth,h=pic.offsetHeight,
+    mx=Math.max(0,w*(Z.z-1)/2),my=Math.max(0,h*(Z.z-1)/2);Z.x=Math.max(-mx,Math.min(mx,Z.x));Z.y=Math.max(-my,Math.min(my,Z.y));
+  pic.style.transform=Z.z===1?"":`translate(${Z.x}px,${Z.y}px) scale(${Z.z})`;el.classList.toggle("zoomed",Z.z>1.01);}
+// p: sahne merkezine göre nokta; nokta ekranda yerinde kalacak şekilde yakınlaştır
+function zoomAt(z,px=0,py=0){z=Math.max(1,Math.min(ZMAX,z));const k=z/Z.z;Z.x=px-(px-Z.x)*k;Z.y=py-(py-Z.y)*k;Z.z=z;applyZ();}
+export const resetZoom=()=>{Z={z:1,x:0,y:0};applyZ();};
+function initZoom(sg){
+  const rel=e=>{const r=sg.getBoundingClientRect();return [e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2];};
+  sg.addEventListener("wheel",e=>{if(!nat)return;e.preventDefault();const [x,y]=rel(e);zoomAt(Z.z*Math.exp(-e.deltaY*.0015),x,y);},{passive:false});
+  sg.addEventListener("dblclick",e=>{if(e.target.closest("button"))return;const [x,y]=rel(e);if(Z.z>1.01)resetZoom();else zoomAt(2.5,x,y);});
+  const P=new Map();let last=null;
+  sg.addEventListener("pointerdown",e=>{if(e.target.closest("button"))return;P.set(e.pointerId,rel(e));sg.setPointerCapture(e.pointerId);last=null;});
+  sg.addEventListener("pointermove",e=>{if(!P.has(e.pointerId))return;const prev=P.get(e.pointerId),cur=rel(e);P.set(e.pointerId,cur);
+    if(P.size===1){if(Z.z>1){Z.x+=cur[0]-prev[0];Z.y+=cur[1]-prev[1];applyZ();}return;}
+    const [a,b]=[...P.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    if(last){Z.x+=m[0]-last.m[0];Z.y+=m[1]-last.m[1];zoomAt(Z.z*d/last.d,m[0],m[1]);}last={d,m};});
+  const up=e=>{P.delete(e.pointerId);last=null;};sg.addEventListener("pointerup",up);sg.addEventListener("pointercancel",up);
+  sg.querySelector(".cvzoom").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.z==="in")zoomAt(Z.z*1.6);else if(b.dataset.z==="out")zoomAt(Z.z/1.6);else resetZoom();});
 }
 // görüntü sahneye sığdırılır (en-boy oranı korunur; pervaneler yüzdeyle konumlandığı için birlikte ölçeklenir)
 function fit(){
   if(!el||!nat)return;const sg=el.querySelector(".cvstage"),cs=getComputedStyle(sg),
     w=sg.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),h=sg.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),
     k=Math.max(0.05,Math.min(w/nat[0],h/nat[1]));
-  Object.assign(el.querySelector(".cvpic").style,{width:Math.floor(nat[0]*k)+"px",height:Math.floor(nat[1]*k)+"px"});
+  Object.assign(el.querySelector(".cvpic").style,{width:Math.floor(nat[0]*k)+"px",height:Math.floor(nat[1]*k)+"px"});applyZ();
 }
 
 export const closeOpen=()=>!!cur;
@@ -40,6 +64,7 @@ export const closeOpen=()=>!!cur;
 export async function openClose(box,id,full){
   if(!el)build(box);cur=id;onFull=full;nat=null;el.hidden=false;
   const pic=el.querySelector(".cvpic"),img=pic.querySelector("img"),rot=pic.querySelector(".mk-rot");
+  Z={z:1,x:0,y:0};pic.style.transform="";el.classList.remove("zoomed");
   pic.style.visibility="hidden";el.querySelector(".cvload").hidden=false;rot.innerHTML="";spin=[];update();
   const F=await import("./siteimage.js"),im=await F.siteImage(id,true);
   if(cur!==id)return;el.querySelector(".cvload").hidden=true;
