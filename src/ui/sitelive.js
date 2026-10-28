@@ -21,3 +21,10 @@ export function liveText(id){
   if(o.mw<0)return `Şarj ediyor ${f1(-o.mw)} MW • ${Math.round(o.r/o.mw)} $/MWh`;
   return `Şu an ${f1(o.mw)} MW üretiyor • ${Math.round(o.r/o.mw)} $/MWh`;
 }
+// Batarya şarj çubuğu (plantStatus().batt: soc 0–1, chg şarj, dis deşarj): canlı kutuda metnin altında; yoksa boş
+export function battHtml(b){
+  if(!b)return "";const p=Math.round(b.soc*100),s=b.down?"arızalı":b.chg?"şarj oluyor":b.dis?"deşarj ediyor":"beklemede";
+  return `<span class="mk-batt ${b.chg?"chg":b.dis?"dis":""}" role="img" aria-label="Batarya yüzde ${p} dolu, ${s}"><i style="width:${p}%"></i></span><small class="mk-battl">Batarya %${p} • ${s}</small>`;
+}
+// düz harita (MapLibre) için yazı biçimi
+export const battText=b=>b?` • 🔋 %${Math.round(b.soc*100)}${b.chg?" ↑":b.dis?" ↓":""}`:"";

@@ -22,7 +22,7 @@ import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapsty
 import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
-import { bndOf, occText, liveText } from "./sitelive.js";
+import { bndOf, occText, liveText, battText } from "./sitelive.js";
 import { siteCap } from "../rules.js";
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -63,7 +63,7 @@ function softwareGL(){
     return /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(x?g.getParameter(x.UNMASKED_RENDERER_WEBGL):"");}catch(e){return false;}
 }
 // Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita, ?map=apple ile Apple haritası zorlanır
-const MAP_Q=new URLSearchParams(location.search).get("map"),SOFT_GL=!!import.meta.env.VITE_MAPKIT_TOKEN&&!MAP_Q&&softwareGL();
+const NO_GPU=softwareGL(),MAP_Q=new URLSearchParams(location.search).get("map"),SOFT_GL=!!import.meta.env.VITE_MAPKIT_TOKEN&&!MAP_Q&&NO_GPU;
 const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&MAP_Q!=="maplibre"&&!SOFT_GL;
 let mk=null;
 
@@ -375,6 +375,7 @@ function fpsMeter(){
 // Sahaları, rakipleri ve seçimi haritaya yansıt
 export function drawMap(){
   if(globeOpen&&globe)globe.drawGlobe();
+  if(cvOpen&&cv)cv.update();
   renderMySites(focusSite);
   if(!ready)return;
   if(mk){mk.draw();return;}
@@ -382,7 +383,7 @@ export function drawMap(){
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
     const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     const on=mw&&isLive(plantStatus(id))?1:0;if(on)live=true;
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)});})));
+    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)+battText(plantStatus(id).batt)});})));
   anyLive=live;
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));
@@ -402,20 +403,28 @@ function bndFeatures(out,o,[e0,e1,n0,n1],c,t){
 
 // --- 3D pencere ---
 const box3d=()=>document.getElementById("map3d");
-async function open3D(id,mode){
+// Yazılımla çizen tarayıcıda (NO_GPU) önce hafif yakın görünüm açılır (closeview.js); Cesium yalnızca oradaki
+// "Tam 3D" düğmesiyle (full) açılır. ?gl3d=1 bu ayrımı atlar.
+let cv=null,cvOpen=false;
+const FULL_Q=new URLSearchParams(location.search).has("gl3d");
+async function open3D(id,mode,full=false){
   const o=S.sites[id];if(!o)return;
-  const b=box3d();b.hidden=false;globeOpen=true;document.body.classList.add("view3d");
+  const b=box3d();b.hidden=false;document.body.classList.add("view3d");
+  if(NO_GPU&&!full&&!FULL_Q){cvOpen=true;b.classList.add("light");cv=cv||await import("./closeview.js");
+    cv.openClose(b,id,i=>{cvOpen=false;b.classList.remove("light");open3D(i,mode,true);});b.querySelector(".close3d").focus({preventScroll:true});return;}
+  globeOpen=true;
   if(!globe){b.classList.add("loading");globe=await import("./globe3d.js");await globe.initGlobe(b.querySelector(".map3d-view"));b.classList.remove("loading");}
   globe.pauseGlobe(false);globe.drawGlobe();globe.setGlobeClock(S.hour);
   if(mode==="orbit")globe.orbitSite(id);else globe.flyToSite(id);
   b.querySelector(".close3d").focus({preventScroll:true});
 }
 export function close3D(){const b=box3d();if(!b||b.hidden)return;b.hidden=true;globeOpen=false;document.body.classList.remove("view3d");if(globe)globe.pauseGlobe(true);
+  if(cvOpen){cvOpen=false;b.classList.remove("light");cv.close();}
   const o=S.sites[S.sel.id];if(o&&mk)mk.focus(o.lon,o.lat);
   if(map&&!mk){if(o)map.easeTo({center:[o.lon,o.lat],zoom:Math.max(map.getZoom(),9),duration:reducedMotion.matches?0:800});}}
 export function flyToSite(id){open3D(id,"fly");}
 export function orbitSite(id){open3D(id,"orbit");}
 export function initMap3DUI(){
   const b=box3d();b.querySelector(".close3d").onclick=close3D;
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&globeOpen&&!document.querySelector("dialog[open]"))close3D();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(globeOpen||cvOpen)&&!document.querySelector("dialog[open]"))close3D();});
 }

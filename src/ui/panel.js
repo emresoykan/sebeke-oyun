@@ -100,11 +100,13 @@ function renderPanelImpl(){
   const ghi=`<small class="rv">${ghiAt(t.lat,t.lon).toFixed(1).replace(".",",")} kWh/m²/gün</small>`,wv=windSpeedOf(t),cf=expectedCF(wv),wc=windClass(cf),
     wd="●".repeat(wc)+"○".repeat(5-wc),
     ws=`<small class="rv" title="Kapasite faktörü (KF): yıllık üretimin, santral tam güçte çalışsaydı üreteceğine oranı. Türkiye filo ortalaması ~%33 (TEİAŞ 2025).">${wv.toFixed(1).replace(".",",")} m/s • KF ≈%${Math.round(cf*100)}</small>`;
-  html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
+  // yerleşim alanı (kıyı kentinde kaba kıyı çizgisi yüzünden deniz de sayılabilir): yalnızca güneş ve rüzgâr; gelgit ve eğim yok
+  if(t.urban&&!o)html+=`<div class="res"><span>Güneş</span><span class="dots">${dots(t.solar||0)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span></div>`;
+  else html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`:
     `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
     `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`+
     `<span>Eğim</span><span>${slopeRow(t)}</span>`)+`</div>`;
-  measureSlope(t,id);
+  if(!(t.urban&&!o))measureSlope(t,id);
   html+=`<div id="wxBox">${wxHtml(t)}</div>`;
   const p=permitProb(t),rv=o?null:rivalNear(t.lat,t.lon);
   if(rv){const {r,s:x}=rv,d=km(t.lat,t.lon,x.lat,x.lon);

@@ -227,12 +227,15 @@ function hashYaw(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))|0;return
 
 // türbin boyu ekipman kademesine göre (rotor çapı ve göbek yüksekliği birlikte ölçeklenir)
 const TURBINE_SCALE={eco:0.82,std:1,pre:1.14};
-export function buildSite(id,o,ps){
+// face: türbinler güneye (±25°) döner; tepeden bakan harita görüntüsünde rotor diski çizgi yerine elips görünür
+export function buildSite(id,o,ps,face=false){
   if(!M)M=materials();
   const by={},top={};ps.forEach(p=>{by[p.k]=(by[p.k]||0)+p.mw;const q=tierOf(p);if(!top[p.k]||TIER_ORDER.indexOf(q)>TIER_ORDER.indexOf(top[p.k]))top[p.k]=q;});
   const root=new THREE.Scene(),parts={rotors:[],beacons:[],flows:[],leds:[],inv:[],yaws:[],steams:[],smokes:[],tides:[],buoys:[],glints:[],fans:[],drifts:[],belts:[]},groups=[];
-  if(by.res)groups.push(windFarm(by.res,false,parts,hashYaw(id),TURBINE_SCALE[top.res]));
-  if(by.off)groups.push(windFarm(by.off,true,parts,hashYaw(id),TURBINE_SCALE[top.off]));
+  // userData.k: rüzgâr grubunun teknolojisi (haritadaki dönen pervaneler hızını RES ve offshore için ayrı alır)
+  const yaw=hashYaw(id)-(face?Math.PI/2:0);
+  if(by.res){const g=windFarm(by.res,false,parts,yaw,TURBINE_SCALE[top.res]);g.userData.k="res";groups.push(g);}
+  if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off]);g.userData.k="off";groups.push(g);}
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges));
   if(by.hes)groups.push(hydro(parts));
   if(by.jes)groups.push(geothermal(by.jes,parts));

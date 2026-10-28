@@ -279,6 +279,25 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .close3d{position:absolute;top:10px;left:10px;z-index:6;background:rgba(5,10,15,.72);color:#fff;border:1px solid rgba(255,255,255,.25)}
 .map3d-load{position:absolute;inset:0;display:none;place-items:center;color:#fff;font-size:.9rem}
 .map3d.loading .map3d-load{display:grid}
+/* hafif yakın görünüm (closeview.js): yazılımla çizen tarayıcıda Cesium yerine */
+.map3d.light .map3d-view{display:none}
+.cv{position:absolute;inset:0;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 45%,#6d7d55 0%,#4b5a3d 60%,#2c3526 100%);color:#fff}
+.cv[hidden]{display:none}
+.cvstage{position:relative;flex:1;min-height:0;display:grid;place-items:center;padding:56px 12px 6px}
+.cvpic{position:relative}
+.cvpic img{display:block;width:100%;height:100%;object-fit:contain}
+.cvpic .mk-rot{position:absolute;inset:0}
+.cvpic.night img{filter:brightness(.42) saturate(.6)}
+.cvpic.night .mk-rotor .bl{fill:#9AA3AA}
+.cvload{position:absolute;inset:0;display:grid;place-items:center;font-size:.9rem}
+.cvload[hidden]{display:none}
+.cvinfo{padding:10px 14px 12px;background:rgba(6,12,20,.82);font-size:.86rem;line-height:1.4}
+.cvt{display:block;font-size:.98rem;margin-bottom:2px}
+.cvlive span{display:block}
+.cvlive .mk-batt{max-width:320px}
+.cvst{color:rgba(255,255,255,.8);margin-top:2px}
+.cvnote{margin:6px 0 8px;color:rgba(255,255,255,.7);font-size:.8rem}
+.cvfull{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:0 12px;min-height:40px;font-weight:600;cursor:pointer}
 .fpsmeter{position:absolute;top:8px;right:8px;z-index:3;background:rgba(5,10,15,.7);color:#fff;font:600 12px ui-monospace,monospace;padding:3px 8px;border-radius:6px;pointer-events:none}
 /* Apple Haritalar (mapkit.js) üstündeki oyun işaretleri */
 .mk-anchor{position:relative;width:0;height:0;overflow:visible}
@@ -314,6 +333,16 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
   background:rgba(10,18,30,.86);color:#fff;font:600 12px "Noto Sans",system-ui,sans-serif;padding:4px 8px;border-radius:7px;
   box-shadow:0 1px 4px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
 .mk-live::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(10,18,30,.86)}
+.mk-live>span:first-child{display:block}
+.mk-batt{display:block;height:6px;margin-top:4px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.mk-batt i{display:block;height:100%;background:var(--batt);transition:width .6s}
+.mk-batt.chg i{background:#3CC495}.mk-batt.dis i{background:#F2A93B}
+.mk-battl{display:block;margin-top:2px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.8)}
+/* dönen pervaneler (tesis görüntüsünün üstünde, göbek yerlerinde) */
+.mk-rot{position:absolute;pointer-events:none}
+.mk-rotor{position:absolute;aspect-ratio:1}
+.mk-rotor svg{display:block;width:100%;height:100%;overflow:visible}
+.mk-rotor .bl{fill:#F4F6F7;stroke:rgba(40,48,56,.55);stroke-width:1.2;transform-box:view-box;transform-origin:50% 50%}
 
 /* ===== Düzen: harita sahnesi + panel (masaüstünde yan sütun, mobilde alttan açılan kart) ===== */
 button{min-height:44px}
