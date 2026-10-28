@@ -25,13 +25,13 @@ export const MISSIONS=[
   {id:"permit",n:"İzin başvurusu yap",r:3000,ok:()=>sites().some(o=>o.permit!=="none"),
     d:()=>sites().length?"Sahanın panelinden çevre izni için başvur. İzin olmadan santral kurulamaz; inceleme birkaç gün sürer.":"Arazi alımı geri alındı. Haritada yeniden bir yer seçip araziyi satın al, sonra izne başvur."},
   {id:"tech",n:"İlk santral teknolojisini seç",r:2000,ok:()=>!!ob().tech||S.plants.length>0,
-    d:()=>{const p=pending();if(p)return `İzin inceleniyor (yaklaşık ${p.days} gün). Beklerken üstteki hız düğmesine bas: 3x zamanı üç kat hızlandırır.`;
+    d:()=>{const p=pending();if(p)return `İzin inceleniyor (yaklaşık ${p.days} gün). Beklerken üstteki 3x düğmesine bas: zaman üç kat hızlı akar.`;
       if(!sites().some(o=>o.permit==="ok")&&sites().some(o=>o.permit==="rejected"))return "İzin reddedildi. Sahanın panelinden bir başvuru yolu seç ya da ova veya çölde yeni bir arazi al.";
       return "İzin çıktı. Panelde GES ya da RES sekmesini seç: güneş gündüz üretir, rüzgâr gece gündüz eser.";}},
   {id:"build",n:"Santrali kur",r:8000,ok:()=>S.plants.length>0,
     d:"Standart ekipmanlı +5 MW bloğu kur. Kurulduğu saatten itibaren üretip satmaya başlar."},
   {id:"run",n:"İlk üretimi gerçekleştir",r:4000,quiet:true,ok:()=>!!ob().prod,
-    d:()=>night()&&S.plants.some(p=>p.k==="ges")&&!S.plants.some(p=>p.k==="res"||p.k==="off")?"Gece: GES güneş doğunca (06:00 civarı) üretmeye başlar. Hız düğmesiyle sabahı öne çekebilirsin.":
+    d:()=>night()&&S.plants.some(p=>p.k==="ges")&&!S.plants.some(p=>p.k==="res"||p.k==="off")?"Gece: GES güneş doğunca (06:00 civarı) üretmeye başlar. 3x ya da 8x düğmesiyle sabahı öne çekebilirsin.":
       S.plants.every(p=>p.k==="batt")?"Batarya elektrik üretmez, yalnızca depolar. İlk üretim için bir GES ya da RES bloğu kur.":"Zamanın akmasını izle: santralin hava uygun olduğu ilk saatte üretir."},
   {id:"sale",n:"Elektriği piyasaya sat",r:4000,quiet:true,ok:()=>!!ob().sale,
     d:"Üretimin o saatin piyasa fiyatından satılır. Fiyat sıfırsa güneş üretimi satılamaz; bir sonraki saati bekle."},
