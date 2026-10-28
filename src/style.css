@@ -66,7 +66,7 @@ h2{font-size:1.05rem;font-weight:800;margin:20px 0 8px}
 .report{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 table{width:100%;border-collapse:collapse;font-size:.86rem}
 td,th{padding:5px 4px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-td:first-child,th:first-child{text-align:left}
+td:first-child,th:first-child{text-align:left;white-space:normal} /* kalem adı alt satıra geçebilir; sayılar tek satırda kalır, tablo yatay kaymaz */
 th{color:var(--muted);font-weight:600;font-size:.75rem}
 tr:last-child td{border-bottom:0}
 .note{margin-top:10px;padding:10px 12px;border-left:4px solid var(--hydro);background:var(--bg);border-radius:0 8px 8px 0;font-size:.9rem}
@@ -454,7 +454,10 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
 /* Masaüstü: harita solda büyük, panel sağda sabit */
 @media (min-width:900px){
   main{max-width:1440px}
-  .stage{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;align-items:start}
+  /* panel geniş ekranda büyür (rapor tabloları sığsın): en az 400, en çok 540 piksel */
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) clamp(400px,32vw,540px);gap:14px;align-items:start}
+  /* proje ekonomisinin uzman ayrıntıları (9 sütunlu tablolar) açıkken panel genişler */
+  .stage:has(#fin details.expert[open]){grid-template-columns:minmax(0,1fr) clamp(400px,46vw,680px)}
   .mapwrap{height:calc(100dvh - 256px);min-height:440px;position:sticky;top:12px}
   .side{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;padding-right:2px}
   .tabs{position:sticky;top:0;z-index:2}
@@ -523,6 +526,7 @@ dialog.confirm p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
 .finw{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.86rem;margin-bottom:8px}
 .finw input{flex:1;min-width:140px}
 .fint td,.fint th{white-space:nowrap}
+.fint{font-size:.78rem}.fint td,.fint th{padding:4px 3px}
 .fint td:first-child{white-space:normal;text-align:left;min-width:120px}
 .findet{margin-top:10px;font-size:.84rem;line-height:1.45}
 .findet summary{cursor:pointer;font-weight:700;min-height:32px}

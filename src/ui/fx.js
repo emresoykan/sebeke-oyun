@@ -30,7 +30,9 @@ function place(el){
 }
 // kart açılıp kapanınca ekrandaki balonlar yeniden yerleşir
 window.addEventListener("sebeke:sheet",()=>{const el=document.getElementById("toasts");if(el&&el.children.length)place(el);});
-function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);}
+function box(){let el=document.getElementById("toasts");if(!el){el=document.createElement("div");el.id="toasts";el.setAttribute("aria-live","polite");el.popover="manual";document.body.appendChild(el);
+    // harita alanı boyut değiştirince (panel genişleyince, pencere boyutu) balonlar yeniden yerleşir
+    const mw=document.getElementById("mapwrap");if(mw&&window.ResizeObserver)new ResizeObserver(()=>{if(el.children.length)place(el);}).observe(mw);}
   if(el.showPopover){try{if(el.matches(":popover-open"))el.hidePopover();el.showPopover();}catch(e){}}place(el);return el;}
 
 export function toast(title,sub="",kind=""){

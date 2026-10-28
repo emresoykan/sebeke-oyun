@@ -75,7 +75,7 @@ function scaleNote(){
   return ks.map(k=>`${TECH[k].n} ~1/${Math.round(FIN[k].capex*1000*BLOCK/TECH[k].capex)}`).join(", ");
 }
 function assumptions(){
-  const tr=Object.entries(FIN).map(([k,f])=>`<tr><td>${TECH[k].n}</td><td>${f.capex.toLocaleString("tr-TR")}</td><td>${f.opex}</td><td>${f.life}</td><td style="text-align:left">${f.src}</td></tr>`).join("");
+  const tr=Object.entries(FIN).map(([k,f])=>`<tr><td>${TECH[k].n}</td><td>${f.capex.toLocaleString("tr-TR")}</td><td>${f.opex}</td><td>${f.life}</td><td style="text-align:left;white-space:normal;min-width:140px">${f.src}</td></tr>`).join("");
   return `<details class="findet"><summary>Varsayımlar, hesap yöntemi ve kısaltmalar</summary>
   <p><b>Neden gerçek dünya ölçeği?</b> Oyunda yatırımlar gerçeğin yaklaşık 1/60'ı ve günler hızlı geçer; oyun parasıyla hesaplanan getiri gerçekçi olmaz. Burada üretim ve satış fiyatı oyunda gerçekleşen değerlerdir, maliyetler gerçek dünya varsayımlarıdır.</p>
   <div style="overflow-x:auto"><table><tr><th>Teknoloji</th><th>Yatırım $/kW</th><th>İşletme $/kW-yıl</th><th>Ömür (yıl)</th><th style="text-align:left">Yatırım kaynağı</th></tr>${tr}</table></div>
