@@ -69,7 +69,7 @@ function showWin(nw,mid=false){
 export function showLose(){
   const d=document.getElementById("winDlg");if(!d)return;if(d.open)d.close();
   const mw=S.plants.reduce((a,p)=>a+p.mw,0),cell=(k,v)=>`<div><small>${k}</small><b>${v}</b></div>`;
-  d.innerHTML=`<h3>Şirket iflas etti</h3><p>Nakit ${BANKRUPT_DAYS} gün üst üste eksi kaldı (son durum ${fmt$(S.money)}). Kayıtlı bir oyunu yükleyebilir ya da yeni bir oyuna başlayabilirsin.</p>
+  d.innerHTML=`<h3>Şirket iflas etti</h3><p>Nakit ${BANKRUPT_DAYS} gün üst üste eksi kaldı (son durum ${fmt$(S.money)}). Kayıtlı bir oyunu yükleyebilir ya da yeni bir oyuna başlayabilirsin. Yeni oyun şirket profilini de siler; kurulum ekranı yeniden açılır.</p>
     <div class="winstats">${cell("Süre",`${S.dayNo} gün`)}${cell("Kurulu güç",`${mw} MW`)}${cell("Toplam üretim",`${Math.round(S.stats.mwh).toLocaleString("tr-TR")} MWh`)}${cell("Toplam net kazanç",fmt$(S.stats.net))}</div>
     <div class="dlgbtns"><button data-v="load">Kayıt yükle</button><button data-v="new" class="pri">Yeni oyun</button></div>`;
   d.querySelector('[data-v="load"]').onclick=()=>window.dispatchEvent(new CustomEvent("sebeke:import"));

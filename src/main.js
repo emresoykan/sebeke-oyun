@@ -59,9 +59,9 @@ if(new URLSearchParams(location.search).has("perf"))import("./ui/perfprobe.js").
   b.onclick=e=>{e.stopPropagation();set(t.hidden);};
   document.addEventListener("click",e=>{if(!t.hidden&&!t.contains(e.target))set(false);});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")set(false);});}
-// iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force)
+// iflas ekranındaki "Yeni oyun" onay sormaz (sebeke:reset, detail.force) ve şirket profilini de siler (kurulum ekranı açılır)
 async function reset(e){const force=e instanceof CustomEvent&&e.detail&&e.detail.force===true;
-  const r=force?{ok:true,checked:false}:await confirmBox("Yeniden başla","Oyundaki tüm ilerleme (para, sahalar, santraller, krediler, rozetler) silinsin mi? Bu işlem geri alınamaz. Şirket profilin (ad, şirket, renk, uzmanlık) da silinir ve kurulum ekranı yeniden açılır; profili tutmak istersen aşağıdaki kutunun işaretini kaldır.","Sil",true,"Şirket profilini de sil ve kurulum ekranını yeniden aç",true);
+  const r=force?{ok:true,checked:true}:await confirmBox("Yeniden başla","Oyundaki tüm ilerleme (para, sahalar, santraller, krediler, rozetler) silinsin mi? Bu işlem geri alınamaz. Şirket profilin (ad, şirket, renk, uzmanlık) da silinir ve kurulum ekranı yeniden açılır; profili tutmak istersen aşağıdaki kutunun işaretini kaldır.","Sil",true,"Şirket profilini de sil ve kurulum ekranını yeniden aç",true);
   if(!r.ok)return;
   if(r.checked)try{localStorage.removeItem(PROFILE_KEY);}catch(err){}
   setS(fresh());save();newDay();location.reload();}
