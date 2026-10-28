@@ -3,13 +3,16 @@ import { wp } from "../perfmark.js";
 import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions } from "../rules.js";
-import { spotCheck, ob, proOn, inTutorial } from "../tutorial.js";
+import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
 import { checkMissions } from "../missions.js";
 import { slopeOf } from "../slope.js";
 import { fillRes, ghiAt } from "../world.js";
 import { fmt$, dots, shape } from "../utils.js";
 import { siteMW } from "../sim.js";
-import { buyLand, applyPermit, build, undoFor, undoLast } from "../actions.js";
+import { buyLand, applyPermit, build, undoFor, undoLast, sellSite } from "../actions.js";
+import { saleOffer, SALE } from "../sale.js";
+import { confirmBox } from "./sheet.js";
+import { toast } from "./fx.js";
 import { plantStatus, statusText } from "../plantstatus.js";
 import { flyToSite, orbitSite } from "./map.js";
 import { EQUIP, TIERS, TIER_ORDER, capexOf, eqName, tierOf } from "../equipment.js";
@@ -54,6 +57,39 @@ function buildHtml(t){
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
+}
+
+// Sahayı sat (sale.js): alıcı teklifinin dökümü (defter değeri ve teklif), kredi kapama, nakde geçecek tutar ve kâr/zarar.
+// Kutu kapalı gelir; açıkken yeniden çizimde açık kalır (sellOpen: açık kutunun sahası). Eğitim bitince görünür.
+let sellOpen=null;
+const pct=v=>Math.round(v*100);
+const HOW={income:"gelir yöntemi",young:`işletme geçmişi ${SALE.track} günden kısa: yatırım bedelinin %${pct(SALE.young)}'ı`,
+  batt:`arbitraj geliri kaydı yok (dengeleme ya da kapalı mod): yatırım bedelinin %${pct(SALE.young)}'ı`,
+  cap:`gelir yöntemi, üst sınır: yatırım bedelinin ${String(SALE.cap).replace(".",",")} katı`,floor:`nakit akışı zayıf, alt sınır: yatırım bedelinin %${pct(SALE.floor)}'si`};
+function sellHtml(id,o){
+  const f=saleOffer(id);if(!f)return "";
+  const landNote=f.items.length?"":o.permit==="ok"?`izinli, inşaata hazır proje: arazi bedelinin ${String(SALE.rtb).replace(".",",")} katı`:`izinsiz arazi: bedelin %${pct(SALE.raw)}'i`;
+  const rows=f.items.map(x=>`<tr><th scope="row">${TECH[x.p.k].n} ${x.p.mw} MW<small>${HOW[x.how]}${x.cf!=null?`; günlük nakit akışı ${fmt$(x.cf)}`:""}</small></th><td>${fmt$(x.book)}</td><td>${fmt$(x.v)}</td></tr>`).join("");
+  const g=f.gain,gl=Math.abs(g)<1?"Defter değeriyle aynı: portföy değeri değişmez.":`Defter değerine göre <b class="${g>0?"pos":"neg"}">${g>0?"kâr":"zarar"} ${fmt$(Math.abs(g))}</b>: portföy değeri bu kadar ${g>0?"artar":"azalır"}.`;
+  return `<details class="sell"${sellOpen===id?" open":""}><summary>Sahayı sat</summary>
+    <p class="sellp">Bir altyapı fonu bu sahaya <b>${fmt$(f.price)}</b> teklif ediyor.</p>
+    <table class="pfmini selltab"><thead><tr><th></th><th>Defter</th><th>Teklif</th></tr></thead><tbody>${rows}
+      <tr><th scope="row">${o.sea?"Deniz alanı":"Arazi"}${landNote?`<small>${landNote}</small>`:""}</th><td>${fmt$(f.land)}</td><td>${fmt$(f.landV)}</td></tr>
+      <tr class="sum"><th scope="row">Toplam</th><td>${fmt$(f.book)}</td><td>${fmt$(f.gross)}</td></tr>
+      <tr><th scope="row">İşlem masrafı %${pct(SALE.fee)}</th><td></td><td>−${fmt$(f.fee)}</td></tr>
+      <tr class="sum"><th scope="row">Satış bedeli</th><td></td><td>${fmt$(f.price)}</td></tr>
+      ${f.debt>0?`<tr><th scope="row">Kredi kapama</th><td></td><td>−${fmt$(f.debt)}</td></tr><tr class="sum"><th scope="row">Nakde geçecek</th><td></td><td>${fmt$(f.net)}</td></tr>`:""}
+    </tbody></table>
+    <p class="sellp">${gl}</p>
+    <p class="sellnote">Alıcı her santralin oyunda gerçekleşen günlük nakit akışını (gelir − yakıt − işletme gideri) bir yıla çevirip ömrü boyunca %${pct(SALE.wacc)} iskonto oranıyla bugüne indirger (1 ekonomik yıl ≈ 5,8 oyun günü). Alım garantisi ve dengesizlik maliyeti hesaba katılmaz. Satış geri alınamaz; saha, santralleri ve kredileri portföyden çıkar. <button type="button" class="hlink" data-gloss="book">Defter değeri nedir?</button></p>
+    ${f.ok?"":`<div class="status bad">Nakit, sahanın kredisini kapatmaya yetmiyor (${fmt$(-f.net)} eksik).</div>`}
+    <div class="actions"><button class="dangerbtn" data-a="sell"${f.ok?"":" disabled"}>Teklifi kabul et • ${f.net>=0?"+":""}${fmt$(f.net)}</button></div></details>`;
+}
+async function askSell(id){
+  const f=saleOffer(id),o=S.sites[id];if(!f||!o)return;
+  const r=await confirmBox("Sahayı sat",`${o.city||o.country} sahası ${fmt$(f.price)} bedelle satılsın mı?${f.debt>0?` ${fmt$(f.debt)} kredi bedelden kapanır, nakde ${fmt$(f.net)} geçer.`:""} ${f.gain>=0?"Kâr":"Zarar"}: ${fmt$(Math.abs(f.gain))}. Bu işlem geri alınamaz.`,"Sat",true);
+  if(!r)return;const x=sellSite(id);if(!x)return;sellOpen=null;
+  toast("Saha satıldı",`Nakde ${fmt$(x.net)} geçti • ${x.gain>=0?"kâr":"zarar"} ${fmt$(Math.abs(x.gain))}`,x.gain>=0?"win":"");
 }
 
 // Arazi eğimi: panelde ölçülen değer; düz arazi isteyen teknolojiler eğimli yerde çıkar (rules.js)
@@ -146,8 +182,10 @@ function renderPanelImpl(){
     if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
   }
+  if(o&&fullOn())html+=sellHtml(id,o);
   el.innerHTML=html;
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);
+  const sd=el.querySelector("details.sell");if(sd)sd.ontoggle=()=>{sellOpen=sd.open?id:null;};
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);else if(a==="sell")askSell(S.sel.id);
     else if(a==="tab"){tab=b.dataset.k;if(o&&o.permit==="ok"&&!ob().tech){ob().tech=1;checkMissions();}renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }

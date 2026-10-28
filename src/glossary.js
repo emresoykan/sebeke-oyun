@@ -4,6 +4,7 @@
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
 import { FIT } from "./config.js";
+import { SALE } from "./sale.js";
 
 export const CATS=[["piyasa","Piyasa"],["proje","Proje ve izin"],["finans","Finans"],["tekno","Teknoloji"]];
 
@@ -73,6 +74,12 @@ export const TERMS=[
   {k:"gearing",t:"Borç oranı",e:"gearing",c:"finans",
     d:"Yatırımın borçla finanse edilen payı; geri kalanı özsermayedir. Kaldıraç, proje iyi giderse özsermaye getirisini artırır, kötü giderse riski büyütür.",
     g:"Kredili kurulumda yatırımın bir kısmını banka karşılar; ilk günler yalnızca faiz, sonra taksit her gün sonunda nakitten düşer."},
+  {k:"book",t:"Defter değeri",e:"book value",c:"finans",
+    d:"Bir varlığın muhasebe kayıtlarındaki değeri; genellikle maliyet bedelinden birikmiş amortisman düşülerek bulunur. Satış bedeli defter değerinin üstündeyse fark satış kârı, altındaysa satış zararıdır.",
+    g:"Oyunda amortisman yok: defter değeri arazi bedeli + santrallerin kurulum bedelidir. Sahayı satınca bedel ile bu değerin farkı portföy değerine kâr ya da zarar olarak yansır."},
+  {k:"income",t:"Gelir yöntemi",e:"income approach, DCF",c:"finans",
+    d:"Bir varlığı gelecekte üreteceği nakit akışlarının bugünkü değeriyle değerleme. Çalışan enerji santrallerinin alım-satımında yaygın kullanılır; sonuç iskonto oranı ve üretim varsayımına çok duyarlıdır.",
+    g:`Saha satışında alıcı, santralin oyunda gerçekleşen günlük nakit akışını bir yıla çevirip ömrü boyunca %${Math.round(SALE.wacc*100)} ile bugüne indirger; en az ${SALE.track} günlük işletme geçmişi ister.`},
   {k:"networth",t:"Portföy değeri",e:"net worth",c:"finans",
     d:"Sahip olunan varlıkların değerinden borçların düşülmesiyle kalan net değer.",
     g:"Nakit + arazi ve santrallerin kurulum bedeli − kredi borcu. Oyunun hedefi 5 M$ portföy değeri; 1 M$'da \"Bölgesel oyuncu\" ara zaferi açılır."},

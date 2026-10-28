@@ -671,3 +671,16 @@ h2 .hlink{margin-left:6px;font-weight:600;min-height:32px}
 .dintro .dgl{margin:6px 0 0;font-size:.88rem;color:var(--muted)}
 #notesBtn.isnew::after{content:"Yeni";margin-left:6px;padding:1px 6px;border-radius:8px;background:var(--warn);color:#1D2B36;font-size:.72rem;font-weight:800}
 .tabs button.hasnew::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;border-radius:50%;background:var(--warn);vertical-align:2px}
+
+/* Sahayı sat (panel.js sellHtml) */
+#panel details.sell{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:0 12px}
+#panel details.sell summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700}
+#panel details.sell[open]{padding-bottom:12px}
+#panel .sellp{margin:8px 0;font-size:.9rem}
+#panel .sellnote{margin:8px 0;font-size:.8rem;color:var(--muted);line-height:1.4}
+#panel .selltab th[scope=row]{text-align:left}
+#panel .selltab thead th:first-child{width:54%} /* table-layout:fixed sütun genişliğini ilk satırdan alır */
+#panel .selltab th small{display:block;color:var(--muted);font-size:.74rem;line-height:1.3}
+#panel .selltab td{width:24%;white-space:nowrap;vertical-align:top}
+#panel .selltab tr.sum th,#panel .selltab tr.sum td{font-weight:700}
+#panel .sellp b.pos{color:var(--pos)}#panel .sellp b.neg{color:var(--neg)}
