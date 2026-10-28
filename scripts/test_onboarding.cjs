@@ -162,7 +162,7 @@ async function logic(b) {
     // görev zinciri v2 kaydı (9. görev ve sonrası): kredi görevi eklendiği için bir kaydırılır
     localStorage.setItem("sebeke-world-v3", JSON.stringify({ ...old, mv: 2, mi: 10, ob: { sale: 1, rep: 1 } })); out.mig2 = st.load().mi;
     // alım garantisi: ilk yenilenebilir santralin sahası alır, ikinci saha almaz; gün içinde fark ödenir
-    st.setS(st.fresh()); S().money = 1e6; S().mi = 8; S().ob = { g: 1, sale: 1, card: 1 };
+    st.setS(st.fresh()); sim.newDay(); S().money = 1e6; S().mi = 8; S().ob = { g: 1, sale: 1, card: 1 };
     S().sel = { id: null, lat: P.lat, lon: P.lon }; ac.buyLand(); const f1 = S().sel.id; S().sites[f1].permit = "ok"; ac.build(f1, "ges", "std");
     S().sel = { id: null, lat: P.lat + 0.6, lon: P.lon + 0.8 }; ac.buyLand(); const f2 = S().sel.id; S().sites[f2].permit = "ok"; ac.build(f2, "ges", "std");
     S().hour = 0; for (let h = 0; h < 23; h++) sim.tick(); const stt = (await import("/src/state.js")).D.st;
