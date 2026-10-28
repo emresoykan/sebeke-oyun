@@ -2,6 +2,11 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-28.4",t:"Karanlık temada okunurluk",items:[
+    "Karanlık temada teknoloji renkli düğme ve etiketlerde (GES, RES, batarya…) yazı koyu: açık renk zeminde beyaz yazı okunmuyordu.",
+    "Şirket avatarının yazı rengi seçtiğin renge göre otomatik; kilitli rozetler soluk değil, okunur; kazanılanlarda ✓ var.",
+    "Piyasa grafiğinin başlığı ve lejantı gündüz gökyüzünde de okunur (koyu yarı saydam şerit).",
+    "Saha doluysa panel nedenini yazar: saha sınırına (40 MW) batarya dahil tüm tesisler sayılır."]},
   {id:"2026-10-28.3",t:"İflastan sonra temiz başlangıç",items:[
     "İflas ekranındaki \"Yeni oyun\" şirket profilini de siler; kurulum ekranı yeniden açılır (\"Yeniden başla\" ile aynı)."]},
   {id:"2026-10-28.2",t:"Saha satışı",items:[
