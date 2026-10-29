@@ -66,6 +66,12 @@ export const EQUIP={
     std:{brand:"Lacus",model:"F-550",spec:"Mono PERC panel, modüler şamandıra, çevre çapası",capex:1.00,perf:1.00,avail:0.98,opex:1.00},
     pre:{brand:"Aquila",model:"F-620B",spec:"Çift yüzlü panel, suyun yansımasından da üretir, dalga kırıcı",capex:1.20,perf:1.10,avail:0.99,opex:0.95}
   },
+  // deniz üstü GES: perf üretime çarpan (deniz kazancı ayrıca config.js SPV_GAIN); kademeler korozyon koruması ve panel tipine göre
+  spv:{
+    eco:{brand:"Pelagos",model:"SP-450",spec:"Mono panel, galvanizli çelik kafes, boyalı kazık",capex:0.86,perf:0.92,avail:0.95,opex:1.15},
+    std:{brand:"Marea",model:"SP-570B",spec:"Çift yüzlü N tipi panel, epoksi kaplı kafes, kurban anot",capex:1.00,perf:1.00,avail:0.97,opex:1.00},
+    pre:{brand:"Thalassa",model:"SP-620X",spec:"Çift yüzlü cam-cam panel, kalın kaplama ve katodik koruma, uzaktan izleme",capex:1.16,perf:1.07,avail:0.985,opex:0.90}
+  },
   // pompaj HES: rte pompa + türbin çevrim verimi (yayınlarda %70–85 aralığı; değerler temsilî)
   phs:{
     eco:{brand:"Kaskad",model:"PT-1",spec:"Sabit hızlı tersinir Francis, verim %75",capex:0.88,perf:1,rte:0.75,avail:0.97,opex:1.10},

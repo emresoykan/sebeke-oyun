@@ -66,7 +66,7 @@ function dailyNews(){
   Object.values(S.sites).forEach(t=>{if(warn>=2)return;const ks=new Set(S.plants.filter(p=>site(p.t)===t).map(p=>p.k));if(!ks.size)return;
     let mx=0,hm=0,snow=false;for(let h=0;h<24;h++){const w=siteWx(t,h);if(w.hub>mx){mx=w.hub;hm=h;}if(w.snow)snow=true;}
     if((ks.has("res")||ks.has("off")||ks.has("flo"))&&mx>25){news("⛈️",`Fırtına uyarısı: ${placeName(t)} için saat ${String(hm).padStart(2,"0")}:00 civarı ${mx.toFixed(0)} m/s rüzgâr bekleniyor, türbinler durabilir.`,"wx");warn++;}
-    else if((ks.has("ges")||ks.has("fpv"))&&snow&&!(t.snowDays>0)){news("🌨️",`Kar uyarısı: ${placeName(t)} için kar bekleniyor, paneller örtülebilir.`,"wx");warn++;}});
+    else if((ks.has("ges")||ks.has("fpv")||ks.has("spv"))&&snow&&!(t.snowDays>0)){news("🌨️",`Kar uyarısı: ${placeName(t)} için kar bekleniyor, paneller örtülebilir.`,"wx");warn++;}});
   if(!S.rec)S.rec={};
   const mk=new Set(["T",...S.plants.map(p=>site(p.t).mreg)]);
   mk.forEach(k=>{const pr=D[k].price,mx=Math.max(...pr),h=pr.indexOf(mx),r=S.rec[k];
@@ -105,7 +105,7 @@ export function tick(){
       // alım garantisi (ilk proje, config.js FIT): piyasa fiyatı tabanın altındaysa fark gerçekleşen üretime ödenir. Proje
       // ekonomisine (ac) katılmaz: ömür boyu getiri hesabı desteksiz piyasa fiyatıyla kalır
       if(t.fit&&S.dayNo<=t.fit.until&&e>0&&sp<t.fit.p){const x=e*(t.fit.p-Math.max(0,sp));cash+=x;st.fit+=x;}
-      if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="fpv")g.s+=e;else if(p.k==="mar")g.m+=e;else g.w+=e;}
+      if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="fpv"||p.k==="spv")g.s+=e;else if(p.k==="mar")g.m+=e;else g.w+=e;}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
     else if(p.k==="jes"){const e=geoOut(p,h);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
     // CSP: heliostatlar saatin ısısını erimiş tuz deposuna doldurur; türbin plandaki (en pahalı) saatlerde depodan üretir.

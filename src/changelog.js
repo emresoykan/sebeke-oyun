@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.4",t:"Deniz üstü GES",items:[
+    "Yeni teknoloji: kıyıya 20 km'den yakın sığ denizde çelik kazıklar üstündeki sarı kafes platformlara kurulan güneş santrali (Çin'deki 1 GW'lık projeler gibi).",
+    "Yatırımı kara GES'inin ~1,4 katı (kazık, kafes, deniz kablosu), deniz yansıması ve serinlikle ~%4 fazla üretim; arazi kullanmaz ama saha sınırına sayılır.",
+    "Sığ deniz sahalarında artık güneş kaynağı da gösterilir; sözlükte \"Deniz üstü GES\" terimi, raporda \"GES denizde\" satırı."]},
   {id:"2026-10-29.3",t:"Açık temada okunabilirlik",items:[
     "Açık temada teknoloji renkli düğme, sekme ve rozetlerdeki yazılar daha okunaklı: güneş sarısında yazı koyu, rüzgâr, batarya, biyokütle, deniz ve jeotermal zeminleri biraz koyulaştı. Haritadaki renkler değişmedi.",
     "Kazanç rakamları, sözlük bağlantıları ve premium etiketi açık zeminde daha koyu tonda (WCAG 4,5:1 oranı)."]},

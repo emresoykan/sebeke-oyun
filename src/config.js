@@ -51,6 +51,8 @@ export const TECH={
   // (GES'te ~8,3, rüzgâr ve bataryada ~6,2 × $/kW-yıl)
   // yüzer GES: baraj gölüne kurulur (sahada HES olmalı); su paneli soğutur
   fpv:{n:"Yüzer GES",long:"Yüzer güneş (baraj gölünde)",capex:66000,opex:115,c:"--solar"},
+  // deniz üstü GES: sığ kıyı denizinde çelik kazıklar üstünde kafes platformlar (finance.js FIN.spv: 961 $/kW)
+  spv:{n:"Deniz GES",long:"Deniz üstü güneş (kazıklı platform, sığ kıyı)",capex:76000,opex:165,c:"--solar"},
   // pompaj depolamalı HES: 5 MW / 50 MWh (10 saat); ucuz saatte suyu üst hazneye basar, pahalı saatte türbinden geçirir
   phs:{n:"Pompaj HES",long:"Pompaj depolamalı HES 5 MW / 50 MWh",capex:160000,opex:125,c:"--hydro"},
   // elektrolizör: şebekeden elektrik alır, hidrojeni sabit fiyattan satar (H2)
@@ -59,7 +61,7 @@ export const TECH={
   csp:{n:"CSP",long:"Yoğunlaştırılmış güneş (kule, erimiş tuz)",capex:290000,opex:460,c:"--csp"}
 };
 // Üretim yapan teknolojiler (rapor ve günlük toplamlar için)
-export const PROD=["ges","res","off","flo","hes","jes","bes","mar","fpv","csp"];
+export const PROD=["ges","res","off","flo","hes","jes","bes","mar","fpv","spv","csp"];
 // Depolama: ucuz saatte şebekeden alır, pahalı saatte geri satar (kurulu güç saha sınırına sayılır, üretim sayılmaz)
 export const STORE=["batt","phs"];
 // JES: rezervuar sürekli üretir (kapasite faktörü ~%90); ilk sondajda rezervuarın verimi belli olur (%55–110)
@@ -70,6 +72,13 @@ export const BIO_FUEL=34;
 export const MAR_UNLOCK=25, MAR_PREMIUM=60, FLO_UNLOCK=60;
 // Yüzer GES: su yüzeyi panelleri soğutur; üretime çarpan (varsayım: yayınlarda %2–10 arası kazanç anlatılıyor, doğrulanmadı)
 export const FPV_COOL=1.04;
+// Deniz üstü GES: üretime çarpan. Çin'de iki kazıklı projenin tasarım üretimi (Kenli HG14 1.346, Zhaoyuan HG30 1.287 kWh/kWp)
+// Shandong'daki kara GES'lerinin 2024 gerçekleşen 1.269 saatinin %1–6 üstünde (tasarım ile gerçekleşen kıyası: varsayım);
+// oyunda %4. Kıyıya uzaklık sınırı: gerçek projeler 2–8 km açıkta ve 1–11 m derinlikte; oyunda derinlik verisi yok ve kıyı
+// çizgisi kaba, kıyıdan en çok 20 km (varsayım)
+export const SPV_GAIN=1.04, SPV_KM=20;
+// GES türlerinin üretim çarpanı (aynı panele göre)
+export const PV_GAIN={fpv:FPV_COOL,spv:SPV_GAIN};
 // Pompaj HES: depo süresi (saat, kurulu güçte); NREL ATB sınıfları 8–12 saat, oyunda 10
 export const PHS_H=10;
 // Yeşil hidrojen (varsayımlar, kaynakla doğrulanmadı): elektrolizör sistemi kg başına 55 kWh elektrik harcar (standart

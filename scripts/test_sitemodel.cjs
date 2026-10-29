@@ -6,9 +6,9 @@ const { chromium } = require("playwright");
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",SHOT=process.argv[3]&&!process.argv[3].startsWith("--")?process.argv[3]:null;
 const TAG=(process.argv.includes("--tag")?process.argv[process.argv.indexOf("--tag")+1]:"")||"m";
 // [teknoloji, enlem, boylam, MW]
-// hfpv: HES ve gölünde yüzer GES (yüzer GES tek başına kurulamaz)
+// hfpv: HES ve gölünde yüzer GES (yüzer GES tek başına kurulamaz); spv: deniz üstü GES (Antalya körfezi, kıyıya ~7 km)
 const SITES=[["ges",38.1,32.6,20],["res",40.05,26.6,20],["off",40.6,27.2,20],["hes",40.95,39.75,5],["jes",37.85,28.0,20],["bes",39.0,35.5,20],["batt",37.9,33.9,20],["mar",40.4,26.4,10],["flo",33,29,34],
-  ["hfpv",40.7,39.5,0],["phs",40.95,39.75,20],["h2",38.1,32.6,20],["csp",37.0,39.3,20],["mix",38.4,34.4,0]];
+  ["hfpv",40.7,39.5,0],["phs",40.95,39.75,20],["h2",38.1,32.6,20],["csp",37.0,39.3,20],["spv",36.75,31.2,20],["mix",38.4,34.4,0]];
 (async()=>{const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
 const p=await b.newPage({viewport:{width:1366,height:768}});const errs=[];p.on("pageerror",e=>errs.push(String(e).slice(0,200)));
 await p.route(/fonts\.g/,r=>r.abort());

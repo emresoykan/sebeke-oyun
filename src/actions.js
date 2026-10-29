@@ -71,7 +71,7 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
   if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
   // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
-  if(!S.fitDone&&["ges","res","off","flo","mar","fpv"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
+  if(!S.fitDone&&["ges","res","off","flo","mar","fpv","spv"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};
     addLog(`${placeName(o)}: ilk projen alım garantisi kapsamında. Piyasa fiyatı ${FIT.p} $/MWh'nin altına düştüğü saatlerde fark ödenir (${FIT.years} ekonomik yıl, ${days} oyun günü).`);}
   // rüzgâr santrali kurulurken türbinler o saatte esen rüzgâra bakacak şekilde dizilir (sitemodel.js buildSite); sahadaki
   // sonraki bloklar aynı yönde eklenir

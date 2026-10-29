@@ -33,8 +33,10 @@ function segKm(lat,lon,line){const kx=111.32*Math.cos(lat*rad),ky=110.57;let bes
 const CO=coast.map(l=>({l,bb:bboxOf([[l]])}));
 const degM=(k,lat)=>k/(111*Math.max(0.2,Math.cos(lat*rad)));
 function coastKm(lon,lat){const m=degM(COAST_KM,lat);let best=Infinity;CO.forEach(c=>{if(inBB(c.bb,lon,lat,m))best=Math.min(best,segKm(lat,lon,c.l));});return best;}
-function nearestCountry(lon,lat,maxKm){const m=degM(maxKm,lat);let best=null,bd=Infinity;
-  C.forEach(c=>{if(!inBB(c.bb,lon,lat,m))return;c.polys.forEach(p=>{const d=segKm(lat,lon,p[0]);if(d<bd){bd=d;best=c;}});});return bd<=maxKm?best:null;}
+// en yakın ülke kıyısı ve uzaklığı (km); maxKm'den uzaksa {c:null}
+function nearestShore(lon,lat,maxKm){const m=degM(maxKm,lat);let best=null,bd=Infinity;
+  C.forEach(c=>{if(!inBB(c.bb,lon,lat,m))return;c.polys.forEach(p=>{const d=segKm(lat,lon,p[0]);if(d<bd){bd=d;best=c;}});});return bd<=maxKm?{c:best,km:bd}:{c:null,km:Infinity};}
+const nearestCountry=(lon,lat,maxKm)=>nearestShore(lon,lat,maxKm).c;
 export function nearestCity(lat,lon){let best=null,bd=Infinity;for(const c of cities){const d=km(lat,lon,c[2],c[3]);if(d<bd){bd=d;best=c;}}return{n:best[0],a3:best[1],km:bd};}
 
 // Jeotermal kuşaklar (levha sınırları ve volkanik bölgeler, kaba): [enlem, boylam, yarıçap km, kaynak gücü]
@@ -52,7 +54,8 @@ export const tideAt=(lat,lon)=>{const v=zoneAt(TIDE_ZONES,lat,lon);return +Math.
 const BIO={pl:0.8,f:0.9,m:0.45,d:0.1,p:0,i:0};
 // Eski kayıtlardaki sahalarda yeni kaynak alanları yok: konumdan tamamlanır
 export function fillRes(t){
-  if(t.sea){if(t.shallow&&t.tide==null)t.tide=tideAt(t.lat,t.lon);}
+  // sığ deniz: güneş kaynağı (deniz üstü GES) ve kıyıya uzaklık eski kayıtlarda yok
+  if(t.sea){if(t.shallow){if(t.tide==null)t.tide=tideAt(t.lat,t.lon);if(!t.solar)t.solar=sunOf(t.lat,t.lon);if(t.coastKm==null)t.coastKm=+nearestShore(t.lon,t.lat,SHALLOW_KM).km.toFixed(1);}}
   else{if(t.geo==null)t.geo=geoAt(t.lat,t.lon);if(t.bio==null)t.bio=BIO[t.ter]??0;}
   return t;
 }
@@ -112,9 +115,10 @@ export function describe(lat,lon){
     t.hydro=t.ter==="m"?0.8:0;
     t.geo=t.ter==="i"?0:geoAt(lat,lon);t.bio=BIO[t.ter]??0;
   }else{
-    t.reg=null;t.sea=true;const n=nearestCountry(lon,lat,SHALLOW_KM);
+    t.reg=null;t.sea=true;const sh=nearestShore(lon,lat,SHALLOW_KM),n=sh.c;
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=0;t.hydro=0;t.tide=tideAt(lat,lon);}
+    // sığ denizde güneş kaynağı da var (deniz üstü GES); kıyıya uzaklık kıyıya yakın kurulan tesisler için
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=sunOf(lat,lon);t.coastKm=+sh.km.toFixed(1);t.hydro=0;t.tide=tideAt(lat,lon);}
     // derin deniz bandı (kıyıya SHALLOW_KM–FLOAT_KM): sabit temel kurulamaz, yalnızca yüzer rüzgâr
     else if(Math.abs(lat)<66){const d=nearestCountry(lon,lat,FLOAT_KM);if(d&&MARKETS.includes(d.m)){t.deep=true;t.mreg=d.m;t.country=d.n;t.a3=d.a3;t.wind=seaWindOf(lat,lon,d.m);t.solar=0;t.hydro=0;}}
   }

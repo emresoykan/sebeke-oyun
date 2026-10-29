@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -58,6 +58,7 @@ function buildHtml(t){
     flo:locked("flo")?`Yüzer rüzgâr deneyim ister: toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Çift rotorlu yüzer platform: tek nokta bağlamayla rüzgâra kendiliğinden döner, derin suya da kurulur. Yatırımı sabit tabanlının ~1,9 katı. Fırtınada türbinler durur ama tayfun sınıfı gövde hasar görmez (fırtına kartında arıza riski yok).`,
     fpv:(siteBlock(S.sel.id,"fpv")==="lake"?`Yüzer GES baraj gölüne kurulur: önce bu sahaya HES kur. `:siteBlock(S.sel.id,"fpv")==="lakefull"?`Göl dolu: yüzer GES en çok HES'in gücü kadar kurulabilir. Daha çok HES kurarsan göl ve bağlantı büyür. `:"")+
       `Baraj gölünde yüzer ve HES'in şebeke bağlantısını paylaşır: saha sınırına sayılmaz, gücü HES'in kurulu gücüne kadar çıkabilir. Su panelleri soğuttuğu için aynı panelden ~%${Math.round((FPV_COOL-1)*100)} fazla üretir (varsayım). Yatırımı kara GES'inin ~1,2 katı (şamandıra ve çapa).`,
+    spv:`Kıyıya yakın sığ denizde çelik kazıklar üstünde kafes platformlar (Çin'de 1 GW'lık örnekleri var). Arazi kullanmaz, kara GES'i gibi üretir; deniz yansıması ve serinlik ~%${Math.round((SPV_GAIN-1)*100)} fazla üretim getirir (varsayım). Yatırımı kara GES'inin ~1,4 katı (kazık, kafes, deniz kablosu). Yalnızca kıyıya ${SPV_KM} km'den yakın sığ denizde${t.coastKm!=null?` (bu saha kıyıya ~${Math.round(t.coastKm)} km)`:""}. Tuz, fırtına ve buz riski gerçekte var; oyunda ayrıca modellenmedi.`,
     phs:`Ucuz saatlerde suyu alt hazneden üst hazneye basar, pahalı saatlerde türbinden geçirir: ${PHS_H} saatlik depo, bataryanın 5 katı. Çevrimde enerjinin ~%20'si kaybolur. GÖP masasındaki batarya modundan bağımsız, hep arbitraj yapar.`,
     h2:`Elektrolizör, satış fiyatı hidrojenden elde edilecek gelirin altına düştüğü saatlerde şebekeden elektrik alıp hidrojen üretir (standart kademe ${H2.kwh} kWh/kg; hidrojen ${H2.price} $/kg sabit alım, varsayım: başabaş ~${Math.round(1000/H2.kwh*H2.price)} $/MWh). Öğle fiyatı sıfıra düştüğünde satılamayan güneşi bedavaya hidrojene çevirir.`,
     csp:`Aynalar güneşi kuledeki alıcıya odaklar; ısı erimiş tuzda ${CSP.h} saat saklanır, türbin günün en pahalı saatlerinde (akşam zirvesi, gece) üretir. Yalnızca doğrudan güneş ışığı işe yarar: bulutlu havada toplama hızla düşer. Yatırımı GES'in ~5 katı.`,
@@ -160,7 +161,8 @@ function renderPanelImpl(){
     ws=`<small class="rv" title="Kapasite faktörü (KF): yıllık üretimin, santral tam güçte çalışsaydı üreteceğine oranı. Türkiye filo ortalaması ~%33 (TEİAŞ 2025).">${wv.toFixed(1).replace(".",",")} m/s • KF ≈%${Math.round(cf*100)}</small>`;
   // yerleşim alanı (kıyı kentinde kaba kıyı çizgisi yüzünden deniz de sayılabilir): yalnızca güneş ve rüzgâr; gelgit ve eğim yok
   if(t.urban&&!o)html+=`<div class="res"><span>Güneş</span><span class="dots">${dots(t.solar||0)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span></div>`;
-  else html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span>`+(t.deep?`<span>Temel</span><span>derin su: yalnızca yüzer platform</span>`:`<span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`):
+  else html+=`<div class="res">`+(t.sea?`<span>Rüzgâr</span><span class="dots">${wd} ${ws}</span>`+(t.deep?`<span>Temel</span><span>derin su: yalnızca yüzer platform</span>`:`<span>Güneş</span><span class="dots">${dots(t.solar||0)} ${ghi}</span><span>Gelgit</span><span class="dots">${dots(t.tide)}</span>`+
+      `<span>Kıyıya</span><span>~${Math.round(t.coastKm)} km${t.coastKm<=SPV_KM?" (deniz GES'i kurulabilir)":` (deniz GES'i en çok ${SPV_KM} km)`}</span>`):
     `<span>Güneş</span><span class="dots">${dots(t.solar)} ${ghi}</span><span>Rüzgâr</span><span class="dots">${wd} ${ws}</span><span>Hidro</span><span class="dots">${t.hydro?dots(t.hydro):"–  (yalnızca dağlık bölgeler)"}</span>`+
     `<span>Jeotermal</span><span class="dots">${t.geo>=0.3?dots(t.geo):"–  (yalnızca jeotermal kuşaklar)"}</span><span>Biyokütle</span><span class="dots">${t.bio>=0.4?dots(t.bio):"–  (hammadde yok)"}</span>`+
     `<span>Eğim</span><span>${slopeRow(t)}</span>`)+`</div>`;

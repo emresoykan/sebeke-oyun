@@ -28,6 +28,12 @@ export const FIN={
   // yüzer GES: IRENA 2024 kara GES'i 691 $/kW + yüzer prim 0,14 $/W (Wood Mackenzie 2024: 0,13–0,15 $/W, ikincil kaynak;
   // NREL 2021 kıyaslaması 0,26 $/W, %25 prim). İşletme gideri GES'in ~1,15 katı (varsayım: şamandıra ve çapa bakımı)
   fpv:{capex:831,opex:14,life:25,src:"IRENA 2024 GES + Wood Mackenzie 2024 yüzer primi"},
+  // deniz üstü GES (kazıklı): IRENA 2024 kara GES'i 691 $/kW × 1,39. Oran Çin Su ve Elektrik Planlama Enstitüsü (CREEI)
+  // 2024 maliyet raporundan: kıyıya yakın deniz GES'i 4.800, kara GES'i 3.450 CNY/kW (ikincil kaynak: rapor özeti, 28.05.2025);
+  // oranın Çin dışına taşınması varsayım. Gerçek projeler daha pahalı çıkabilir (Kenli HG14 ~6,05, Zhaoyuan HG30 ~4,81 CNY/Wp,
+  // ihraç kablosu ve trafo dahil olabilir: oran 1,5–1,9). İşletme gideri için kaynak bulunamadı: yatırımın ~%2'si (varsayım:
+  // tekneyle bakım, korozyon). Tasarım ömrü 25 yıl (kaplama ve katodik koruma)
+  spv:{capex:961,opex:20,life:25,src:"IRENA 2024 GES × CREEI 2024 deniz/kara oranı 1,39 (Çin)"},
   // pompaj depolamalı HES: NREL ATB 2023, 10 saatlik kapalı devre, sınıf 1 ortalaması 2.015 $/kW (2021 doları; ATB 2024
   // değeri doğrulanamadı). İşletme gideri ve ömür varsayım (barajlı tesisler çok uzun yaşar; oyunda 50 yıl)
   phs:{capex:2015,opex:20,life:50,src:"NREL ATB 2023 (2021 $)"},

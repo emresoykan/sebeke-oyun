@@ -740,6 +740,44 @@ function floatingSolar(g,V,mw,tier,lat,seed){
   if(orange.length)g.add(inst(new THREE.SphereGeometry(.65,10,8),M.orange,orange));
 }
 
+// ---- Deniz üstü GES (kazıklı, sığ kıyı): fotoğraftaki gibi 60 × 35 m'lik sarı çelik kafes platformlar, her biri dört
+// büyük çelik kazık üstünde (Çin'deki 1 GW'lık Kenli projesinde 2.934 platform, 11.736 kazık: platform başına ~0,45 MWp).
+// Güverte su hattından ~9 m yüksekte (dalga payı); üstte 10° eğimli sık panel sıraları; kazıklar ile kafes arasında
+// eğik dikmeler. Platformlar arasında tekne geçişi için ~10 m; yanda kazıklı yükseltici trafo platformu ve bakım teknesi.
+// Kafes tek ağda birleştirilir ve tüm platformlarda bir çizim çağrısıyla tekrarlanır. Ölçüler temsilî ----
+const SPV_W=60,SPV_D=35,SPV_H=9,SPV_MW=0.45;
+function seaSolar(mw,lat,tier="std"){
+  const g=new THREE.Group(),n=Math.max(1,Math.round(mw/SPV_MW)),px=SPV_W+10,pz=SPV_D+10,
+    cols=Math.max(1,Math.ceil(Math.sqrt(n*pz/px))),rows=Math.ceil(n/cols),Y=SPV_H,PL=[];
+  for(let i=0;i<n;i++)PL.push([(i%cols-(cols-1)/2)*px,(Math.floor(i/cols)-(rows-1)/2)*pz]);
+  const truss=merged("spvTruss",()=>{const out=[],b=(w,h,d,x,y,z)=>box(w,h,d,M.yellow,x,y,z),hw=SPV_W/2,hd=SPV_D/2;
+    for(const z of [-12,12]){out.push(b(SPV_W,.5,.5,0,Y-.45,z),b(56,.5,.5,0,Y-3.6,z)); // ana kirişler: üst ve alt başlık
+      for(let x=-28;x<=28;x+=7){out.push(b(.3,3,.3,x,Y-2,z));if(x<28)out.push(cylBetween([x,Y-3.6,z],[x+7,Y-.45,z],.16,M.yellow,4));}}
+    for(let x=-hw+.5;x<=hw;x+=6.5)out.push(b(.35,.35,SPV_D,x,Y-.2,0)); // enine kirişler (iki yana konsol)
+    for(const z of [-hd+.2,hd-.2])out.push(b(SPV_W,.35,.35,0,Y-.2,z));  // kenar kirişleri
+    for(const x of [-21,21])for(const z of [-12,12])out.push(b(2.6,1.2,2.6,x,Y-4.4,z),  // kazık başlığı ve eğik dikmeler
+      cylBetween([x,Y-8.5,z],[x-7,Y-3.6,z],.24,M.yellow,4),cylBetween([x,Y-8.5,z],[x+7,Y-3.6,z],.24,M.yellow,4));
+    return out;},M.yellow).geometry;
+  g.add(inst(truss,M.yellow,PL.map(([x,z])=>[x,0,z])));
+  // kazıklar (su hattında koyu şerit ve köpük)
+  const piles=PL.flatMap(([x,z])=>[[x-21,z-12],[x-21,z+12],[x+21,z-12],[x+21,z+12]]),L=Y-4.4+5;
+  g.add(inst(new THREE.CylinderGeometry(.6,.6,L,16),M.yellow,piles.map(([x,z])=>[x,Y-4.4-L/2,z])),
+    inst(new THREE.CylinderGeometry(.64,.64,1.2,16),M.dark,piles.map(([x,z])=>[x,.3,z])));
+  const ring=new THREE.RingGeometry(.9,2.4,16);ring.rotateX(-Math.PI/2);g.add(inst(ring,M.seaFoam,piles.map(([x,z])=>[x,.25,z])));
+  // paneller: platform başına 6 sıra × 5 masa (12 × 4,6 m, iki modül boyu), 10° ekvatora dönük
+  const pan=PL.flatMap(([x,z])=>{const o=[];for(let r=0;r<6;r++)for(let c=0;c<5;c++)o.push([x-24+c*12,z-13+r*5.2]);return o;}),
+    im=new THREE.InstancedMesh(new THREE.BoxGeometry(11.8,.06,4.6),M.fpv[tier]||M.fpv.std,pan.length),mt=new THREE.Matrix4(),one=new THREE.Vector3(1,1,1),
+    q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),10*RAD*(lat>=0?1:-1));
+  pan.forEach(([x,z],i)=>im.setMatrixAt(i,mt.compose(new THREE.Vector3(x,Y+.75,z),q,one)));im.castShadow=im.receiveShadow=true;g.add(im);
+  // yükseltici trafo platformu: dört kazık, sarı güverte, trafo ve şalt modülleri, korkuluk; yanında bakım teknesi
+  const sx=(cols-1)/2*px+SPV_W/2+28,sz=0,b=new THREE.Group();b.position.set(sx,0,sz);
+  [[-7,-5],[-7,5],[7,-5],[7,5]].forEach(([x,z])=>b.add(cyl(.7,.7,Y+5,M.yellow,x,(Y-5)/2,z,14),cyl(.74,.74,1.2,M.dark,x,.3,z,14)));
+  b.add(box(20,1,15,M.yellow,0,Y,0),box(11,4.6,7,M.wall,-3,Y+2.8,-2.5),box(11.4,.3,7.4,M.roofGrey,-3,Y+5.25,-2.5),box(4.5,3.4,3.6,M.grey,5.5,Y+2.2,-3),box(6.1,2.6,2.45,M.container,2,Y+1.8,4.5));
+  [-7.4,7.4].forEach(z=>b.add(box(20,.1,.1,M.yellow,0,Y+1.6,z)));[-9.9,9.9].forEach(x=>b.add(box(.1,.1,15,M.yellow,x,Y+1.6,0)));
+  g.add(b);boat(g,sx+4,sz+34,-.25);
+  return g;
+}
+
 // ---- Pompaj depolamalı HES: tepede asfalt kaplamalı halka setli üst hazne (içinde su alma kulesi), yamaçtan beton mesnetler
 // üstünde inen iki cebri boru ve denge bacası, eteğinde santral binası, trafolar ve kuyruk suyu kanalı, setle çevrili alt
 // hazne, şalt sahası ve enerji nakil hattı. Arazi ağı HES vadisi gibi tek parça (araziye bir bütün olarak oturur). Hazne
@@ -912,6 +950,7 @@ export function buildSite(id,o,ps){
   if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off],seedOf(id)%2===1);g.userData.k="off";groups.push(g);}
   if(by.flo){const g=floatFarm(by.flo,parts,yaw,TURBINE_SCALE[top.flo]);g.userData.k="flo";groups.push(g);}
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges,seedOf(id)));
+  if(by.spv)groups.push(seaSolar(by.spv,o.lat,top.spv));
   if(by.csp)groups.push(cspPlant(by.csp,o.lat,parts));
   if(by.hes)groups.push(hydro(parts,seedOf(id),by.fpv||0,top.fpv,o.lat));
   if(by.phs)groups.push(pumped(by.phs,parts,seedOf(id)));

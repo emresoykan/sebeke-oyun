@@ -83,7 +83,7 @@ let repOpen=false;
 export function renderReport(){
   renderFin();
   const L=S.last;if(!L)return;
-  const rows=[["ges","GES"],["fpv","GES yüzer"],["csp","CSP (erimiş tuz)"],["res","RES karada"],["off","RES offshore"],["flo","RES yüzer"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
+  const rows=[["ges","GES"],["fpv","GES yüzer"],["spv","GES denizde"],["csp","CSP (erimiş tuz)"],["res","RES karada"],["off","RES offshore"],["flo","RES yüzer"],["hes","HES"],["jes","JES"],["bes","Biyokütle"],["mar","Deniz (destek dahil)"]].map(([k,n])=>L.E[k]>0?`<tr><td>${n}</td><td>${L.E[k].toFixed(0)} MWh</td><td>${fmt$(L.R[k])}</td><td>${fmtP(L.R[k]/L.E[k])}</td></tr>`:"").join("");
   let note;
   const H=L.h2||{};
   if(H.z>0)note=`Öğle fiyatı sıfıra düştüğü saatlerde elektrolizör ${H.z.toFixed(0)} MWh bedava elektriği hidrojene çevirdi. Satılamayan güneş, sabit fiyatlı bir ürüne dönüştü.`;

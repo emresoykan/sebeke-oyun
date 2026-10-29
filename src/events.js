@@ -16,7 +16,7 @@ import { checkMissions } from "./missions.js";
 import { CAL, seasonOf } from "./calendar.js";
 import { applyDesk } from "./market.js";
 
-const RENEW=["ges","res","off","flo","hes","jes","bes","mar","fpv","csp"];
+const RENEW=["ges","res","off","flo","hes","jes","bes","mar","fpv","spv","csp"];
 const mwOf=(k,m)=>S.plants.filter(p=>(!k||p.k===k)&&(!m||S.sites[p.t].mreg===m)).reduce((a,p)=>a+p.mw,0);
 const has=k=>S.plants.some(p=>p.k===k);
 // oyuncunun en çok kurulu gücü olan piyasa
@@ -46,7 +46,7 @@ export const EVENTS=[
         return "Şans yanındaydı: fırtına bol üretim getirdi, hasar yok.";}},
       {l:`Sigorta yaptır ve devam et (${fmt$(ins)})`,c:ins,e:"Bugün üretim %30 fazla, hasar sigortalı.",run:()=>{pay(ins);mod({t:"out",k:["res","off","flo"],v:1.3,label:"Fırtına: yüksek rüzgâr"});return "Sigortalı üretim: fırtınadan kazançlı çıktın.";}}];}},
 
-  {id:"holiday",tag:"Piyasa",title:"Bayram tatili: öğle fiyatı çöküyor",ok:()=>has("ges")||has("fpv"),
+  {id:"holiday",tag:"Piyasa",title:"Bayram tatili: öğle fiyatı çöküyor",ok:()=>has("ges")||has("fpv")||has("spv"),
     text:m=>`Uzun tatil nedeniyle sanayi talebi düştü, ${mName(m)} piyasasında öğle saatlerinde güneş üretimi talebi aşıyor. Önümüzdeki 2 gün 10:00–15:00 arası fiyatlar sıfıra yakın olacak.`,
     learn:"Güneş kurulumu arttıkça öğle fiyatları düşer (kanibalizasyon). GES'in yakaladığı ortalama fiyat (capture price) piyasa ortalamasının altında kalır. İkili anlaşma bu riski sabitler.",
     opts:m=>{const fix=Math.round(32*REG[m].mult);return [
@@ -76,11 +76,11 @@ export const EVENTS=[
       {l:"Tedarik anlaşması yap (6 b$)",c:6000,e:"6 b$ öde, zamdan muaf ol.",run:()=>{pay(6000);return "Uzun dönem tedarik anlaşması imzalandı; fiyatların sabit.";}}
     ]},
 
-  {id:"curtail",tag:"Şebeke",title:"Şebeke kısıt talimatı",ok:()=>has("res")||has("ges")||has("fpv"),
+  {id:"curtail",tag:"Şebeke",title:"Şebeke kısıt talimatı",ok:()=>has("res")||has("ges")||has("fpv")||has("spv"),
     text:m=>`${mName(m)} piyasasında bölgedeki iletim hattı kapasitesi yetmiyor. Sistem operatörü rüzgâr ve güneş santrallerine 2 gün üretimi düşürme talimatı verdi.`,
     learn:"Şebeke kısıtı: ürettiğin her MWh'i satamayabilirsin. İletim kapasitesi, yenilenebilir yatırımlarında konum seçiminin en önemli kriterlerinden biridir.",
-    opts:m=>{const o=[{l:"Talimata uy",e:"RES ve GES 2 gün %60 kapasiteyle çalışır.",run:()=>{mod({t:"out",m,k:["res","ges","fpv"],v:0.6,d:2,label:"Şebeke kısıtı: üretim %60"});return "Talimata uydun; üretim geçici olarak kısıldı.";}}];
-      if(mwOf("batt",m))o.push({l:"Fazlayı bataryada depola",e:"Bataryan kısıntının bir kısmını emer: RES ve GES 2 gün %80.",run:()=>{mod({t:"out",m,k:["res","ges","fpv"],v:0.8,d:2,label:"Şebeke kısıtı: üretim %80"});return "Batarya kısıntının etkisini yarıya indirdi.";}});
+    opts:m=>{const o=[{l:"Talimata uy",e:"RES ve GES 2 gün %60 kapasiteyle çalışır.",run:()=>{mod({t:"out",m,k:["res","ges","fpv","spv"],v:0.6,d:2,label:"Şebeke kısıtı: üretim %60"});return "Talimata uydun; üretim geçici olarak kısıldı.";}}];
+      if(mwOf("batt",m))o.push({l:"Fazlayı bataryada depola",e:"Bataryan kısıntının bir kısmını emer: RES ve GES 2 gün %80.",run:()=>{mod({t:"out",m,k:["res","ges","fpv","spv"],v:0.8,d:2,label:"Şebeke kısıtı: üretim %80"});return "Batarya kısıntının etkisini yarıya indirdi.";}});
       return o;}},
 
   {id:"dust",tag:"Hava",title:"Toz fırtınası",ok:()=>has("ges")||has("csp"),

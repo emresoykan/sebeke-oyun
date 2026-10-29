@@ -14,12 +14,12 @@ import { siteWx } from "./wxsite.js";
 import { sunRel, powerCurve } from "./weather.js";
 import { CAL, noonAmp } from "./calendar.js";
 import { spec } from "./profile.js";
-import { FPV_COOL, CSP } from "./config.js";
+import { PV_GAIN, CSP } from "./config.js";
 
 export const K_SHORT=0.35, K_SURP=0.30;
-export const RENEW=["ges","res","off","flo","mar","fpv"];
+export const RENEW=["ges","res","off","flo","mar","fpv","spv"];
 // Güneş paneli (öğle fiyatı sıfırsa kısılır, GÖP'te o saat teklif edilmez)
-export const PV=["ges","fpv"];
+export const PV=["ges","fpv","spv"];
 export const FC_FEE=4; // premium tahmin servisi: yenilenebilir MW başına günlük ücret ($)
 export const deskDefaults=()=>({ratio:1,fc:"std",batt:"arb",auto:false});
 
@@ -27,7 +27,7 @@ export const deskDefaults=()=>({ratio:1,fc:"std",batt:"arb",auto:false});
 export function production(p,h){
   if(p.down)return {e:0,w:siteWx(S.sites[p.t],h)};
   const t=S.sites[p.t],q=eqOf(p),of=factor("out",t.mreg,p.k,h),w=siteWx(t,h);
-  if(p.k==="ges"||p.k==="fpv")return {e:p.mw*t.solar*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*q.perf*of*(t.snowDays>0?0.25:1)*(p.k==="fpv"?FPV_COOL:1),w};
+  if(PV.includes(p.k))return {e:p.mw*(t.solar||0)*shape(h)*noonAmp(t.lat,CAL.decl)*sunRel(w,w.base)*1.24*q.perf*of*(t.snowDays>0?0.25:1)*(PV_GAIN[p.k]||1),w};
   if(p.k==="res"||p.k==="off"||p.k==="flo")return {e:p.mw*clamp(powerCurve(w.hub)*q.perf*of,0,1),w,v:w.hub};
   if(p.k==="mar"){const m=marine(t,h,w);return {e:p.mw*clamp((m.tide+m.wave)*q.perf*of,0,1),w,tide:m.tide,wave:m.wave};}
   return {e:0,w};
