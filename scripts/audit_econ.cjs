@@ -34,7 +34,7 @@ for(const [bn,list] of Object.entries(BATCH))for(let run=0;run<RUNS;run++){
   await p.addInitScript(()=>{localStorage.clear();localStorage.setItem("sebeke-profile-v1",JSON.stringify({name:"T",company:"D",color:"#1F9D74",spec:"eng",created:1}));});
   await p.goto(URL0);await p.waitForTimeout(3000);
   const rows=await p.evaluate(async([SITES,list,DAYS,measure,RIV])=>{
-    const st=await import("/src/state.js"),w=await import("/src/world.js"),sim=await import("/src/sim.js"),fin=await import("/src/finance.js"),ac=await import("/src/actions.js"),cfg=await import("/src/config.js"),S=st.S,D=st.D;
+    const st=await import("/src/state.js"),w=await import("/src/world.js"),sim=await import("/src/sim.js"),fin=await import("/src/finance.js"),ac=await import("/src/actions.js"),cfg=await import("/src/config.js"),S=st.S;
     S.money=1e10;S.won=true;S.win1=1;S.evCool=1e9;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});
     if(!RIV)for(const k in S.rivals||{}){S.rivals[k].sites=[];S.rivals[k].cash=-1e15;}
     const built=[];
@@ -43,7 +43,7 @@ for(const [bn,list] of Object.entries(BATCH))for(let run=0;run<RUNS;run++){
       const before=S.plants.length;for(let i=0;i<n;i++)ac.build(id,k,"std");if(S.plants.length===before)built.push("KURULAMADI "+id+":"+k);}
     if(!RIV)for(const k in S.rivals||{}){S.rivals[k].sites=[];S.rivals[k].cash=-1e15;}
     sim.newDay();const sum={T:0,E:0,N:0};let n=0;
-    for(let d=0;d<DAYS;d++){for(const mk in sum)sum[mk]+=D[mk].price.reduce((a,x)=>a+x,0);n+=24;
+    for(let d=0;d<DAYS;d++){for(const mk in sum)sum[mk]+=st.D[mk].price.reduce((a,x)=>a+x,0);n+=24;
       for(let h=0;h<24;h++)sim.tick();document.querySelectorAll("dialog[open]").forEach(x=>x.close());
       if(!RIV)for(const k in S.rivals||{})S.rivals[k].cash=-1e15;}
     const avg={T:sum.T/n,E:sum.E/n,N:sum.N/n};
