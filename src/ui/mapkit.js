@@ -41,7 +41,11 @@ const sites=new Map(),rivals=new Map();
 function asyncTiles(draw,reload,max=400,name="karo"){
   const cache=new Map(),q=new Map();let busy=false,last=0,ver="";
   const drop=u=>{if(u)setTimeout(()=>URL.revokeObjectURL(u),5000);}; // harita eski adresi hâlâ yüklüyor olabilir
+  // harita hareket ederken ve durulduktan sonraki 2 sn içinde karo çizilmez (ana iş parçacığı Apple'ın karolarına kalsın);
+  // kuyruk bekler, harita durulunca kaldığı yerden sürer
+  const resume=()=>setTimeout(step,0);
   async function step(){
+    if(moving||settleT){whenStill(resume);return;}
     const it=q.entries().next();if(it.done){busy=false;whenStill(reload);return;}
     const [k,t]=it.value;q.delete(k);let url=null;
     if(t.v===ver){const t0=performance.now(),c=draw(t.x,t.y,t.z);wp(name,t0);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
@@ -62,7 +66,7 @@ const whenStill=f=>{if(moving||settleT){if(!afterMove.includes(f))afterMove.push
 // katman yenileme; ?perf=1 açıksa sayılır (perfprobe.js raporunda "katman yenilemeleri"). Bekleyen yenilemeler aynı işlevle
 // sıraya girer: harita durulunca her katman bir kez yenilenir
 const rl=(o,n)=>{if(!o)return;wp("Apple yenileme: "+n,performance.now());o.reload();};
-const reNight=()=>rl(night,"gece"),reClouds=()=>rl(clouds,"bulut"),reWeather=()=>{rl(clouds,"bulut");drawStorms();};
+const reNight=()=>rl(night,"gece"),reClouds=()=>rl(clouds,"bulut"),reWeather=()=>{rl(clouds,"bulut");drawStorms();},cloudsOn=()=>updateWeather(true);
 
 function loadScript(){
   return new Promise((res,rej)=>{
@@ -198,14 +202,15 @@ function drawStorms(){
 function updateWeather(force){
   if(!map)return;
   // bulutlar görünmüyorsa (hava kapalı ya da yakın: saydamlık 0) karo üretilmez; görünür olunca onRegion yeniler
-  if(!force&&(moving||!clouds.opacity))return;
+  if(!force&&(moving||settleT||!clouds.opacity))return;
   if(tickClouds(force)){cloudVer++;cloudT.setVer(cloudVer);whenStill(reWeather);}
 }
 
 // Yakınlığa göre: bulut saydamlığı, etiketlerin görünürlüğü (düz haritadaki eşiklerle)
 function onRegion(){
   if(!map)return;const h=map.cameraDistance,el=box;
-  const was=clouds.opacity;clouds.opacity=wxOn()?cloudOpacity(h):0;if(!was&&clouds.opacity)updateWeather(true);
+  // uzaklaşınca bulutlar görünür olur: bulut tuvali harita durulunca çizilir (Apple'ın yeni karoları önce gelsin)
+  const was=clouds.opacity;clouds.opacity=wxOn()?cloudOpacity(h):0;if(!was&&clouds.opacity)whenStill(cloudsOn);
   el.classList.toggle("mk-z3",h<zoomToH(3));el.classList.toggle("mk-z4",h<zoomToH(4));
   const showParks=h<zoomToH(6);parkLabels.forEach(a=>{if(a.visible!==showParks)a.visible=showParks;});
 }

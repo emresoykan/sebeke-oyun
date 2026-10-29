@@ -48,6 +48,16 @@ ok(near.day.op===0&&near.day.l2===near.day.l,`yakında gündüz: gece katmanı s
 ok(near.ops.some(x=>x>0.1),`yakında gece: karanlık saydamlıkla (${near.ops.join(", ")})`);
 ok(near.rl.length===0,`yakında saat ilerlerken ve kaydırınca katman yenilenmedi (yenilenen: ${JSON.stringify(near.rl)})`);
 ok(near.flat>0&&near.cl===0&&near.day.c===0,`yakında yalnızca tek renk gece karosu verildi (${near.flat}), bulut karosu yok (${near.day.c}, ${near.cl})`);
+// uzaklaş (yakından ~z4,5'e): hareket sırasında ve bittikten sonraki 2 sn içinde gece/bulut karosu ve bulut tuvali çizilmez
+const out=await p.evaluate(async()=>{const mk=await import(performance.getEntriesByType("resource").map(e=>e.name).find(n=>/\/src\/ui\/mapkit\.js/.test(n))),M=window.__mkmock,w=ms=>new Promise(r=>setTimeout(r,ms));
+  const K=["Apple: gece karosu","Apple: bulut karosu","bulut tuvali"],cnt=()=>K.map(k=>(window.__wp[k]||{n:0}).n);
+  const n0=cnt(),m0=M.moves.length;mk.flyTo(38.42,27.35,2.6e7/2**4.5);
+  while(M.moves.length===m0||!M.moves[M.moves.length-1].e)await w(50);
+  const e=M.moves[M.moves.length-1].e;await w(Math.max(0,e+1800-performance.now()));const n1=cnt();await w(2500);const n2=cnt();
+  return {n0,n1,n2,cam:mk.camInfo()};});
+const d1=out.n1.map((x,i)=>x-out.n0[i]),d2=out.n2.map((x,i)=>x-out.n1[i]);
+ok(d1.every(x=>x===0),`uzaklaşırken ve hemen sonra karo/bulut çizimi yok (gece, bulut karosu, bulut tuvali: ${d1.join(", ")})`);
+ok(d2[0]>0,`harita durulunca uzak görünümün gece karoları çizildi (gece ${d2[0]}, bulut karosu ${d2[1]}, bulut tuvali ${d2[2]})`);
 const perf=await p.evaluate(()=>{const b=[...document.querySelectorAll("body > div")].find(d=>/Wattlas perf/.test(d.textContent));
   if(!b)return "";const t=b.firstChild;t.click();if(/^Wattlas perf[^\n]*\n[^\n]*$/.test(t.textContent))t.click();return t.textContent;});
 const tl=(perf.match(/Apple karoları:[^\n]*/)||[""])[0],rl=(perf.match(/katman yenilemeleri:[^\n]*/)||[""])[0];
