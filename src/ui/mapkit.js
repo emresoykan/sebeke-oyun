@@ -151,20 +151,26 @@ function sizeBnd(m){
 function sizeBnds(){if(!map)return;sites.forEach(sizeBnd);rivals.forEach(sizeBnd);}
 
 // --- Gece tarafı: karo başına güneş yüksekliğinden karanlık (map.js'teki düz harita ile aynı eşikler) ---
-// Yakında (z > NIGHT_Z) gece karanlığı görünüm içinde tek renktir: her karo için hesap yerine görünüm merkezindeki
-// güneş yüksekliğinden tek bir düz karo üretilir ve hepsine o verilir (yakınlaştıkça karo sayısı katlanarak artıyordu)
-const NIGHT_Z=7,flatNight=new Map();let flatKey="";
+// Yakında (z > NIGHT_Z) gece karanlığı görünüm içinde tek renktir: ayrı bir katman (nightFlat) her karoya aynı koyu
+// görüntüyü verir; karanlık, katmanın saydamlığıyla (görünüm merkezindeki güneş yüksekliğinden) ayarlanır. Saat ya da yer
+// değişince yalnızca saydamlık değişir, katman yenilenmez: yenilemeler Apple'ın kendi karolarıyla yarışıyordu (yer
+// değiştirince harita bir süre karanlık kareler halinde boş kalıyordu). Gündüz karo verilmez (yüklenecek bir şey yok).
+const NIGHT_Z=7;let flatKey="",nightFlat=null,DARK=null,nightZ=0;
 function nightAlpha(lat,lon){const d=CAL.decl*RAD,sub=(12-(lastHour-3))*15,
   el=Math.asin(clamp(Math.sin(lat*RAD)*Math.sin(d)+Math.cos(lat*RAD)*Math.cos(d)*Math.cos((lon-sub)*RAD),-1,1))/RAD,t=clamp((4-el)/14,0,1);return t*t*(3-2*t)*72;}
 function flatNightKey(){if(!map||lastHour==null)return "";const c=map.center,a=Math.round(nightAlpha(c.latitude,c.longitude)/4)*4;return String(a);}
-function nightGet(x,y,z){
-  if(z<=NIGHT_Z)return nightT.get(x,y,z);
-  const k=flatKey||(flatKey=flatNightKey());if(!k||k==="0")return null;let u=flatNight.get(k);
-  if(!u){const c=document.createElement("canvas");c.width=c.height=4;const g=c.getContext("2d");g.fillStyle=`rgba(2,6,18,${(+k/255).toFixed(3)})`;g.fillRect(0,0,4,4);u=c.toDataURL();c.width=c.height=0;flatNight.set(k,u);}
-  return u;
+// nightZ: haritanın son istediği gece karosu yakınlığı (karo başına katman yalnızca z <= NIGHT_Z'de görünür)
+function nightGet(x,y,z){nightZ=z;return z<=NIGHT_Z?nightT.get(x,y,z):null;}
+function flatGet(x,y,z){
+  if(z<=NIGHT_Z||!(+flatKey>0))return null;
+  if(!DARK){const c=document.createElement("canvas");c.width=c.height=4;const g=c.getContext("2d");g.fillStyle="rgb(2,6,18)";g.fillRect(0,0,4,4);DARK=c.toDataURL();c.width=c.height=0;}
+  return DARK;
 }
-// görünüm ya da saat değişince düz gece karosu güncellenir (yalnızca yakındayken ve renk değiştiyse)
-function refreshFlatNight(){if(!map||!night)return;const k=flatNightKey();if(k!==flatKey){flatKey=k;if(map.cameraDistance<zoomToH(NIGHT_Z+0.5))rl(night,"gece");}}
+const reFlat=()=>rl(nightFlat,"gece (yakın)");
+// görünüm ya da saat değişince yakındaki gece karanlığı güncellenir: yalnızca saydamlık; gündüzden geceye geçerken
+// karolar bir kez istenir (gündüz boş dönmüşlerdi)
+function refreshFlatNight(){if(!map||!nightFlat)return;const k=flatNightKey();if(k===flatKey)return;
+  const was=+flatKey>0;flatKey=k;nightFlat.opacity=(+k||0)/255;if(!was&&+k>0)whenStill(reFlat);}
 function nightDraw(x,y,z){
   const n=2**z;if(lastHour==null||y<0||y>=n)return null;x=((x%n)+n)%n;
   const N=64,c=document.createElement("canvas");c.width=c.height=N;const g=c.getContext("2d"),im=g.createImageData(N,N),px=im.data;
@@ -236,7 +242,7 @@ export async function initMapKit(el,h){
     setRealView({w:c.longitude-sp.longitudeDelta/2,e:c.longitude+sp.longitudeDelta/2,s:c.latitude-sp.latitudeDelta/2,n:c.latitude+sp.latitudeDelta/2,z:Math.log2(2.6e7/map.cameraDistance),lat:c.latitude,lon:c.longitude});};
   map.addEventListener("region-change-end",realView);
   map.addEventListener("region-change-start",()=>{moving=true;facLoop();});
-  map.addEventListener("region-change-end",()=>{moving=false;clearTimeout(settleT);settleT=setTimeout(flush,2000);whenStill(refreshFlatNight);});
+  map.addEventListener("region-change-end",()=>{moving=false;clearTimeout(settleT);settleT=setTimeout(flush,2000);refreshFlatNight();});
   map.addEventListener("region-change-end",()=>{const t=performance.now();cancelAnimationFrame(facRaf);syncFac();sizeBnds();wp("Apple: hareket sonu (tesis, sınır)",t);});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
@@ -245,8 +251,9 @@ export async function initMapKit(el,h){
     m.a.displayPriority=mk.Annotation.DisplayPriority.Low;m.a.collisionMode=mk.Annotation.CollisionMode.Rectangle;m.a.visible=false;return m.a;});
   map.addAnnotations(parkLabels);
   nightT=asyncTiles(nightDraw,reNight,600,"Apple: gece karosu");cloudT=asyncTiles(cloudDraw,reClouds,300,"Apple: bulut karosu");
-  night=new mk.TileOverlay(nightGet,{opacity:1});
-  clouds=new mk.TileOverlay((x,y,z)=>cloudT.get(x,y,z),{maximumZ:7,opacity:0});
+  night=new mk.TileOverlay(nightGet,{opacity:1});nightFlat=new mk.TileOverlay(flatGet,{opacity:0});
+  // bulutlar görünmüyorken (hava kapalı ya da yakın) karo verilmez; görünür olunca onRegion yeniler
+  clouds=new mk.TileOverlay((x,y,z)=>clouds&&clouds.opacity?cloudT.get(x,y,z):null,{maximumZ:7,opacity:0});
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
   const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1}),rePot=()=>rl(pot,"potansiyel");let potT=0;
   P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;whenStill(rePot);});
@@ -260,7 +267,7 @@ export async function initMapKit(el,h){
   const reloadReal=()=>{if(map&&realOn())rl(real,"santral");};
   onRealTile(()=>whenStill(reloadReal)); // arka planda çizilen karolar hazır olunca (harita durulduktan sonra)
   // ?overlays=0 (tanı): bizim karo katmanlarımız eklenmez; harita yalnızca Apple'ın kendi görüntüsüyle açılır
-  if(!new URLSearchParams(location.search).has("overlays")||new URLSearchParams(location.search).get("overlays")!=="0")map.addTileOverlays([night,pot,real,clouds]);
+  if(!new URLSearchParams(location.search).has("overlays")||new URLSearchParams(location.search).get("overlays")!=="0")map.addTileOverlays([night,nightFlat,pot,real,clouds]);
   sel=marker("mk-sel",28,null);map.addAnnotation(sel.a);
   window.addEventListener("sebeke:wx",()=>{updateWeather(true);onRegion();});
   updateWeather(true);wxTimer=setInterval(()=>{if(!document.hidden)updateWeather(false);},400);onRegion();
@@ -314,8 +321,9 @@ function drawImpl(){
 
 export function setClock(hour){
   if(!map||hour===lastHour)return;
-  lastHour=hour;
-  const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);flatKey=flatNightKey();whenStill(reNight);};
+  lastHour=hour;refreshFlatNight(); // yakında: yalnızca saydamlık
+  // karo başına gece katmanı yalnızca uzaktayken görünür: yakındayken yenilenmez (uzaklaşınca sonraki turda yenilenir)
+  const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);if(nightZ<=NIGHT_Z)whenStill(reNight);};
   // gece en çok 5 sn'de bir yenilenir (1x hızda oyun saati 0,5 sn; karanlık zaten yavaş değişir)
   if(nightTimer)return;const wait=5000-(performance.now()-nightLast);if(wait<=0)go();else nightTimer=setTimeout(go,wait);
 }
