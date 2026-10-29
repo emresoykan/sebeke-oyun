@@ -30,7 +30,7 @@ Anahtar istemci tarafında çalıştığı için derlenmiş JavaScript'te görü
 | Dosya | İçerik |
 |---|---|
 | `index.html` | Sayfa iskeleti (markup) |
-| `src/style.css` | Tüm stiller ve açık/koyu tema token'ları |
+| `src/style.css` | Tüm stiller ve açık/koyu tema token'ları. Teknoloji renkleri (`--solar` …) harita ve grafikte aynen kullanılır; yazılı zeminde (düğme, sekme, rozet) `techVars()` (`src/utils.js`) açık temada kontrastlı tonu (`--X-f`) ve yazı rengini (`--X-on`) seçer. `node scripts/test_dark.cjs <adres> --light` 29.10.2026'da açık temada 42 düşük kontrastlı metin buldu; düzeltmeden sonra 0 (koyu tema da 0) |
 | `src/config.js` | Sabitler, piyasalar (`REG`, `MARKETS`), teknolojiler (`TECH`) |
 | `src/world.js` | Gerçek dünya sorguları: ülke, arazi tipi, kıyıya uzaklık, en yakın şehir (`describe(lat, lon)`) |
 | `src/rules.js` | İzinli teknolojiler, arazi/izin maliyeti ve olasılıkları |

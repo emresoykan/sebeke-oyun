@@ -7,7 +7,7 @@ import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
 import { checkMissions } from "../missions.js";
 import { slopeOf } from "../slope.js";
 import { fillRes, ghiAt } from "../world.js";
-import { fmt$, dots, shape } from "../utils.js";
+import { fmt$, dots, shape, techVars } from "../utils.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build, undoFor, undoLast, sellSite } from "../actions.js";
 import { saleOffer, SALE } from "../sale.js";
@@ -47,12 +47,12 @@ function loanNote(t,k){
 // Ekipman seçimi: teknoloji sekmeleri ve her kademe için bir kart (marka, özellik, üretim, arıza riski, maliyet)
 function buildHtml(t){
   const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
-  let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="--c:var(${TECH[k].c})" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
+  let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="${techVars(TECH[k].c)}" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
   h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
     const perf=tab==="batt"||tab==="phs"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>${tab==="phs"?PHS_H:2} saat</b>`:tab==="h2"?`<span>Tüketim</span><b>${Math.round(H2.kwh/e.perf)} kWh/kg</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
-      <button class="tech" style="--c:var(${TECH[tab].c})" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":tab==="phs"?` / ${5*PHS_H} MWh`:""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="--c:var(${TECH[tab].c})" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
+      <button class="tech" style="${techVars(TECH[tab].c)}" data-a="build" data-k="${tab}" data-q="${q}" data-c="${c}">+5 MW${tab==="batt"?" / 10 MWh":tab==="phs"?` / ${5*PHS_H} MWh`:""} • ${fmt$(c)}</button>${(()=>{if(!proOn())return "";const L=loanTerms(S.sel.id,tab,q);return L&&L.debt>0?`<button class="tech loan" style="${techVars(TECH[tab].c)}" data-a="build" data-loan="1" data-k="${tab}" data-q="${q}" data-c="${L.equity}" title="${fmt$(L.debt)} banka kredisi; ilk ${L.g} gün faiz ${fmt$(L.dsG)}/gün, sonra taksit ${fmt$(L.ds)}/gün">Kredili • ${fmt$(L.equity)} peşin</button>`:"";})()}</div>`;}).join("")+`</div>`;
   const TN={jes:`Jeotermal sürekli üretir ve tahmin hatası yoktur. İlk blokta sondaj yapılır: rezervuar beklenenin %55–110'u çıkabilir${t.well!=null?` (bu sahada %${Math.round(t.well*100)})`:""}.`,
     bes:`Biyokütle yakıt yakar: yalnızca fiyat yakıt maliyetini aştığı saatlerde çalışır. Hammadde bolluğu yakıtı ucuzlatır.`,
     flo:locked("flo")?`Yüzer rüzgâr deneyim ister: toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Çift rotorlu yüzer platform: tek nokta bağlamayla rüzgâra kendiliğinden döner, derin suya da kurulur. Yatırımı sabit tabanlının ~1,9 katı. Fırtınada türbinler durur ama tayfun sınıfı gövde hasar görmez (fırtına kartında arıza riski yok).`,

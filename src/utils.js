@@ -9,6 +9,8 @@ export const prof=h=>0.8+0.25*Math.cos(Math.PI*(h-3)/12);
 export const fmt$=x=>{const s=x<0?"−":"";x=Math.abs(x);return s+(x>=1e6?(x/1e6).toLocaleString("tr-TR",{maximumFractionDigits:2})+" M$":x>=1e3?(x/1e3).toLocaleString("tr-TR",{maximumFractionDigits:1})+" b$":Math.round(x)+" $");};
 export const fmtP=x=>Math.round(x)+" $/MWh";
 export const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// teknoloji renkli zemin (düğme, sekme, rozet): --c teknoloji rengi; yazılı zeminde kontrastlı ton (--X-f) ve yazı rengi (--X-on), yoksa aynısı
+export const techVars=c=>`--c:var(${c});--cf:var(${c}-f,var(${c}));--co:var(${c}-on,var(--on-c))`;
 export const dots=v=>{const n=Math.round(v*5);return "●".repeat(n)+"○".repeat(5-n);};
 // Gün ışığı (0 gece – 1 tam gündüz): doğum/batım ve öğle yüksekliği mevsime göre; 3D sahne ve harita ortak kullanır
 export const sunElevation=h=>{const t=(h+0.5-CAL.rise)/CAL.len;return t<0||t>1?-0.2:Math.sin(Math.PI*t)*(90-Math.abs(TR_LAT-CAL.decl))*Math.PI/180;};

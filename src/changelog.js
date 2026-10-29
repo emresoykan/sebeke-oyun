@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.3",t:"Açık temada okunabilirlik",items:[
+    "Açık temada teknoloji renkli düğme, sekme ve rozetlerdeki yazılar daha okunaklı: güneş sarısında yazı koyu, rüzgâr, batarya, biyokütle, deniz ve jeotermal zeminleri biraz koyulaştı. Haritadaki renkler değişmedi.",
+    "Kazanç rakamları, sözlük bağlantıları ve premium etiketi açık zeminde daha koyu tonda (WCAG 4,5:1 oranı)."]},
   {id:"2026-10-29.2",t:"Gerçekçi yüzer GES",items:[
     "Yüzer GES fotoğraflardaki üç yaygın düzenden biriyle kurulur (sahaya göre): bloklara bölünmüş, güneye bakan panel sıraları; doğu-batıya eğimli çatı biçimli sıralar; ya da siyah boru halkalı yuvarlak adalar.",
     "Bloklar arasında su koridorları ve bakım yolları; çatı düzeninde koyu şamandıralar, yeşil yan şamandıralar ve sırtlarda dizi kutuları; halka adalarda korkuluk.",
