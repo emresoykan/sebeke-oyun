@@ -5,7 +5,7 @@ import { TECH } from "../config.js";
 import { getProfile, saveProfile, SPECS, COLORS, initials, titleOf, ACH, marketCount } from "../profile.js";
 import { TIERS, TIER_ORDER, tierOf } from "../equipment.js";
 import { netWorth } from "../sim.js";
-import { fmt$ } from "../utils.js";
+import { fmt$, techVars } from "../utils.js";
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const dlg=()=>document.getElementById("profileDlg");
@@ -73,7 +73,7 @@ function openView(){
     </div>
     ${S.rivals?`<h4>Sıralama <span class="pmuted">portföy değerine göre</span></h4><ol class="prank">${[{n:P.company,c:P.color,v:nw,mw,me:true},...RIVALS.map(r=>({n:r.n,c:r.c,v:rivalValue(r.id),mw:rivalMW(r.id)}))]
       .sort((a,b)=>b.v-a.v).map(x=>`<li class="${x.me?"me":""}"><i style="background:${x.c}"></i><b>${esc(x.n)}</b><span>${x.mw} MW</span><span>${fmt$(x.v)}</span></li>`).join("")}</ol>`:""}
-    ${mw?`<h4>Filo</h4><div class="pfleet">${byTech.map(([k,v])=>`<span style="--c:var(${TECH[k].c})">${TECH[k].n} ${v} MW</span>`).join("")}</div>
+    ${mw?`<h4>Filo</h4><div class="pfleet">${byTech.map(([k,v])=>`<span style="${techVars(TECH[k].c)}">${TECH[k].n} ${v} MW</span>`).join("")}</div>
       <div class="pfleet tiers">${byTier.filter(x=>x[1]).map(([q,v])=>`<span class="t-${q}">${TIERS[q]} ${v} MW</span>`).join("")}</div>`:""}
     <h4>Rozetler <span class="pmuted">${got.size}/${ACH.length}</span></h4>
     <ul class="pach">${ACH.map(a=>`<li class="${got.has(a.id)?"on":""}" title="${esc(a.d)}"><b>${got.has(a.id)?"✓ ":""}${a.n}</b><small>${a.d}</small></li>`).join("")}</ul>

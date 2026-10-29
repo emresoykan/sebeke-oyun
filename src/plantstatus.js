@@ -5,7 +5,7 @@ import { eqOf } from "./equipment.js";
 import { siteWx } from "./wxsite.js";
 import { sunRel, powerCurve } from "./weather.js";
 import { production, PV } from "./market.js";
-import { PHS_H, CSP, FPV_COOL } from "./config.js";
+import { PHS_H, CSP, PV_GAIN } from "./config.js";
 import { CAL, noonAmp } from "./calendar.js";
 
 export function plantStatus(id){
@@ -19,7 +19,7 @@ export function plantStatus(id){
     if(p.down){out[p.k]={f:0,down:true};return;}
     const q=eqOf(p).perf;
     if(p.k==="res"||p.k==="off"||p.k==="flo"){const v=w.hub;out[p.k]={f:clamp(powerCurve(v)*q,0,1),cut:v>25};}
-    else if(PV.includes(p.k)){const sn=o.snowDays>0,f=clamp(o.solar*shape(h)*noonAmp(o.lat,CAL.decl)*sunRel(w,w.base)*1.24*q*(sn?0.25:1)*(p.k==="fpv"?FPV_COOL:1),0,1);out[p.k]={f,curt:f>0&&M.price[h]<=0,snow:sn};}
+    else if(PV.includes(p.k)){const sn=o.snowDays>0,f=clamp((o.solar||0)*shape(h)*noonAmp(o.lat,CAL.decl)*sunRel(w,w.base)*1.24*q*(sn?0.25:1)*(PV_GAIN[p.k]||1),0,1);out[p.k]={f,curt:f>0&&M.price[h]<=0,snow:sn};}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;out.hes={run:e>0,f:e/p.mw};}
     else if(p.k==="jes")out.jes={f:Math.min(0.96,(o.well??1)*q*0.92)};
     else if(p.k==="bes"){const e=p.plan?p.plan[h]:0;out.bes={run:e>0};}
@@ -32,7 +32,7 @@ export function plantStatus(id){
   return out;
 }
 
-const DOWN={res:"RES",off:"Offshore",flo:"Yüzer RES",ges:"GES",fpv:"Yüzer GES",csp:"CSP",hes:"HES",phs:"Pompaj HES",jes:"JES",bes:"Biyokütle",mar:"Deniz",batt:"Batarya",h2:"Elektrolizör"};
+const DOWN={res:"RES",off:"Offshore",flo:"Yüzer RES",ges:"GES",fpv:"Yüzer GES",spv:"Deniz GES",csp:"CSP",hes:"HES",phs:"Pompaj HES",jes:"JES",bes:"Biyokütle",mar:"Deniz",batt:"Batarya",h2:"Elektrolizör"};
 export function statusText(st){
   const pct=f=>"%"+Math.round(f*100),parts=[];
   for(const k in DOWN)if(st[k]&&st[k].down){parts.push(`${DOWN[k]}: arızalı, onarılıyor`);delete st[k];}
@@ -41,6 +41,7 @@ export function statusText(st){
   if(st.flo)parts.push(st.flo.cut?"Yüzer RES: fırtına, türbinler durdu (platform güvende)":st.flo.f<0.03?"Yüzer RES: rüzgâr yok":`Yüzer RES: ${pct(st.flo.f)} kapasiteyle üretiyor`);
   if(st.ges)parts.push(st.ges.snow&&st.ges.f>0.005?`GES: paneller karla kaplı, ${pct(st.ges.f)} kapasite`:st.ges.curt?"GES: fiyat sıfır, üretim kısıldı":st.ges.f<0.03?"GES: gece, üretim yok":`GES: ${pct(st.ges.f)} kapasiteyle üretiyor`);
   if(st.fpv)parts.push(st.fpv.snow&&st.fpv.f>0.005?`Yüzer GES: paneller karla kaplı, ${pct(st.fpv.f)} kapasite`:st.fpv.curt?"Yüzer GES: fiyat sıfır, üretim kısıldı":st.fpv.f<0.03?"Yüzer GES: gece, üretim yok":`Yüzer GES: ${pct(st.fpv.f)} kapasiteyle üretiyor`);
+  if(st.spv)parts.push(st.spv.snow&&st.spv.f>0.005?`Deniz GES: paneller karla kaplı, ${pct(st.spv.f)} kapasite`:st.spv.curt?"Deniz GES: fiyat sıfır, üretim kısıldı":st.spv.f<0.03?"Deniz GES: gece, üretim yok":`Deniz GES: ${pct(st.spv.f)} kapasiteyle üretiyor`);
   if(st.csp)parts.push(`CSP: tuz deposu ${pct(st.csp.tank)} dolu`+(st.csp.run?", türbin çalışıyor":st.csp.sun?", güneşi depoluyor":", bekliyor"));
   if(st.hes)parts.push(st.hes.run?"HES: türbinler çalışıyor":"HES: su biriktiriyor");
   if(st.jes)parts.push(`JES: ${pct(st.jes.f)} kapasiteyle sürekli üretiyor`);
@@ -55,6 +56,6 @@ export function statusText(st){
 // Sahada o saatte üretim (veya batarya hareketi) var mı: haritadaki "canlı" nabzı için
 export function isLive(st){
   const f=x=>x&&!x.down&&x.f>=0.03;
-  return !!((f(st.ges)&&!st.ges.curt)||(f(st.fpv)&&!st.fpv.curt)||f(st.res)||f(st.off)||f(st.flo)||f(st.jes)||f(st.mar)||(st.hes&&st.hes.run)||(st.bes&&st.bes.run)||(st.csp&&st.csp.run)||(st.h2&&st.h2.run)||
+  return !!((f(st.ges)&&!st.ges.curt)||(f(st.fpv)&&!st.fpv.curt)||(f(st.spv)&&!st.spv.curt)||f(st.res)||f(st.off)||f(st.flo)||f(st.jes)||f(st.mar)||(st.hes&&st.hes.run)||(st.bes&&st.bes.run)||(st.csp&&st.csp.run)||(st.h2&&st.h2.run)||
     (st.batt&&(st.batt.chg||st.batt.dis))||(st.phs&&(st.phs.chg||st.phs.dis)));
 }

@@ -13,7 +13,7 @@ const r=await p.evaluate(async()=>{
   const st=await import("/src/state.js"),w=await import("/src/world.js"),ru=await import("/src/rules.js"),ac=await import("/src/actions.js"),cfg=await import("/src/config.js"),S=st.S,out={};
   S.money=9e6;S.won=true;S.win1=1;S.evCool=999;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});for(const k in S.rivals||{})S.rivals[k].sites=[];
   const deep=w.describe(33,29),shallow=w.describe(41.3,29.6),ocean=w.describe(30,-40);
-  out.zones=[deep.deep&&!deep.shallow,ru.allowed(deep).join(","),shallow.shallow,ru.allowed(shallow).join(","),!!ocean.deep||!!ocean.shallow];
+  out.zones=[deep.deep&&!deep.shallow,ru.allowed(deep).join(","),shallow.shallow,ru.allowed(shallow).join(","),!!ocean.deep||!!ocean.shallow,shallow.coastKm];
   // kilitliyken derin denizde arazi alınamaz
   S.sel={id:null,lat:33,lon:29};ac.buyLand();out.lockedBuy=!S.sel.id&&ru.locked("flo");
   // deneyim: 60 MW kurulu güç (kara sahası, doğrudan)
@@ -24,7 +24,7 @@ const r=await p.evaluate(async()=>{
   out.capexExp=2*cfg.TECH.flo.capex;
   return {...out,id};});
 ok(r.zones[0]&&r.zones[1]==="flo","derin deniz bandı (Mısır açığı): yalnızca yüzer RES");
-ok(r.zones[2]&&r.zones[3]==="off,flo,mar","sığ deniz: sabit tabanlı, yüzer ve deniz enerjisi");
+ok(r.zones[2]&&r.zones[3]===(r.zones[5]<=20?"off,spv,flo,mar":"off,flo,mar"),`sığ deniz: sabit tabanlı, yüzer ve deniz enerjisi; kıyıya ${r.zones[5]} km olduğu için deniz GES'i de (${r.zones[3]})`);
 ok(!r.zones[4],"açık okyanus (kıyıya 350 km'den uzak): kurulum yok");
 ok(r.lockedBuy,"60 MW'tan önce derin denizde arazi alınamaz");
 ok(r.unlocked&&r.bought,"60 MW'tan sonra açılır, derin deniz alanı alınır");

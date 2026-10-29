@@ -1,5 +1,5 @@
 // Kare bazlı kurallar: izinli teknolojiler, arazi/izin maliyeti ve olasılıkları
-import { REG, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT } from "./config.js";
+import { REG, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT, SPV_KM } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
@@ -21,13 +21,14 @@ export function tooSteep(k,t){
 }
 
 // İzinli teknolojiler: HES, yüzer GES (baraj gölüne) ve pompaj HES dağlık bölgede, JES jeotermal kuşakta, BES hammaddesi
-// olan karada, CSP çölde ya da güneşi çok güçlü yerde, deniz enerjisi sığ denizde; elektrolizör ve batarya her karada.
+// olan karada, CSP çölde ya da güneşi çok güçlü yerde, deniz enerjisi sığ denizde, deniz üstü GES sığ denizde kıyıya yakın
+// (SPV_KM); elektrolizör ve batarya her karada.
 // Arazi eğimi ölçüldüyse fazla eğimli yerde düz arazi isteyen teknolojiler çıkar
 export const allowed=t=>baseAllowed(t).filter(k=>!tooSteep(k,t));
 // eğim kuralı uygulanmadan önceki liste (panelde hangi teknolojinin eğim yüzünden düştüğünü söylemek için)
 export function baseAllowed(t){
   fillRes(t);
-  if(t.urban)return[];if(t.sea)return t.shallow?["off","flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
+  if(t.urban)return[];if(t.sea)return t.shallow?["off",...(t.coastKm<=SPV_KM?["spv"]:[]),"flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
   const a=["ges","res"];if(t.ter==="m")a.push("hes","fpv","phs");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");
   if(cspOk(t))a.push("csp");a.push("batt","h2");return a;
 }
