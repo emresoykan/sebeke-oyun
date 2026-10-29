@@ -36,12 +36,13 @@ const sites=new Map(),rivals=new Map();
 // Karo katmanları (gece, bulut) için eşzamansız önbellek: get() hazır görüntüyü, yoksa eskisini (o da yoksa null) hemen
 // döndürür, eksik karoyu kuyruğa koyar. Kuyruk karo karo çizilir; görüntü toBlob ile kodlanır (toDataURL ana iş
 // parçacığını bekletiyordu: her oyun saatinde gece ve bulut karolarının hepsi baştan kodlanıyor, harita takılıyordu).
-// Hazır oldukça (en çok 500 ms'de bir) ve kuyruk bitince reload çağrılır. ver değişince karolar yeniden çizilir.
+// Kuyruk bitince reload çağrılır; o sırada harita hareket ediyorsa ya da yeni durulduysa yenileme bekler (whenStill).
+// ver değişince karolar yeniden çizilir.
 function asyncTiles(draw,reload,max=400,name="karo"){
   const cache=new Map(),q=new Map();let busy=false,last=0,ver="";
   const drop=u=>{if(u)setTimeout(()=>URL.revokeObjectURL(u),5000);}; // harita eski adresi hâlâ yüklüyor olabilir
   async function step(){
-    const it=q.entries().next();if(it.done){busy=false;reload();return;}
+    const it=q.entries().next();if(it.done){busy=false;whenStill(reload);return;}
     const [k,t]=it.value;q.delete(k);let url=null;
     if(t.v===ver){const t0=performance.now(),c=draw(t.x,t.y,t.z);wp(name,t0);if(c){const b=await new Promise(r=>{try{c.toBlob(r,"image/png");}catch(e){r(null);}});c.width=c.height=0;url=b?URL.createObjectURL(b):null;}
       const o=cache.get(k);cache.delete(k);cache.set(k,{v:t.v,url});if(o&&o.url!==url)drop(o.url);
@@ -58,6 +59,10 @@ function asyncTiles(draw,reload,max=400,name="karo"){
 let moving=false,settleT=0;const afterMove=[];
 const flush=()=>{settleT=0;if(!moving)afterMove.splice(0).forEach(f=>f());};
 const whenStill=f=>{if(moving||settleT){if(!afterMove.includes(f))afterMove.push(f);}else f();};
+// katman yenileme; ?perf=1 açıksa sayılır (perfprobe.js raporunda "katman yenilemeleri"). Bekleyen yenilemeler aynı işlevle
+// sıraya girer: harita durulunca her katman bir kez yenilenir
+const rl=(o,n)=>{if(!o)return;wp("Apple yenileme: "+n,performance.now());o.reload();};
+const reNight=()=>rl(night,"gece"),reClouds=()=>rl(clouds,"bulut"),reWeather=()=>{rl(clouds,"bulut");drawStorms();};
 
 function loadScript(){
   return new Promise((res,rej)=>{
@@ -159,7 +164,7 @@ function nightGet(x,y,z){
   return u;
 }
 // görünüm ya da saat değişince düz gece karosu güncellenir (yalnızca yakındayken ve renk değiştiyse)
-function refreshFlatNight(){if(!map||!night)return;const k=flatNightKey();if(k!==flatKey){flatKey=k;if(map.cameraDistance<zoomToH(NIGHT_Z+0.5))night.reload();}}
+function refreshFlatNight(){if(!map||!night)return;const k=flatNightKey();if(k!==flatKey){flatKey=k;if(map.cameraDistance<zoomToH(NIGHT_Z+0.5))rl(night,"gece");}}
 function nightDraw(x,y,z){
   const n=2**z;if(lastHour==null||y<0||y>=n)return null;x=((x%n)+n)%n;
   const N=64,c=document.createElement("canvas");c.width=c.height=N;const g=c.getContext("2d"),im=g.createImageData(N,N),px=im.data;
@@ -188,7 +193,7 @@ function updateWeather(force){
   if(!map)return;
   // bulutlar görünmüyorsa (hava kapalı ya da yakın: saydamlık 0) karo üretilmez; görünür olunca onRegion yeniler
   if(!force&&(moving||!clouds.opacity))return;
-  if(tickClouds(force)){cloudVer++;cloudT.setVer(cloudVer);whenStill(()=>{clouds.reload();drawStorms();});}
+  if(tickClouds(force)){cloudVer++;cloudT.setVer(cloudVer);whenStill(reWeather);}
 }
 
 // Yakınlığa göre: bulut saydamlığı, etiketlerin görünürlüğü (düz haritadaki eşiklerle)
@@ -239,20 +244,20 @@ export async function initMapKit(el,h){
   parkLabels=PROTECTED.map(([n,lat,lon])=>{const m=marker("mk-park",2,null);m.lab.textContent=n;m.a.coordinate=coord(lat,lon);
     m.a.displayPriority=mk.Annotation.DisplayPriority.Low;m.a.collisionMode=mk.Annotation.CollisionMode.Rectangle;m.a.visible=false;return m.a;});
   map.addAnnotations(parkLabels);
-  nightT=asyncTiles(nightDraw,()=>night&&night.reload(),600,"Apple: gece karosu");cloudT=asyncTiles(cloudDraw,()=>clouds&&clouds.reload(),300,"Apple: bulut karosu");
+  nightT=asyncTiles(nightDraw,reNight,600,"Apple: gece karosu");cloudT=asyncTiles(cloudDraw,reClouds,300,"Apple: bulut karosu");
   night=new mk.TileOverlay(nightGet,{opacity:1});
   clouds=new mk.TileOverlay((x,y,z)=>cloudT.get(x,y,z),{maximumZ:7,opacity:0});
   // güneş/rüzgâr potansiyeli (potential.js): karo hazır değilse boş kalır, hazır olunca katman yenilenir
-  const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1});let potT=0;
-  P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;whenStill(()=>pot.reload());});
+  const pot=new mk.TileOverlay((x,y,z)=>P.tileURL(z,x,y),{opacity:P.potMode()==="off"?0:1}),rePot=()=>rl(pot,"potansiyel");let potT=0;
+  P.onPotChange(m=>{if(!map)return;pot.opacity=m==="off"?0:1;whenStill(rePot);});
   // yenileme seyrek: hesap sürerken en fazla 1,2 sn'de bir, kuyruk bitince bir kez daha (her karoda yenilemek kasabilir)
-  let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)whenStill(()=>pot.reload());};
+  let potLast=0;const reloadPot=()=>{potT=0;potLast=performance.now();if(map)whenStill(rePot);};
   P.onPotTile(()=>{if(!map||P.potMode()==="off"||potT)return;
     potT=setTimeout(reloadPot,P.potPending()===0?150:Math.max(150,1200-(performance.now()-potLast)));});
   // gerçek santraller (realplants.js): karo görüntüsü olarak çizilir; açılıp kapanınca yenilenir
   const real=new mk.TileOverlay((x,y,z)=>realTileURL(z,x,y),{opacity:realOn()?1:0});
-  onRealChange(on=>{if(!map)return;real.opacity=on?1:0;real.reload();});
-  const reloadReal=()=>{if(map&&realOn())real.reload();};
+  onRealChange(on=>{if(!map)return;real.opacity=on?1:0;rl(real,"santral");});
+  const reloadReal=()=>{if(map&&realOn())rl(real,"santral");};
   onRealTile(()=>whenStill(reloadReal)); // arka planda çizilen karolar hazır olunca (harita durulduktan sonra)
   // ?overlays=0 (tanı): bizim karo katmanlarımız eklenmez; harita yalnızca Apple'ın kendi görüntüsüyle açılır
   if(!new URLSearchParams(location.search).has("overlays")||new URLSearchParams(location.search).get("overlays")!=="0")map.addTileOverlays([night,pot,real,clouds]);
@@ -310,7 +315,7 @@ function drawImpl(){
 export function setClock(hour){
   if(!map||hour===lastHour)return;
   lastHour=hour;
-  const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);flatKey=flatNightKey();whenStill(()=>night.reload());};
+  const go=()=>{nightTimer=0;nightLast=performance.now();nightT.setVer(`${lastHour}/${CAL.decl.toFixed(2)}`);flatKey=flatNightKey();whenStill(reNight);};
   // gece en çok 5 sn'de bir yenilenir (1x hızda oyun saati 0,5 sn; karanlık zaten yavaş değişir)
   if(nightTimer)return;const wait=5000-(performance.now()-nightLast);if(wait<=0)go();else nightTimer=setTimeout(go,wait);
 }
