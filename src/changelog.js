@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29",t:"Gerçekçi deniz üstü rüzgâr",items:[
+    "Deniz üstü türbinlerin temeli fotoğraflardaki gibi: monopilde su hattından ~18 m yükselen sarı geçiş parçası, bazı sahalarda sarı kafes (jacket) temel.",
+    "Temelin üstünde korkuluklu erişim güvertesi, küçük vinç ve tekne yanaşma merdiveni; gövdenin üstünde kırmızı korkuluklu helikopter platformu.",
+    "Açık deniz trafo platformu: sarı kafes ayaklar üstünde iki katlı güverte, modüller ve platform vinci."]},
   {id:"2026-10-28.10",t:"Depolama ve hidrojene destek",items:[
     "Kapasite ödemesi: Avrupa ve Kuzey Amerika'da batarya ve pompaj HES zirveye hazır güç için günlük ödeme alır (Büyük Britanya ve PJM açık artırma fiyatlarıyla). Arızalıyken ya da batarya boştayken ödenmez.",
     "Yeşil hidrojen desteği: Avrupa'da Hidrojen Bankası primi (~0,45 $/kg), ABD'de 45V vergi kredisi (3 $/kg, takvim 2028'e gelmeden kurulana), 10 ekonomik yıl. Yalnızca aynı sahadaki rüzgâr ve güneşle üretilen hidrojene ödenir.",

@@ -191,24 +191,55 @@ function blades(rotor){
   const sp=new THREE.LatheGeometry([[0,0],[2.7,0],[2.72,1],[2.55,2.1],[2.15,3.2],[1.5,4.2],[.7,4.9],[0,5.15]].map(([x,y])=>new THREE.Vector2(x,y)),28);
   sp.rotateZ(Math.PI/2);sp.translate(1.2,0,0);const m=new THREE.Mesh(sp,M.white);m.castShadow=true;rotor.add(m);
 }
-function turbine(sea,parts){
-  const g=new THREE.Group(),base=sea?16:0,top=base+100;
-  if(sea){const mono=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,16,24),M.dark);mono.position.y=-2;g.add(mono);
-    const tp=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,10,24),M.yellow);tp.position.y=base-5;tp.castShadow=true;g.add(tp);
-    const deck=new THREE.Mesh(new THREE.CylinderGeometry(6,6,.8,24),M.grey);deck.position.y=base;deck.castShadow=true;g.add(deck);
-    g.add(box(1.2,10,1.2,M.yellow,0,base-6,4)); // tekne yanaşma merdiveni
-    const ring=new THREE.Mesh(new THREE.RingGeometry(3.4,9,32),M.seaFoam);ring.rotation.x=-Math.PI/2;ring.position.y=.3;g.add(ring);}
-  else g.add(cyl(9.5,10,.6,M.concrete,0,.3,0,28)); // temel
+// birden çok parçayı tek ağa birleştirir (kafes temel gibi çok çubuklu yapılar tek çizim çağrısı olsun); sonuç önbellekte
+const MERGED=new Map();
+function merged(key,make,mat){
+  let geo=MERGED.get(key);
+  if(!geo){const ms=make();ms.forEach(m=>m.updateMatrix());geo=mergeGeometries(ms.map(m=>m.geometry.clone().applyMatrix4(m.matrix)));MERGED.set(key,geo);}
+  const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;return m;
+}
+// dört bacaklı kafes temel (jacket): içe eğik bacaklar, her yüzde X çaprazlar ve yatay kirişler. w0/w1: alt ve üst yarı
+// genişlik, y0 (su hattının hemen altı) ile y1 arası n kat; sarı (deniz yapılarında görünürlük için yaygın renk)
+function jacket(w0,w1,y0,y1,n,r){
+  return merged(`jk${[w0,w1,y0,y1,n,r]}`,()=>{
+    const C=[[1,1],[1,-1],[-1,-1],[-1,1]],P=(a,b,t)=>[a*(w0+(w1-w0)*t),y0+(y1-y0)*t,b*(w0+(w1-w0)*t)],out=[];
+    C.forEach(([a,b])=>out.push(cylBetween(P(a,b,0),P(a,b,1),r,M.yellow,10)));
+    for(let i=0;i<n;i++)for(let f=0;f<4;f++){const [a0,b0]=C[f],[a1,b1]=C[(f+1)%4],t0=i/n,t1=(i+1)/n;
+      out.push(cylBetween(P(a0,b0,t0),P(a1,b1,t1),r*.45,M.yellow,6),cylBetween(P(a1,b1,t0),P(a0,b0,t1),r*.45,M.yellow,6),cylBetween(P(a0,b0,t1),P(a1,b1,t1),r*.5,M.yellow,6));}
+    return out;},M.yellow);
+}
+// Deniz üstü temel (fotoğraflara göre): monopil türbinde su hattından ~18 m yükselen sarı geçiş parçası (su hattında
+// koyu şerit), kafes temelde sarı dört bacaklı kafes ve üstünde geçiş çerçevesi. İkisinde de üstte korkuluklu erişim
+// güvertesi, küçük vinç (davit) ve tekne yanaşma merdiveni; su hattında köpük. T: güvertenin deniz seviyesinden yüksekliği
+const TP_H=18;
+function seaBase(g,jk){
+  const T=TP_H;
+  if(jk){g.add(jacket(8,3.6,-1,T-2.5,2,.55),box(8.4,1.6,8.4,M.yellow,0,T-1.6,0),cyl(2.6,2.6,2.6,M.yellow,0,T-1.3,0,20));}
+  else g.add(cyl(3.3,3.3,T+1,M.yellow,0,(T-1)/2,0,28),cyl(3.36,3.36,1.8,M.dark,0,.4,0,28));
+  g.add(cyl(6.2,6.2,.5,M.grey,0,T,0,32));
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(6,.07,6,48),M.yellow);rail.rotation.x=Math.PI/2;rail.position.y=T+1.2;g.add(rail);
+  g.add(inst(new THREE.BoxGeometry(.09,1.2,.09),M.yellow,Array.from({length:18},(_,i)=>[Math.cos(i/18*2*Math.PI)*6,T+.6,Math.sin(i/18*2*Math.PI)*6])));
+  g.add(cyl(.22,.22,3.6,M.yellow,3.6,T+1.8,-3.6,8),cylBetween([3.6,T+3.5,-3.6],[1.2,T+4.4,-5.4],.15,M.yellow,6)); // davit vinci
+  const lz=jk?5.2:3.9;g.add(cyl(.32,.32,T-3,M.yellow,-1.1,(T-3)/2-.5,lz,8),cyl(.32,.32,T-3,M.yellow,1.1,(T-3)/2-.5,lz,8),box(1.2,T-4,.12,M.dark,0,(T-4)/2,lz+.1));
+  const ring=new THREE.Mesh(new THREE.RingGeometry(jk?9:3.4,jk?14:9,32),M.seaFoam);ring.rotation.x=-Math.PI/2;ring.position.y=.3;g.add(ring);
+  return T;
+}
+// jk: deniz üstünde kafes temel (yoksa monopil)
+function turbine(sea,parts,jk=false){
+  const g=new THREE.Group(),base=sea?seaBase(g,jk):0,top=sea?116:100;
+  if(!sea)g.add(cyl(9.5,10,.6,M.concrete,0,.3,0,28)); // temel
   // kule: ince, hafif konik (dipte ~4,4 m, tepede ~3 m çap), iki flanş halkası, kapı ve basamaklar
-  const tower=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2.2,100,32),M.white);tower.position.y=base+50;tower.castShadow=true;g.add(tower);
-  [33,66].forEach(h=>g.add(cyl(2.2-.7*h/100+.03,2.2-.7*h/100+.03,.15,M.tankW,0,base+h,0,32)));
+  const TH=top-base,tower=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2.2,TH,32),M.white);tower.position.y=base+TH/2;tower.castShadow=true;g.add(tower);
+  [.33,.66].forEach(f=>g.add(cyl(2.2-.7*f+.03,2.2-.7*f+.03,.15,M.tankW,0,base+f*TH,0,32)));
   g.add(box(.9,2.2,.15,M.dark,0,base+1.6,2.2),box(1.6,.5,1.2,M.concrete,0,base+.25,2.8)); // kule kapısı ve basamak
   // gövde: köşeleri yuvarlatılmış kutu; yanlarda nötr bir şerit (üretici logosu yerine) ve arkada gri havalandırma
   // panjurları; arka üstte korkuluklu çerçeve içinde iki ölçüm cihazı (anemometre ve rüzgâr gülü)
   const nac=new THREE.Mesh(new RoundedBoxGeometry(12,4.2,4.4,3,.9),M.white);nac.position.set(2.8,top+2,0);nac.castShadow=true;g.add(nac);
   [-1,1].forEach(sd=>{g.add(box(4,.32,.06,M.grey,1.4,top+2.9,sd*2.22));for(let i=0;i<4;i++)g.add(box(2.4,.2,.06,M.grey,6.4,top+.8+i*.55,sd*2.22));});
-  g.add(box(3.2,.1,.1,M.frame,6.9,top+5.4,1.3),box(3.2,.1,.1,M.frame,6.9,top+5.4,-1.3),box(.1,.1,2.7,M.frame,5.3,top+5.4,0),box(.1,.1,2.7,M.frame,8.5,top+5.4,0));
-  [[5.3,1.3],[8.5,1.3],[5.3,-1.3],[8.5,-1.3]].forEach(([x,z])=>g.add(box(.1,1.3,.1,M.frame,x,top+4.75,z)));
+  // denizde çerçeve helikopter vinç platformudur: güverte ve kırmızı korkuluk (fotoğraflardaki gibi)
+  const fm=sea?M.red:M.frame;if(sea)g.add(box(3.4,.14,2.8,M.grey,6.9,top+4.2,0));
+  g.add(box(3.2,.1,.1,fm,6.9,top+5.4,1.3),box(3.2,.1,.1,fm,6.9,top+5.4,-1.3),box(.1,.1,2.7,fm,5.3,top+5.4,0),box(.1,.1,2.7,fm,8.5,top+5.4,0));
+  [[5.3,1.3],[8.5,1.3],[5.3,-1.3],[8.5,-1.3]].forEach(([x,z])=>g.add(box(.1,1.3,.1,fm,x,top+4.75,z)));
   g.add(box(.9,.7,.7,M.grey,6.2,top+4.5,.6),box(.9,.7,.7,M.grey,7.6,top+4.5,-.6),cyl(.06,.06,1.6,M.grey,6.2,top+5.6,.6,6),cyl(.06,.06,1.6,M.grey,7.6,top+5.6,-.6,6));
   const rotor=new THREE.Group();rotor.position.set(-3.8,top+2,0);blades(rotor);
   const k=parts.rotors.length;rotor.name=`rotor${k}`;g.add(rotor);g.name=`tw${k}`;
@@ -226,10 +257,11 @@ function boat(g,x,z,ry=0){
 // sıralar arası ~5 katı (yaygın yerleşim aralıkları). Düzen türbinlerin baktığı yöne göre döner (yaw: rüzgârın estiği yön,
 // yawOf): sıralar rüzgâra dik uzanır, aynı sıradaki türbinler yan yana durur ve birbirinin rüzgâr gölgesinde kalmaz.
 // Yerel eksenler: u rüzgâr ekseni boyunca (sıralar arası), v rüzgâra dik (sıra içi)
-function windFarm(mw,sea,parts,yaw,sc=1){
+// jk: deniz üstünde kafes temel (sahaya göre; yoksa monopil)
+function windFarm(mw,sea,parts,yaw,sc=1,jk=false){
   const n=Math.min(8,Math.max(1,Math.ceil(mw/5))),g=new THREE.Group(),cols=Math.min(4,n),nr=Math.ceil(n/cols),D=128*sc,sp=3.5*D,rs=5*D,rows=[],kiosk=[];
   const cy=Math.cos(yaw),sy=Math.sin(yaw),at=(u,v)=>({x:u*cy+v*sy,z:-u*sy+v*cy});
-  for(let i=0;i<n;i++){const t=turbine(sea,parts),c=i%cols,r=Math.floor(i/cols),cnt=Math.min(cols,n-r*cols);t.scale.setScalar(sc);
+  for(let i=0;i<n;i++){const t=turbine(sea,parts,jk),c=i%cols,r=Math.floor(i/cols),cnt=Math.min(cols,n-r*cols);t.scale.setScalar(sc);
     const P=at((r-(nr-1)/2)*rs,(c-(cnt-1)/2)*sp+(r%2?sp*.5:0));t.position.set(P.x,0,P.z);t.rotation.y=yaw;g.add(t);parts.yaws.push({name:t.name,base:yaw,cur:yaw});
     (rows[r]=rows[r]||[]).push(t.position);
     // vinç platformu (kurulumda ana vincin durduğu sıkıştırılmış alan) ve kule dibindeki trafo köşkü; türbinle birlikte döner
@@ -243,8 +275,15 @@ function windFarm(mw,sea,parts,yaw,sc=1){
     // rüzgâr ölçüm direği (kafes, ~göbek yüksekliğinde) ve kolları
     const m0=at(-40,-sp*.45),mx=rows[0][0].x+m0.x,mz=rows[0][0].z+m0.z;g.add(new THREE.Mesh(new THREE.CylinderGeometry(.35,.6,100*sc,4),M.steel).translateX(mx).translateY(50*sc).translateZ(mz));
     [.95,.7,.45].forEach(f=>g.add(box(6,.2,.2,M.steel,mx+3,100*sc*f,mz)));g.add(padAt(12,12,M.gravel,mx,mz));}
-  if(sea&&n>=3){const p=new THREE.Group();[[-6,-4],[6,-4],[-6,4],[6,4]].forEach(([x,z])=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,22,10),M.dark);l.position.set(x,9,z);p.add(l);});
-    p.add(box(20,9,14,M.yellow,0,24,0),box(16,4,10,M.grey,0,30.5,0),box(6,.4,6,M.white,-4,32.7,0));const pp=at((nr-1)/2*rs+sp*.6,0);p.position.set(pp.x,0,pp.z);p.rotation.y=yaw;g.add(p);}
+  // açık deniz trafo platformu (fotoğraftaki gibi): sarı kafes ayaklar, iki katlı sarı güverte, gri modüller ve trafo
+  // bölmesi, konteyner, korkuluklar ve platform vinci
+  if(sea&&n>=3){const p=new THREE.Group();p.add(jacket(12,9,-1,16,2,.9));
+    p.add(box(27,1.2,21,M.yellow,0,17.2,0),box(11,6,8,M.grey,-6.5,20.8,-5),box(9,6,8,M.wall,6,20.8,-5),box(20,5,7,M.tankW,0,20.3,5.5));
+    p.add(box(27,1,21,M.yellow,0,24.3,0),box(13,4,10,M.grey,-5.5,26.8,-2),box(6.1,2.6,2.45,M.container,7,26.1,5.5),box(6.1,2.6,2.45,M.container,7,26.1,1.5));
+    [[0,25.5,10.5,27,.12],[0,25.5,-10.5,27,.12]].forEach(([x,y,z,w,d])=>p.add(box(w,.1,d,M.yellow,x,y,z+0),box(w,.1,d,M.yellow,x,y-.5,z)));
+    [-13.5,13.5].forEach(x=>p.add(box(.12,.1,21,M.yellow,x,25.5,0),box(.12,.1,21,M.yellow,x,25,0)));
+    p.add(cyl(.8,.8,4,M.yellow,10.5,26.8,-7,10),cylBetween([10.5,28.6,-7],[2,35,-8],.4,M.yellow,8),cylBetween([2,35,-8],[2,29,-8],.05,M.dark,4));
+    const pp=at((nr-1)/2*rs+sp*.6,0);p.position.set(pp.x,0,pp.z);p.rotation.y=yaw;g.add(p);}
   if(sea)boat(g,rows[0][0].x+30,rows[0][0].z+22,.3);
   return g;
 }
@@ -784,7 +823,7 @@ export function buildSite(id,o,ps){
   // userData.k: rüzgâr grubunun teknolojisi (haritadaki dönen pervaneler hızını RES ve offshore için ayrı alır)
   const yaw=yawOf(o.wdir??270);
   if(by.res){const g=windFarm(by.res,false,parts,yaw,TURBINE_SCALE[top.res]);g.userData.k="res";groups.push(g);}
-  if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off]);g.userData.k="off";groups.push(g);}
+  if(by.off){const g=windFarm(by.off,true,parts,yaw,TURBINE_SCALE[top.off],seedOf(id)%2===1);g.userData.k="off";groups.push(g);}
   if(by.flo){const g=floatFarm(by.flo,parts,yaw,TURBINE_SCALE[top.flo]);g.userData.k="flo";groups.push(g);}
   if(by.ges)groups.push(solarFarm(by.ges,o.lat,parts,top.ges,seedOf(id)));
   if(by.csp)groups.push(cspPlant(by.csp,o.lat,parts));
