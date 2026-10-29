@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.5",t:"Proje ekonomisi düzeltmesi",items:[
+    "Yüzer GES ve deniz üstü GES'in proje ekonomisinde panel yaşlanması (yıllık %0,5 üretim kaybı) artık kara GES'i gibi hesaba katılır; LCOE ~%3 artar."]},
   {id:"2026-10-29.4",t:"Deniz üstü GES",items:[
     "Yeni teknoloji: kıyıya 20 km'den yakın sığ denizde çelik kazıklar üstündeki sarı kafes platformlara kurulan güneş santrali (Çin'deki 1 GW'lık projeler gibi).",
     "Yatırımı kara GES'inin ~1,4 katı (kazık, kafes, deniz kablosu), deniz yansıması ve serinlikle ~%4 fazla üretim; arazi kullanmaz ama saha sınırına sayılır.",
