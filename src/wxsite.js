@@ -2,11 +2,21 @@
 // Gün başında 24 saatlik tahmin (D.wxf: saat başına hava sistemlerinin anlık görüntüsü) üretilir; fiyatlar piyasaların
 // temsilî noktasındaki tahmine, santral üretimi sahanın kendi havasına göre hesaplanır.
 import { S, D } from "./state.js";
-import { sampleWx, siteBase, lerpWx, isCold } from "./weather.js";
+import { sampleWx, siteBase, lerpWx, isCold, powerCurve } from "./weather.js";
+import { describe } from "./world.js";
+import { WFLEET } from "./windfleet.js";
 import { prof } from "./utils.js";
 
 // Her piyasanın fiyatını belirleyen temsilî nokta (enlem, boylam)
 export const MREF={T:[39,35],E:[50,10],N:[39,-95],S:[-15,-55],F:[5,20],M:[27,45],A:[32,105],O:[-27,135]};
+
+// Piyasanın rüzgâr filosu: o saatte filonun güç eğrisinden ortalama kapasite oranı (0–1), noktaların ağırlığıyla. Fiyattaki
+// rüzgâr etkisi bundan hesaplanır (sim.js): rüzgâr filonun bulunduğu bölgelerde estiğinde fiyat düşer, bir santralin
+// üretimi de bu bölgelerin havasıyla birlikte hareket eder (gerçekte rüzgârın yakalama oranı 1'in altında kalır).
+// Filosu tanımlı olmayan piyasada null (tek temsilî nokta kullanılır).
+const FLEET=new Map();
+function fleetOf(k){if(!WFLEET[k])return null;if(!FLEET.has(k))FLEET.set(k,WFLEET[k].map(([la,lo,w])=>({t:describe(la,lo),w})).filter(x=>x.t&&x.t.wind!=null));return FLEET.get(k);}
+export function fleetWind(k,h){const F=fleetOf(k);if(!F||!F.length)return null;let s=0,W=0;for(const {t,w} of F){s+=w*powerCurve(siteWx(t,h).hub);W+=w;}return s/W;}
 
 // Oyun saati → harita animasyonu: son tick zamanı ve tick süresi (main.js ayarlar)
 export const clock={at:0,ms:500,paused:false};

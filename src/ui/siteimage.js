@@ -2,6 +2,7 @@
 // Sahanın 3D modeli (sitemodel.js) tarayıcıda, güneyden hafif eğik bakan ortografik bir kamerayla saydam bir PNG'ye
 // çizilir. Görüntü gerçek ölçeklidir: hangi metre aralığını kapladığı (doğu ve kuzey sınırları, saha koordinatına göre)
 // görüntüyle birlikte döner; harita bu sınırlarla yerleştirir. Santral listesi değişmedikçe görüntü yeniden çizilmez.
+import { wp } from "../perfmark.js";
 import * as THREE from "three";
 import { S } from "../state.js";
 import { tierOf } from "../equipment.js";
@@ -106,8 +107,8 @@ async function render(id,bare){
   // (metal yüzeyler ortam ışığı olmadan da kararmaz) ve ortam ışığı hazırlanmaz
   if(SOFT)root.traverse(n=>{if(!n.isMesh||!n.material||n.material.isShadowMaterial)return;n.material=lambert(n.material);});
   const scene=new THREE.Scene();if(!SOFT){scene.environment=ENV;scene.environmentIntensity=0.35;}scene.add(root);
-  R.setPixelRatio(1);R.setSize(W,H,false);R.render(scene,cam);
-  const lods=await mips(R.domElement),url=lods[0].url;
+  const t0=performance.now();R.setPixelRatio(1);R.setSize(W,H,false);R.render(scene,cam);
+  const mp=mips(R.domElement);wp("tesis görüntüsü (çizim + kopya)",t0);const lods=await mp,url=lods[0].url;
   root.traverse(n=>{if(n.geometry)n.geometry.dispose();});
   // saha koordinatının (orijin) kameradaki yeri: görüntü sınırları ona göre metreye çevrilir; kuzey ekseni eğimle kısalır
   const org=new THREE.Vector3(0,0,0).applyMatrix4(inv),c=Math.cos(TILT);

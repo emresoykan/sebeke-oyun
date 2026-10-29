@@ -1,5 +1,5 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
-import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE, PHS_H, H2, CSP } from "./config.js";
+import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE, PHS_H, H2, CSP, FLEET_CF } from "./config.js";
 import { payLoans, totalDebt } from "./loans.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
@@ -18,7 +18,7 @@ import { checkMissions } from "./missions.js";
 import { dayFx, celebrate, toast } from "./ui/fx.js";
 import { initWx, stepWx, forecast, sampleWx, clearFactor, setSeason } from "./weather.js";
 import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate, doyOf } from "./calendar.js";
-import { MREF, siteWx, clock } from "./wxsite.js";
+import { MREF, siteWx, clock, fleetWind } from "./wxsite.js";
 import { RENEW, PV, production, cspHeat, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
 import { acc } from "./finance.js";
@@ -42,13 +42,17 @@ export function newDay(){
   MARKETS.forEach(k=>{
     // piyasanın temsilî noktasındaki saatlik hava tahmini: bulut güneş üretimini, rüzgâr rüzgâr üretimini, sıcak hava akşam talebini belirler
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
-    const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=ws.map(w=>clamp(w.v/7,0.3,1.8));
+    // rüzgâr: filosu tanımlı piyasada filonun saatlik kapasite oranı, uzun dönem ortalamasına bölünmüş (ortalama ~1); diğerlerinde
+    // temsilî noktanın rüzgâr hızı
+    let fw=Array.from({length:24},(_,h)=>fleetWind(k,h));if(fw[0]==null)fw=null;
+    const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=fw&&FLEET_CF[k]?fw.map(f=>clamp(f/FLEET_CF[k],0,3)):ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>PV.includes(p.k)&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
     // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür
     const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1);
     const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
-    D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0,c:0}))};
+    // fleet ve sunP: filonun saatlik rüzgâr kapasite oranı ve piyasanın güneş üretim profili (kalibrasyon ölçümleri için)
+    D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),fleet:fw,sunP:sunH.map((s,h)=>shape(h)*amp*s),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0,c:0}))};
     priceMods(k,D[k]); // olay etkileri, günlük ortalama ve batarya planı
   });
   S.plants.forEach(p=>{if(p.k!=="hes")return;const t=site(p.t),pr=D[t.mreg].price;

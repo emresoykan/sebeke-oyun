@@ -18,11 +18,15 @@ export const FIT={p:90,years:5};
 // heat: sıcak havada akşam (17–22) talebinin fiyatı artırma payı. Piyasa bazında REG[k].sk ve REG[k].wk güneş ve rüzgâr
 // etkisini çarpar (Avrupa: ENTSO-E 2025 Almanya ve İspanya örnek günleriyle; docs/kalibrasyon.md)
 export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
+// Rüzgâr filosunun uzun dönem ortalama kapasite oranı (güç eğrisi, arıza payı düşülmeden; src/windfleet.js noktaları):
+// fiyattaki rüzgâr endeksi bununla bölünür (ortalaması ~1). Yalnızca burada değeri olan piyasalarda filo endeksi kullanılır;
+// diğerleri tek temsilî noktanın rüzgârıyla kalır. Ölçüm: scripts/calib_market.cjs (120 gün × 4 koşu: 0,21–0,23)
+export const FLEET_CF={E:0.211};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 export const REG={
   T:{n:"Türkiye",mult:1.00,s0:0.60,land:20000},
-  E:{n:"Avrupa",mult:1.9,s0:0.70,land:40000,sk:2.5,wk:3}, // mult/sk/wk: ENTSO-E 2025 (DE, ES) kalibrasyonu
+  E:{n:"Avrupa",mult:1.62,s0:0.70,land:40000,sk:3.7,wk:1.7}, // mult/sk/wk: ENTSO-E 2025 (DE, ES) kalibrasyonu, rüzgâr filo endeksiyle (29.10.2026)
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},
   F:{n:"Afrika",mult:1.05,s0:0.20,land:8000},

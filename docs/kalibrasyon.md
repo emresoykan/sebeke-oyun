@@ -134,5 +134,58 @@ Türkiye'de oyunun aylık KF'si gerçekle aynı yönde: en rüzgârlı ay Ağust
 - Filo ortalaması eski ve yeni türbinleri birlikte içerir; oyundaki santral yeni bir türbindir. Almanya'da filo yaşlı olduğu için yeni bir santralin gerçek KF'si %20'den yüksek olabilir.
 - Gerçek filo üretimi kısıntı ve iz kayıplarını içerir; oyunda bunlar ayrı modellenmez, katsayıya dahildir.
 - Almanya ve İspanya'nın bölge ağırlıkları yaklaşıktır (yayımlanmış bir kaynakla doğrulanmadı). Türkiye'de ilin en rüzgârlı noktası seçildi; ortanca nokta seçilseydi katsayı daha yüksek çıkardı.
-- Avrupa rüzgâr fiyat oranı yeni modelle %91–94 (hedef ~%83: Almanya %74, İspanya %92). Almanya rüzgârı artık kışın, fiyatların yüksek olduğu aylarda üretiyor. Fiyat modelindeki rüzgâr etkisini artırmak ortalama fiyatı aşırı düşürdü. Tek Avrupa piyasasının ülkelere bölünmesi bu farkı giderir.
+- Avrupa rüzgâr fiyat oranı yeni modelle %91–94 çıkıyordu (hedef ~%83: Almanya %74, İspanya %92, 12 örnek gün). Fiyattaki rüzgâr etkisi bölgesel yapılarak giderildi: aşağıdaki "Avrupa rüzgârının fiyat etkisi" bölümü.
 - Deniz üstünde yalnızca Almanya kalibre edildi (Türkiye için karşılaştırılacak deniz üstü filo verisi yok); Avrupa dışındaki piyasalar kalibre edilmedi.
+
+# Avrupa rüzgârının fiyat etkisi: filo bölgeleri (29.10.2026)
+
+## Neden
+Fiyattaki rüzgâr etkisi piyasanın tek temsilî noktasının (Avrupa: 50°K 10°D) rüzgâr hızından hesaplanıyordu. Santralin üretimi ise kendi sahasının havasından geliyor. Gerçekte rüzgâr bölge genelinde birlikte eser; filo çok ürettiğinde fiyat düşer ve tek bir santralin yakalama oranı 1'in altında kalır. Oyunda Avrupa'nın rüzgâr oranı 0,97 çıkıyordu (gerçek ~0,90).
+
+Not: Teknoloji ekonomisi denetiminin ilk sürümünde ölçüm betiği günün piyasa verisini her gün yeniden okumuyordu (`D` nesnesini başta bir kez yakalıyordu). Bu yüzden "Avrupa fiyatı koşudan koşuya 58–124 $/MWh oynuyor" diye yanlış bir bulgu yazıldı. Betik düzeltildi; doğru ölçümde koşular arası fark ±%6. Aşağıdaki tüm değerler düzeltilmiş betikle ölçüldü.
+
+## Veri
+ENTSO-E gün öncesi fiyatlar ve gerçekleşen üretim, 2025. Çeyreklik sorgular üretim ağırlıklı olarak yıla toplandı. Kur: 1,1306 $/€ (FRED AEXUSEU, 2025).
+
+| Gösterge | Almanya (DE_LU) | İspanya (ES) |
+|---|---|---|
+| Baz yük fiyatı | 89,3 €/MWh (~101 $) | 65,5 €/MWh (~74 $) |
+| Rüzgâr yakalama oranı | %86,6 | %96,5 |
+| Güneş yakalama oranı | %51,6 | %55,2 |
+
+İspanya'nın 2. çeyreğinde üretim verisinin %1,6'sı eksik.
+
+Hedefler (Avrupa tek piyasa): fiyat ~88 $/MWh (iki ülkenin ortalaması), rüzgâr oranı ~0,90 (üretim ağırlıklı; aralık 0,87–0,96), güneş oranı ~0,53.
+
+## Yöntem
+- **Filo noktaları** (`src/windfleet.js`, üreten `scripts/gen_windfleet.cjs`): rüzgâr kalibrasyonundaki bölgeler ve ağırlıklar (`scripts/wind_fleet.cjs`).
+  - Avrupa: Almanya'nın 8 eyaleti ve 5 deniz üstü kümesi, İspanya'nın 11 bölgesi; ağırlıklar yaklaşık GW.
+  - Türkiye: EPDK il dağılımı. Kuzey Amerika: ABD'nin 10 rüzgâr bölgesi; ağırlıklar yaklaşık, doğrulanmadı.
+- **Endeks** (`wxsite.js` `fleetWind`): her saat, noktaların oyun havasındaki göbek hızından güç eğrisiyle kapasite oranı, ağırlıklı ortalama. Fiyattaki rüzgâr girdisi = endeks ÷ uzun dönem ortalaması (`FLEET_CF`), 0–3 aralığında.
+- **Kapsam:** yalnızca Avrupa'da açık. Türkiye'de rüzgâr oranı zaten hedefe yakın (oyun 0,96, EPİAŞ 0,99); Kuzey Amerika için hedef veri yok. İkisi tek temsilî noktayla kalır; filo endeksi yalnızca ölçüm için hesaplanır.
+- **Yeni Avrupa ayarı** (`REG.E`): filo endeksi tek noktadan daha geniş dalgalandığı için rüzgâr katsayısı düşürüldü; güneş katsayısı ve fiyat düzeyi yeniden ayarlandı.
+
+| Parametre | Önce | Sonra |
+|---|---|---|
+| `mult` | 1,9 | 1,62 |
+| `sk` | 2,5 | 3,7 |
+| `wk` | 3 | 1,7 |
+| `FLEET_CF.E` | – | 0,211 (ölçülen filo ortalaması 0,21–0,23) |
+
+## Sonuç
+`scripts/calib_market.cjs`, 120 oyun günü (bir takvim yılı) × 4 koşu. Oyun normal (rakipler yatırım yapar), olay kartları kapalı. Oranlar filo düzeyindedir (bölge üretimiyle ağırlıklı, sıfır fiyatlı saatler dahil), ENTSO-E'nin ölçtüğüyle aynı tanım.
+
+| Avrupa | Gerçek 2025 | Önce | Sonra |
+|---|---|---|---|
+| Ortalama fiyat | ~88 $/MWh | 94,5 (88,4–99,8) | 89,5 (86,1–95,7) |
+| Rüzgâr oranı | ~0,90 (0,87–0,96) | 0,97 (0,95–0,98) | 0,88 (0,87–0,91) |
+| Güneş oranı | ~0,53 | 0,54 (0,49–0,57) | 0,55 (0,50–0,58) |
+| Rüzgâr filosu KF | DE kara %20,2, ES %20,5 | 0,21 | 0,21–0,23 |
+
+Aynı koşularda Türkiye: fiyat 72,1 $/MWh (70,6–73,2), rüzgâr oranı 0,96, güneş oranı 0,85, filo KF 0,33. Kuzey Amerika: 64,5 $/MWh, rüzgâr 0,98, güneş 0,90, filo KF 0,38. Bu iki piyasa değişmedi.
+
+## Sınırlamalar
+- Avrupa tek piyasa: Almanya ve İspanya'nın ayrı fiyat bölgeleri bir arada. Filo ağırlıkları Almanya ağırlıklı olduğu için İspanya'daki bir santralin oyundaki oranı gerçekteki %96,5'ten düşük çıkabilir.
+- Filo ağırlıkları yaklaşık (Almanya, İspanya); Kuzey Amerika'nınkiler doğrulanmadı.
+- Hedefler tek yıla (2025) dayanır.
+- **Gözlem (değiştirilmedi):** Türkiye'nin oyundaki ortalama fiyatı 72 $/MWh. EPİAŞ 2025 ortalaması 66,4 $/MWh, ilk kalibrasyonda oyun 65,8'di; aradaki ~%8'lik kayma bu çalışmanın kapsamı dışında bırakıldı.
