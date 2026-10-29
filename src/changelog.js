@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.8",t:"Apple haritası daha akıcı",items:[
+    "Yer değiştirince Apple haritasının boş kalan karanlık kareleri azaldı: gece ve bulut katmanlarımız artık Apple'ın uydu görüntüsüyle aynı anda yüklenmiyor; yakında gece karanlığı yalnızca koyulaşıp açılır."]},
   {id:"2026-10-29.7",t:"Avrupa'da bölgesel rüzgâr",items:[
     "Avrupa piyasasında fiyat artık Almanya ve İspanya'nın rüzgâr santrali bölgelerinin toplam üretimine tepki verir: rüzgârlı saatlerde fiyat bütün piyasada birlikte düşer.",
     "Avrupa'da RES'in ortalama satış fiyatı piyasa ortalamasının ~%88'i (gerçekte ~%90; önce ~%97); RES geliri biraz azalır, depolamanın fiyat farkı büyür. Güneşin oranı ve ortalama fiyat gerçeğe yakın kalır."]},

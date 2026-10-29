@@ -3,9 +3,10 @@
 // koordinat dönüşümü (Mercator), işaretler, daire ve karo katmanları, olaylar. Kamera değişince taban karoları <img> olarak
 // https://cdn1.apple-mapkit.com/ti/tile?... adresinden istenir (test bu adresleri gecikmeli PNG ile yanıtlar; ?perf=1
 // ölçümü bunları görür). Karo katmanlarının (TileOverlay) karo işlevi görünür karolar için çağrılır; reload çağrıları
-// window.__mkmock.reloads'a {i: addTileOverlays sırası, t: zaman} olarak yazılır, kamera hareketleri de moves'a.
+// window.__mkmock.reloads'a {i: addTileOverlays sırası, t: zaman} olarak yazılır, kamera hareketleri moves'a, katman başına
+// verilen (boş olmayan) karo sayısı loads'a.
 (()=>{
-const mock=window.__mkmock={reloads:[],moves:[],maps:[]};
+const mock=window.__mkmock={reloads:[],moves:[],maps:[],loads:{}};
 const events=o=>{const ev={};o.addEventListener=(n,f)=>{(ev[n]=ev[n]||[]).push(f);};o.removeEventListener=(n,f)=>{ev[n]=(ev[n]||[]).filter(x=>x!==f);};
   o._emit=(n,e={})=>(ev[n]||[]).slice().forEach(f=>f(e));};
 const merc=lat=>Math.log(Math.tan(Math.PI/4+Math.max(-85,Math.min(85,lat))*Math.PI/360));
@@ -46,7 +47,7 @@ class Map{
   // görünür karolar (merkez karonun çevresinde 5×4)
   _vis(){const z=Math.max(0,Math.min(20,Math.round(this.z))),n=2**z,cx=Math.floor((this._c.longitude+180)/360*n),cy=Math.floor((1-merc(this._c.latitude)/Math.PI)/2*n),t=[];
     for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=1;dy++){const y=cy+dy;if(y<0||y>=n)continue;t.push([((cx+dx)%n+n)%n,y,z]);}return t;}
-  _overlayTiles(o){for(const [x,y,z] of this._vis()){if(z<o.minimumZ||z>o.maximumZ)continue;const u=o.fn(x,y,z);if(u){const i=new Image();i.src=u;}}}
+  _overlayTiles(o){const n=this.tov.indexOf(o);for(const [x,y,z] of this._vis()){if(z<o.minimumZ||z>o.maximumZ)continue;const u=o.fn(x,y,z);if(u){mock.loads[n]=(mock.loads[n]||0)+1;const i=new Image();i.src=u;}}}
   _tiles(){if(!this.layer.isConnected)return;
     for(const [x,y,z] of this._vis()){const k=`${z}/${x}/${y}`;if(this.seen.has(k))continue;this.seen.add(k);
       const i=new Image();i.src=`https://cdn1.apple-mapkit.com/ti/tile?style=7&size=1&scale=2&z=${z}&x=${x}&y=${y}`;}
