@@ -23,6 +23,7 @@ import { initLeagueUI } from "./ui/league.js";
 import { initFeedback } from "./ui/feedback.js";
 import { initSheet, collapseSheet, confirmBox } from "./ui/sheet.js";
 import { initSaveFile } from "./ui/savefile.js";
+import { initInstall, registerSW } from "./ui/install.js";
 import { initCloud } from "./cloud.js";
 import { initCloudUI } from "./ui/cloud.js";
 import { loadUrban } from "./urban.js";
@@ -71,6 +72,7 @@ initCloudUI();initCloud();
 // yerleşim alanları arka planda yüklenir; gelince seçili noktanın paneli yenilenir
 loadUrban().then(ok=>{if(ok){clearSelCache();renderPanel();}});
 document.getElementById("guideBtn").onclick=()=>{restartGuide();collapseSheet();};
+registerSW(); // çevrimdışı önbellek (yalnızca derlenmiş sürüm)
 window.addEventListener("sebeke:reset",reset);
 // Klavye: boşluk duraklatır, 1/3/8 hız, Esc mobilde kartı küçültür
 document.addEventListener("keydown",e=>{
@@ -91,4 +93,4 @@ window.addEventListener("sebeke:select",()=>{if(inTutorial()&&!ob().pick&&!S.sel
 window.addEventListener("resize",drawChart);
 
 // ilk açılışta oyun, oyuncu şirketini kurduktan sonra başlar
-setS(load());if(S.mi==null){S.mi=0;skipDone();}initHelp();S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();initFirstSale();});
+setS(load());if(S.mi==null){S.mi=0;skipDone();}initHelp();initInstall(document.getElementById("installBtn"));S.hour=0;newDay();renderMission();initMap();drawMap();renderPanel();renderLog();renderReport();render();initTicker();initProfile(()=>{if(S.over){showLose();return;}loop();initGuide();openDesk(false,true);initLeague();initFirstSale();});

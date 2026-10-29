@@ -2,6 +2,12 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.6",t:"Uygulama gibi oyna",items:[
+    "Ayarlar ▸ Ana ekrana ekle: Wattlas telefonda ana ekrana eklenip uygulama gibi tam ekran açılır (Android ve masaüstünde kurulum penceresi, iPhone'da adım adım).",
+    "Oyun dosyaları cihazda saklanır: açılış hızlanır, internet kesikken de oyun açılır (harita için internet gerekir).",
+    "iPhone'da ana ekrandaki uygulama Safari'nin kaydını görmez: kaydını Kaydı indir ▸ Kayıt yükle ya da bulut kayıtla taşı."]},
+  {id:"2026-10-29.5",t:"Proje ekonomisi düzeltmesi",items:[
+    "Yüzer GES ve deniz üstü GES'in proje ekonomisinde panel yaşlanması (yıllık %0,5 üretim kaybı) artık kara GES'i gibi hesaba katılır; LCOE ~%3 artar."]},
   {id:"2026-10-29.4",t:"Deniz üstü GES",items:[
     "Yeni teknoloji: kıyıya 20 km'den yakın sığ denizde çelik kazıklar üstündeki sarı kafes platformlara kurulan güneş santrali (Çin'deki 1 GW'lık projeler gibi).",
     "Yatırımı kara GES'inin ~1,4 katı (kazık, kafes, deniz kablosu), deniz yansıması ve serinlikle ~%4 fazla üretim; arazi kullanmaz ama saha sınırına sayılır.",
