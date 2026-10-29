@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.9",t:"Uzaklaşınca Apple haritası",items:[
+    "Haritadan uzaklaşınca (geri çekilince) gece ve bulut katmanları Apple'ın yeni uydu görüntüsü yüklenene kadar bekler: çevredeki boş karanlık kareler daha kısa sürer."]},
   {id:"2026-10-29.8",t:"Apple haritası daha akıcı",items:[
     "Yer değiştirince Apple haritasının boş kalan karanlık kareleri azaldı: gece ve bulut katmanlarımız artık Apple'ın uydu görüntüsüyle aynı anda yüklenmiyor; yakında gece karanlığı yalnızca koyulaşıp açılır."]},
   {id:"2026-10-29.7",t:"Avrupa'da bölgesel rüzgâr",items:[
