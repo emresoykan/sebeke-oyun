@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-29.2",t:"Gerçekçi yüzer GES",items:[
+    "Yüzer GES fotoğraflardaki üç yaygın düzenden biriyle kurulur (sahaya göre): bloklara bölünmüş, güneye bakan panel sıraları; doğu-batıya eğimli çatı biçimli sıralar; ya da siyah boru halkalı yuvarlak adalar.",
+    "Bloklar arasında su koridorları ve bakım yolları; çatı düzeninde koyu şamandıralar, yeşil yan şamandıralar ve sırtlarda dizi kutuları; halka adalarda korkuluk.",
+    "Kıyıya yüzer yürüme yolu ve kıyıda kabin, bağlama halatları ve çapa şamandıraları, adanın çevresinde turuncu uyarı şamandıraları; ada artık mansaptaki nehre taşmaz."]},
   {id:"2026-10-29",t:"Gerçekçi deniz üstü rüzgâr",items:[
     "Deniz üstü türbinlerin temeli fotoğraflardaki gibi: monopilde su hattından ~18 m yükselen sarı geçiş parçası, bazı sahalarda sarı kafes (jacket) temel.",
     "Temelin üstünde korkuluklu erişim güvertesi, küçük vinç ve tekne yanaşma merdiveni; gövdenin üstünde kırmızı korkuluklu helikopter platformu.",

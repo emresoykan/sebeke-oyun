@@ -68,7 +68,8 @@ function materials(){
   const fpvMat=(kind,r,mt)=>{const m=std({map:moduleTex(kind),roughness:r,metalness:mt});m.map.repeat.set(12/9.1,1);return m;};
   return {
     fpv:{eco:fpvMat("eco",.28,.15),std:fpvMat("std",.22,.2),pre:fpvMat("pre",.2,.2)},
-    float:std({color:0xE3E6E1,roughness:.75}), lining:std({color:0x33383D,roughness:.8}),
+    float:std({color:0xE3E6E1,roughness:.75}), floatD:std({color:0x4D555B,roughness:.8}), walk:std({color:0xBEC3C4,roughness:.85}),
+    skirt:std({color:0x1F8A69,roughness:.6}), hdpe:std({color:0x1C1F22,roughness:.55}), orange:std({color:0xF2662B,roughness:.5}), lining:std({color:0x33383D,roughness:.8}),
     mirror:std({color:0xA8BCCB,roughness:.06,metalness:.85}), red:std({color:0xC62B2E,roughness:.45,metalness:.05}), embank:std({color:0x7B8566,roughness:1}), glow:new THREE.MeshBasicMaterial({color:0xFFE6A0}),
     pv:{eco:std({map:moduleTex("eco"),roughness:.28,metalness:.15}),std:std({map:moduleTex("std"),roughness:.22,metalness:.2}),pre:std({map:moduleTex("pre"),roughness:.2,metalness:.2})},
     clad:std({map:clad,roughness:.6,metalness:.3}), tarp:std({map:tarp,roughness:.55,metalness:.05}),
@@ -453,7 +454,7 @@ function hydro(parts,seed,fpv=0,tier="std",lat=40){
   // su arazinin üstüne çizilir (ikisi de saydam: sıra sabit olmazsa su altındaki zemin suyun üstüne boyanıyordu)
   const lake=water(Z0,-3.6,HES_W,M.water,40);lake.name="lake";lake.renderOrder=2;g.add(lake);
   const riv=water(24,Z1,.15,M.river,40);riv.renderOrder=2;g.add(riv);
-  if(fpv>0)floatingSolar(g,V,fpv,tier,lat); // yüzer GES baraj gölünde
+  if(fpv>0)floatingSolar(g,V,fpv,tier,lat,seed); // yüzer GES baraj gölünde
   // baraj gövdesi: memba yüzü dik, mansap yüzü eğik (ağırlık barajı profili), kalıp izli beton
   const prof=new THREE.Shape();prof.moveTo(-4,0);prof.lineTo(-4,H);prof.lineTo(3,H);prof.lineTo(30,0);prof.closePath();
   const dg=new THREE.ExtrudeGeometry(prof,{depth:C,bevelEnabled:false});dg.translate(0,-2,-C/2);dg.rotateY(-Math.PI/2);
@@ -627,31 +628,116 @@ function ringDam(prof,mats,seg=72){
 // zemine oturmayan (tek parça arazili) gruplarda yardımcıların çizdiği nesneleri dy kadar yükseltir
 const lifted=(g,dy,draw)=>{const n0=g.children.length;draw();g.children.slice(n0).forEach(m=>m.position.y+=dy);};
 
-// ---- Yüzer GES (baraj gölünde): HDPE şamandıralar üstünde alçak eğimli (12°) panel sıraları, panelsiz şamandıra şeritleri
-// (bakım yolları), yüzer inverter platformları, kıyıya bağlama halatları ve kıyıya kablo. Ada, kıyıdan payla derin kalan göl
-// hücrelerine membada bir merkezin çevresinde toplu yerleşir. Bir şamandıra sırası 12 m × 2,3 m modül (~5,8 kW); göl
-// küçükse görüntü gölün en çok %60'ını kaplar (temsilî) ----
-function floatingSolar(g,V,mw,tier,lat){
-  const y0=HES_W,sx=12.5,sz=4,deep=(x,z)=>[[0,0],[-9,-6],[9,-6],[-9,6],[9,6]].every(([a,b])=>V.h(x+a,z+b)<y0-2.5);
-  const slots=[];for(let z=-270;z<=-50;z+=sz)for(let x=-170;x<=170;x+=sx)if(deep(x,z))slots.push([x,z]);
-  if(!slots.length)return;
-  const cz=-140,cx=V.ax(cz),n=Math.min(Math.round(mw*1000/5.8),Math.round(slots.length*.6));
-  const pick=slots.sort((a,b)=>Math.hypot(a[0]-cx,(a[1]-cz)*1.2)-Math.hypot(b[0]-cx,(b[1]-cz)*1.2)).slice(0,n);
-  const pan=[],walk=[],tilt=12*RAD*(lat>=0?1:-1);
-  pick.forEach(([x,z])=>(Math.round((z+270)/sz)%9===8||Math.round((x+170)/sx)%7===6?walk:pan).push([x,z]));
-  g.add(inst(new THREE.BoxGeometry(sx-.3,.5,sz-.25),M.float,pick.map(([x,z])=>[x,y0+.2,z])));
-  const pm=new THREE.InstancedMesh(new THREE.BoxGeometry(12,.06,2.3),M.fpv[tier]||M.fpv.std,Math.max(1,pan.length)),mt=new THREE.Matrix4(),
-    q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),tilt),one=new THREE.Vector3(1,1,1);
-  pan.forEach(([x,z],i)=>pm.setMatrixAt(i,mt.compose(new THREE.Vector3(x,y0+.78,z-.2),q,one)));pm.count=pan.length;pm.castShadow=pm.receiveShadow=true;g.add(pm);
-  // yüzer inverter ve trafo platformları (5 MW başına bir), bakım şeritlerinin üstünde
-  const ni=Math.max(1,Math.round(mw/5)),inv=walk.filter((_,i)=>i%Math.max(1,Math.floor(walk.length/ni))===0).slice(0,ni);
-  inv.forEach(([x,z])=>g.add(box(8,.7,5,M.float,x,y0+.35,z),box(4.2,2.4,2.4,M.white,x-1.4,y0+1.9,z),box(2,2,2,M.tankW,x+2.4,y0+1.7,z)));
-  // bağlama halatları: adanın 8 yönündeki en uç şamandıradan kıyıya; kablo ilk platformdan barajın yanındaki kıyıya
-  const shore=(x,z,dx,dz)=>{for(let k=1;k<60;k++){const X=x+dx*k*4,Z=z+dz*k*4;if(V.h(X,Z)>y0)return [X,V.h(X,Z)+.4,Z];}return null;};
-  for(let a=0;a<8;a++){const dx=Math.cos(a*Math.PI/4),dz=Math.sin(a*Math.PI/4);
-    const e=pick.reduce((b,p)=>(p[0]-cx)*dx+(p[1]-cz)*dz>(b[0]-cx)*dx+(b[1]-cz)*dz?p:b,pick[0]),sh=shore(e[0],e[1],dx,dz);
-    if(sh)g.add(cylBetween([e[0]+dx*6,y0+.3,e[1]+dz*2],sh,.14,M.dark,4));}
-  if(inv[0]){const [x,z]=inv[0],sh=shore(x,z,0,1)||shore(x,z,1,0);if(sh)g.add(cylBetween([x,y0+.25,z],sh,.3,M.dark,6));}
+// ---- Yüzer GES (baraj gölünde): yaygın üç düzenden biri, sahaya göre (tohum):
+//  bloklar: beyaz HDPE şamandıralar üstünde güneye bakan alçak eğimli (12°) panel sıraları; ada bloklara bölünür, aralarında
+//   su koridorları ve bakım yolları
+//  doğu-batı çatı: sırtı kuzey-güney uzanan, iki yana 12° eğimli panel çiftleri; koyu şamandıralar, uçlarda yeşil yan
+//   şamandıralar, sırtlarda dizi kutuları. Sıralar arası gölge boşluğu gerekmez: birim alana daha çok panel sığar
+//  halka adalar: siyah HDPE boru halkalı, korkuluklu yuvarlak adalar; içinde güneye bakan sıralar
+// Hepsinde: yüzer inverter/trafo platformları (5 MW başına bir), kıyıya yüzer yürüme yolu ve kıyıda kabin, bağlama halatları
+// ve uçlarında çapa şamandıraları, adanın çevresinde turuncu uyarı şamandıraları. Bir şamandıra sırası 12 m × 2,3 m modül
+// (~5,8 kW); görüntü gölün derin kısmının en çok %45'i kadar alan kaplar (temsilî) ----
+function floatingSolar(g,V,mw,tier,lat,seed){
+  // yalnızca baraj gölü (barajın membası): mansaptaki nehir yatağı da alçaktır ama göl değildir
+  const y0=HES_W,deep=(x,z)=>z<-14&&z>-288&&V.h(x,z)<y0-2.5,wet=(x,z)=>z<-5&&V.h(x,z)<y0-.4;
+  let cells=0;for(let z=-270;z<=-50;z+=4)for(let x=-170;x<=170;x+=12.5)if(deep(x,z))cells++;
+  if(!cells)return;
+  const v=seed%3,cz=-140,cx=V.ax(cz),area=cells*.45*50,tilt=12*RAD,pv=M.fpv[tier]||M.fpv.std,unit=new THREE.BoxGeometry(1,1,1);
+  // foot: adanın parçaları (dikdörtgen [x0,x1,z0,z1] ya da halka {x,z,r}); listeler: [x,y,z, ölçek x,y,z, dönüş]
+  const foot=[],slab=[],walk=[],skirt=[],south=[],tE=[],tW=[],jbox=[],posts=[],plat=[],kiosk=[],trafo=[],ropes=[],rails=[],abuoy=[],anchor=[],orange=[];
+  const inside=(x,z,m=0)=>foot.some(f=>f.r?Math.hypot(x-f.x,z-f.z)<f.r+m:x>f[0]-m&&x<f[1]+m&&z>f[2]-m&&z<f[3]+m);
+  const tilted=(geo,list,q,y)=>{const im=new THREE.InstancedMesh(geo,pv,Math.max(1,list.length)),mt=new THREE.Matrix4(),one=new THREE.Vector3(1,1,1);
+    list.forEach(([x,z],i)=>im.setMatrixAt(i,mt.compose(new THREE.Vector3(x,y,z),q,one)));im.count=list.length;im.castShadow=im.receiveShadow=true;return im;};
+  const geoOf=(a,b,r,seg)=>{const m=cylBetween(a,b,r,M.dark,seg);m.updateMatrix();return m.geometry.applyMatrix4(m.matrix);};
+  const platform=(x,z,ry)=>{plat.push([x,y0+.15,z,4.5,.6,7,ry]);const s=Math.sin(ry),c=Math.cos(ry);kiosk.push([x-1.2*s,y0+1.6,z-1.2*c,2.4,2.4,3.2,ry]);trafo.push([x+2*s,y0+1.3,z+2*c,1.8,1.8,1.8,ry]);};
+  const ni=Math.max(1,Math.round(mw/5)),spots=[];
+  if(v<2){
+    // bloklar: c × r birim; çatı biriminde iki panel (11,6 kW), sıra biriminde bir panel (5,8 kW)
+    const t=v===1,U=t?{x:5.6,z:12.5,kw:11.6,c:12,r:4}:{x:12.5,z:4,kw:5.8,c:6,r:14},BW=U.c*U.x,BD=U.r*U.z,G=7;
+    const need=Math.round(Math.min(mw*1000/U.kw,area/(U.x*U.z))),cand=[];
+    for(let j=-4;j<=4;j++)for(let i=-3;i<=3;i++){const bx=cx+i*(BW+G),bz=cz+j*(BD+G),rows=[];
+      for(let r=0;r<U.r;r++){const z=bz-BD/2+U.z*(r+.5);let run=[],best=[];
+        for(let c=0;c<U.c;c++){const x=bx-BW/2+U.x*(c+.5),a=U.x/2,b=U.z/2;
+          if(deep(x-a,z-b)&&deep(x+a,z-b)&&deep(x-a,z+b)&&deep(x+a,z+b)){run.push(x);if(run.length>best.length)best=run.slice();}else run=[];}
+        if(best.length*2>=U.c)rows.push({z,xs:best});}
+      const n=rows.reduce((s,r)=>s+r.xs.length,0);if(n*2>=U.c*U.r)cand.push({i,j,rows,n,d:Math.hypot(bx-cx,(bz-cz)*1.2)});}
+    cand.sort((a,b)=>a.d-b.d);const blocks=[];let got=0;
+    for(const b of cand){if(got>=need)break;
+      if(got+b.n>need){let k=need-got; // son blok: merkeze yakın sıralar
+        b.rows=b.rows.sort((p,q)=>Math.abs(p.z-cz)-Math.abs(q.z-cz)).filter(r=>{if(k<=0)return false;r.xs=r.xs.slice(0,k);k-=r.xs.length;return true;});}
+      blocks.push(b);got+=Math.min(b.n,need-got);}
+    if(!blocks.length)return;
+    for(const b of blocks){b.rows.sort((p,q)=>p.z-q.z);let e=[Infinity,-Infinity,Infinity,-Infinity];
+      b.rows.forEach((r,k)=>{const x0=r.xs[0]-U.x/2-1.2,x1=r.xs[r.xs.length-1]+U.x/2+1.2,z0=r.z-U.z/2-(k?0:1.2),z1=r.z+U.z/2+(k<b.rows.length-1?0:1.2);
+        slab.push([(x0+x1)/2,y0+.15,(z0+z1)/2,x1-x0,.5,z1-z0]);foot.push([x0,x1,z0,z1]);e=[Math.min(e[0],x0),Math.max(e[1],x1),Math.min(e[2],z0),Math.max(e[3],z1)];
+        if(t&&(k===0||k===b.rows.length-1))skirt.push([(x0+x1)/2,y0+.3,k?z1-.4:z0+.4,x1-x0,.8,.8]);
+        r.xs.forEach((x,c)=>{if(t){tE.push([x+1.125,r.z]);tW.push([x-1.125,r.z]);if(c%6===2)jbox.push([x,y0+1.25,r.z-3]);}else south.push([x,r.z-.2]);});});
+      b.e=e;}
+    // blok araları: koridorun ortasında bakım yolu; inverter platformları koridorlarda
+    const at=new Map(blocks.map(b=>[b.i+","+b.j,b]));
+    for(const b of blocks){const E=at.get((b.i+1)+","+b.j),S=at.get(b.i+","+(b.j+1));
+      if(E){const z0=Math.max(b.e[2],E.e[2]),z1=Math.min(b.e[3],E.e[3]),x=(b.e[1]+E.e[0])/2;if(z1-z0>4){walk.push([x,y0+.12,(z0+z1)/2,1.8,.4,z1-z0+G]);spots.push([x,(z0+z1)/2,0]);}}
+      if(S){const x0=Math.max(b.e[0],S.e[0]),x1=Math.min(b.e[1],S.e[1]),z=(b.e[3]+S.e[2])/2;if(x1-x0>4){walk.push([(x0+x1)/2,y0+.12,z,x1-x0+G,.4,1.8]);spots.push([(x0+x1)/2,z,Math.PI/2]);}}}
+    blocks.forEach(b=>spots.push([b.e[1]+4,(b.e[2]+b.e[3])/2,0]));
+  }else{
+    // halka adalar: en çok 9 ada, altıgen dizilimde merkeze en yakın derin yerlere; çap, gücü göle en iyi sığdıran değer
+    const need=Math.min(mw*1000/5.8,area/50),per=r=>.8*Math.PI*(r-3.5)**2/50; // bir adadaki sıra sayısı (yaklaşık)
+    const place=r=>{const s=2*r+16,cand=[];
+      for(let j=-4;j<=4;j++)for(let i=-4;i<=4;i++){const x=cx+(i+(j&1)*.5)*s,z=cz+j*s*.866;
+        if(deep(x,z)&&Array.from({length:12},(_,k)=>k*Math.PI/6).every(a=>deep(x+Math.cos(a)*(r+4),z+Math.sin(a)*(r+4))))cand.push({x,z,r,d:Math.hypot(x-cx,(z-cz)*1.2)});}
+      return cand.sort((a,b)=>a.d-b.d).slice(0,Math.min(9,Math.ceil(need/per(r))));};
+    let rings=[],r=16;for(let q=50;q>=16;q-=3){const P=place(q);if(Math.min(need,P.length*per(q))>Math.min(need,rings.length*per(r))+1){rings=P;r=q;}}
+    if(!rings.length)return;
+    for(const R of rings){foot.push(R);
+      for(let dz=-(r-5.5);dz<=r-5.5;dz+=4){const h=Math.sqrt(Math.max(0,(r-3.5)**2-dz*dz))-.3,k=Math.floor(2*h/12.5);
+        for(let m=0;m<k;m++)south.push([R.x+(m-(k-1)/2)*12.5,R.z+dz-.2]);}
+      for(let a=0;a<6.28;a+=3.2/r)posts.push([R.x+Math.cos(a)*(r-.5),y0+.95,R.z+Math.sin(a)*(r-.5)]);
+      spots.push([R.x,R.z+r+5,Math.PI/2],[R.x,R.z-r-5,Math.PI/2]);}
+    g.add(inst(new THREE.CylinderGeometry(r,r,.45,64),M.float,rings.map(R=>[R.x,y0+.12,R.z])));
+    const tor=(rad,tube,seg)=>{const q=new THREE.TorusGeometry(rad,tube,seg,96);q.rotateX(Math.PI/2);return q;};
+    g.add(inst(tor(r,.5,8),M.hdpe,rings.map(R=>[R.x,y0+.3,R.z])),inst(tor(r-.5,.05,4),M.frame,rings.map(R=>[R.x,y0+1.5,R.z])));
+  }
+  // inverter platformları: koridorlarda ya da adanın yanında (derin suda, adaya değmeden)
+  spots.filter(([x,z])=>deep(x,z)&&(v<2||!inside(x,z,3))).slice(0,ni).forEach(([x,z,ry])=>platform(x,z,ry));
+  // kıyıya yürüme yolu: adanın doğu ya da batı kenarından kıyıya en kısa, başka parçadan geçmeyen yol; kıyıda kabin
+  const toShore=(x,z,dx,dz,max)=>{for(let k=1;k*2<=max;k++){const X=x+dx*k*2,Z=z+dz*k*2;if(k>1&&inside(X,Z,1))return null;if(!wet(X,Z))return {x:X,z:Z,L:k*2};}return null;};
+  let br=null;
+  for(const f of foot){const zc=f.r?f.z:(f[2]+f[3])/2;for(const [x,dx] of f.r?[[f.x+f.r,1],[f.x-f.r,-1]]:[[f[1],1],[f[0],-1]]){const s=toShore(x,zc,dx,0,220);if(s&&(!br||s.L<br.L))br={...s,x0:x,z0:zc,dx};}}
+  if(br){const xa=br.x0,xb=br.x-br.dx*2.5,z=br.z0,L=Math.abs(xb-xa);
+    walk.push([(xa+xb)/2,y0+.12,z,L,.4,1.6]);
+    for(let k=0;k<=L;k+=4)for(const dz of [-.75,.75])posts.push([xa+br.dx*k,y0+.85,z+dz]);
+    for(const dz of [-.75,.75])rails.push(geoOf([xa,y0+1.35,z+dz],[xb,y0+1.35,z+dz],.04,4));
+    ropes.push(geoOf([xa,y0+.45,z+.5],[xb,y0+.45,z+.5],.09,5)); // kablo
+    const cx2=xb-br.dx*2.5;g.add(box(6,.6,5,M.floatD,cx2,y0+.15,z),box(3.4,2.6,2.6,M.white,cx2,y0+1.75,z),box(3.9,.25,3.1,M.roofGrey,cx2,y0+3.15,z));}
+  // bağlama halatları: adanın 8 yönündeki en uç noktasından 45 m dışa, ucunda çapa şamandırası (kıyıya erişirse kıyıda beton çapa)
+  const ctr=foot.reduce((a,f)=>[a[0]+(f.r?f.x:(f[0]+f[1])/2)/foot.length,a[1]+(f.r?f.z:(f[2]+f[3])/2)/foot.length],[0,0]);
+  const moor=(x,z,dx,dz)=>{let end=null;for(let k=1;k<=15;k++){const X=x+dx*k*3,Z=z+dz*k*3;if(inside(X,Z,4))return;end=[X,Z];if(!wet(X,Z)){anchor.push([X,V.h(X,Z)+.3,Z,1,.6,1]);break;}}
+    const sh=!wet(end[0],end[1]);ropes.push(geoOf([x,y0+.35,z],[end[0],sh?V.h(end[0],end[1])+.4:y0+.15,end[1]],.08,4));if(!sh)abuoy.push([end[0],y0+.15,end[1]]);};
+  for(let a=0;a<8;a++){const dx=Math.cos(a*Math.PI/4+.39),dz=Math.sin(a*Math.PI/4+.39);let best=null,bp=-Infinity;
+    for(const f of foot){const pts=f.r?[[f.x+dx*f.r,f.z+dz*f.r]]:[[f[0],f[2]],[f[1],f[2]],[f[0],f[3]],[f[1],f[3]]];
+      for(const p of pts){const d=(p[0]-ctr[0])*dx+(p[1]-ctr[1])*dz;if(d>bp){bp=d;best=p;}}}
+    moor(best[0]+dx*.6,best[1]+dz*.6,dx,dz);}
+  // turuncu uyarı şamandıraları: adanın çevresinde ~30 m arayla, suda
+  const bb=foot.reduce((a,f)=>{const q=f.r?[f.x-f.r,f.x+f.r,f.z-f.r,f.z+f.r]:f;return [Math.min(a[0],q[0]),Math.max(a[1],q[1]),Math.min(a[2],q[2]),Math.max(a[3],q[3])];},[Infinity,-Infinity,Infinity,-Infinity]);
+  {const m=30,x0=bb[0]-m,x1=bb[1]+m,z0=bb[2]-m,z1=bb[3]+m,P=2*(x1-x0+z1-z0),n=Math.round(P/30);
+    for(let k=0;k<n;k++){let d=k*P/n,x,z;const W=x1-x0,D=z1-z0;
+      if(d<W){x=x0+d;z=z0;}else if((d-=W)<D){x=x1;z=z0+d;}else if((d-=D)<W){x=x1-d;z=z1;}else{d-=W;x=x0;z=z1-d;}
+      if(wet(x,z)&&!inside(x,z,8))orange.push([x,y0+.2,z]);}}
+  // çizim: tekrarlanan parçalar birer çizim çağrısında
+  g.add(inst(unit,v===1?M.floatD:M.float,slab));
+  if(walk.length)g.add(inst(unit,M.walk,walk));
+  if(skirt.length)g.add(inst(unit,M.skirt,skirt));
+  if(south.length)g.add(tilted(new THREE.BoxGeometry(12,.06,2.3),south,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),tilt*(lat>=0?1:-1)),y0+.78));
+  if(tE.length){const tg=new THREE.BoxGeometry(12,.06,2.3);tg.rotateY(Math.PI/2);const z=new THREE.Vector3(0,0,1);
+    g.add(tilted(tg,tE,new THREE.Quaternion().setFromAxisAngle(z,-tilt),y0+.79),tilted(tg,tW,new THREE.Quaternion().setFromAxisAngle(z,tilt),y0+.79));}
+  if(jbox.length)g.add(inst(new THREE.BoxGeometry(.8,.45,.5),M.white,jbox));
+  if(plat.length)g.add(inst(unit,M.floatD,plat),inst(unit,M.white,kiosk),inst(unit,M.tankW,trafo));
+  if(posts.length)g.add(inst(new THREE.BoxGeometry(.08,1.1,.08),M.frame,posts));
+  if(rails.length)g.add(new THREE.Mesh(mergeGeometries(rails),M.frame));
+  if(ropes.length)g.add(new THREE.Mesh(mergeGeometries(ropes),M.dark));
+  if(abuoy.length)g.add(inst(new THREE.CylinderGeometry(.45,.45,.7,10),M.white,abuoy));
+  if(anchor.length)g.add(inst(unit,M.concrete,anchor));
+  if(orange.length)g.add(inst(new THREE.SphereGeometry(.65,10,8),M.orange,orange));
 }
 
 // ---- Pompaj depolamalı HES: tepede asfalt kaplamalı halka setli üst hazne (içinde su alma kulesi), yamaçtan beton mesnetler
