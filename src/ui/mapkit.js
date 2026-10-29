@@ -131,7 +131,7 @@ function syncFac(){
   if(!F){Fload=Fload||import("./siteimage.js").then(x=>{F=x;sites.forEach((m,id)=>ensureFac(id,m));});return;}
   sites.forEach((m,id)=>{ensureFac(id,m);sizeFac(m);});
 }
-function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{sites.forEach(sizeFac);sizeBnds();facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
+function facLoop(){cancelAnimationFrame(facRaf);const step=()=>{const t=performance.now();sites.forEach(sizeFac);sizeBnds();wp("Apple: kaydırma karesi (tesis, sınır)",t);facRaf=requestAnimationFrame(step);};facRaf=requestAnimationFrame(step);}
 
 // --- Yakında saha sınırı (kesik çizgi, doluluk) ve kendi sahanda canlı üretim kutusu (sitelive.js) ---
 // Tesis görüntüsüyle aynı yakınlıkta görünür; rakip sahalarında yalnızca sınır ve doluluk çizilir.
@@ -237,7 +237,7 @@ export async function initMapKit(el,h){
   map.addEventListener("region-change-end",realView);
   map.addEventListener("region-change-start",()=>{moving=true;facLoop();});
   map.addEventListener("region-change-end",()=>{moving=false;clearTimeout(settleT);settleT=setTimeout(flush,2000);whenStill(refreshFlatNight);});
-  map.addEventListener("region-change-end",()=>{cancelAnimationFrame(facRaf);syncFac();sizeBnds();});
+  map.addEventListener("region-change-end",()=>{const t=performance.now();cancelAnimationFrame(facRaf);syncFac();sizeBnds();wp("Apple: hareket sonu (tesis, sınır)",t);});
   // korunan alanlar
   const ps=new mk.Style({fillColor:"#C2364A",fillOpacity:0.15,strokeColor:"#F06A7D",lineWidth:1,lineDash:[4,4]});
   map.addOverlays(PROTECTED.map(([n,lat,lon,r])=>new mk.CircleOverlay(coord(lat,lon),r*1000,{style:ps,enabled:false})));
