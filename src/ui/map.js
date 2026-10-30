@@ -8,7 +8,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { TECH, SITE_MIN_KM, TER_N } from "../config.js";
 import { km, describe } from "../world.js";
-import { S } from "../state.js";
+import { S, save } from "../state.js";
 import { cssv } from "../utils.js";
 import { CAL } from "../calendar.js";
 import { siteMW } from "../sim.js";
@@ -18,7 +18,7 @@ import { rivalSites, RIVALS } from "../rivals.js";
 import { initRealButton, onRealChange, realOn, realGeoJSON, realAt, infoText, setRealView } from "./realplants.js";
 import { gfx, onGfx, LEVELS } from "./quality.js";
 import { plantStatus, isLive } from "../plantstatus.js";
-import { openSheet, collapseSheet, renderMySites, sheetState } from "./sheet.js";
+import { openSheet, collapseSheet, renderMySites, sheetState, confirmBox } from "./sheet.js";
 import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapstyle.js";
 import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
@@ -63,9 +63,15 @@ function softwareGL(){
   try{const g=document.createElement("canvas").getContext("webgl");if(!g)return false;const x=g.getExtension("WEBGL_debug_renderer_info");
     return /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(x?g.getParameter(x.UNMASKED_RENDERER_WEBGL):"");}catch(e){return false;}
 }
-// Apple Haritalar (mapkit.js) belirteç tanımlıysa ana haritadır; ?map=maplibre ile düz harita, ?map=apple ile Apple haritası zorlanır
-const NO_GPU=softwareGL(),MAP_Q=new URLSearchParams(location.search).get("map"),SOFT_GL=!!import.meta.env.VITE_MAPKIT_TOKEN&&!MAP_Q&&NO_GPU;
-const MAPKIT=!!import.meta.env.VITE_MAPKIT_TOKEN&&MAP_Q!=="maplibre"&&!SOFT_GL;
+// Harita motoru: varsayılan düz harita (MapLibre). Zemini oyunla gelen kabartma görüntüsüdür ve her zaman çizilidir;
+// ayrıntı karoları yüklenirken harita boş kalmaz. Apple Haritalar (mapkit.js; belirteç tanımlıysa) Ayarlar ▸ Harita
+// düğmesiyle seçilir, seçim hatırlanır. Apple'da yer değiştirince karolar inene kadar harita boş ızgara kalabiliyordu
+// (Apple'ın sunucusuna bağlı; oyundan ölçülemiyor). ?map=apple / ?map=maplibre seçimi adresle zorlar.
+const ENGINE_KEY="sebeke-map-engine",HAS_MK=!!import.meta.env.VITE_MAPKIT_TOKEN;
+const enginePref=()=>{try{return localStorage.getItem(ENGINE_KEY)==="apple"?"apple":"flat";}catch(e){return "flat";}};
+const NO_GPU=softwareGL(),MAP_Q=new URLSearchParams(location.search).get("map");
+const WANT_MK=HAS_MK&&(MAP_Q?MAP_Q==="apple":enginePref()==="apple"),SOFT_GL=WANT_MK&&!MAP_Q&&NO_GPU;
+const MAPKIT=WANT_MK&&!SOFT_GL;
 let mk=null;
 
 // Kameranın bulunduğu nokta (ortam sesi için); 3D pencere açıksa onun kamerası
@@ -316,6 +322,16 @@ function initMapKeys(){
   wrap.addEventListener("pointerdown",()=>{wrap.classList.remove("kbd","kbdtip");});
   el.addEventListener("focus",()=>{if(el.matches(":focus-visible")){wrap.classList.add("kbd");kbdTip(wrap);announce();}});
   el.addEventListener("blur",()=>wrap.classList.remove("kbd","kbdtip"));
+}
+// Ayarlar ▸ Harita: düz harita ile Apple Haritalar arasında geçiş (sayfa yenilenir, oyun önce kaydedilir)
+export function initMapEngine(btn){
+  if(!btn)return;btn.hidden=!HAS_MK;if(!HAS_MK)return;
+  const cur=MAPKIT?"apple":"flat";btn.textContent=cur==="apple"?"Harita: Apple":"Harita: Düz (akıcı)";
+  btn.onclick=async()=>{const next=cur==="apple"?"flat":"apple";
+    const ok=await confirmBox("Haritayı değiştir",next==="apple"
+      ?"Apple Haritalar'a geçilsin mi? Sayfa yenilenir, oyunun kaydedilir. Apple haritasında yer değiştirince görüntü birkaç saniye gelmeyebilir."
+      :"Düz haritaya geçilsin mi? Sayfa yenilenir, oyunun kaydedilir.","Geç");
+    if(!ok)return;try{localStorage.setItem(ENGINE_KEY,next);}catch(e){}save();location.reload();};
 }
 export async function initMap(){
   initMapButtons();initMapKeys();initPotButton();initRealButton();initSearch(goTo);renderMySites(focusSite);

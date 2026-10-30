@@ -2,7 +2,7 @@
 import { wp } from "./perfmark.js";
 import { S, setS, fresh, load, save, clearSelCache, selSite } from "./state.js";
 import { newDay, tick } from "./sim.js";
-import { initMap, drawMap, initMap3DUI } from "./ui/map.js";
+import { initMap, drawMap, initMap3DUI, initMapEngine } from "./ui/map.js";
 import { renderPanel } from "./ui/panel.js";
 import { render, renderLog, renderReport, drawChart } from "./ui/hud.js";
 import { initProfile } from "./ui/profile.js";
@@ -40,7 +40,7 @@ window.addEventListener("sebeke:land",loop);
 // held bir sayaçtır: pencere sırası ve kazanma/kaybetme ekranı ayrı ayrı bekletebilir; biri kapanınca diğeri açıkken oyun sürmesin
 window.addEventListener("sebeke:hold",()=>{held++;loop();});
 window.addEventListener("sebeke:release",()=>{held=Math.max(0,held-1);loop();});
-initSound(document.getElementById("soundBtn"));initAmbient();initGfxToggle(document.getElementById("gfxBtn"));initLeagueUI(document.getElementById("leagueBtn"));initWeatherToggle(document.getElementById("wxBtn"));initMap3DUI();
+initSound(document.getElementById("soundBtn"));initAmbient();initGfxToggle(document.getElementById("gfxBtn"));initMapEngine(document.getElementById("mapBtn"));initLeagueUI(document.getElementById("leagueBtn"));initWeatherToggle(document.getElementById("wxBtn"));initMap3DUI();
 const pauseBtn=document.getElementById("pauseBtn"),speedBtns=[...document.querySelectorAll(".speedgrp [data-sp]")];
 const ICON={pause:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>',
   play:'<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L4.9 1.7a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>'};

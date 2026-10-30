@@ -73,5 +73,18 @@ await p2.addInitScript(()=>localStorage.setItem("sebeke-mk-type-v2","satellite")
 await p2.goto(URL0+"?map=apple");await p2.waitForTimeout(4000);
 const mt2=await p2.evaluate(()=>window.__mkmock.maps[0].mapType);
 ok(mt2==="satellite",`kayıtlı seçim (Uydu) hatırlanıyor: ${mt2}`);
+// varsayılan düz harita (belirteç olsa da); Ayarlar ▸ Harita düğmesi Apple'ı seçer, oyun kaydedilip sayfa yenilenir
+const p3=await ctx.newPage();p3.on("pageerror",e=>errs.push(String(e).slice(0,200)));
+await p3.goto(URL0);await p3.waitForTimeout(4000);
+const d3=await p3.evaluate(()=>({mk:document.getElementById("map").classList.contains("mk-map"),ml:!!document.querySelector("#map .maplibregl-canvas"),
+  btn:document.getElementById("mapBtn").textContent,hidden:document.getElementById("mapBtn").hidden}));
+ok(!d3.mk&&d3.ml&&!d3.hidden&&/Düz/.test(d3.btn),`varsayılan düz harita (MapLibre); Ayarlar düğmesi: ${d3.btn}`);
+await p3.evaluate(()=>{document.querySelectorAll("dialog[open]").forEach(d=>d.close());document.querySelector('[role="tab"][data-tab="ayar"]').click();document.getElementById("mapBtn").click();});
+await p3.waitForTimeout(300);
+await Promise.all([p3.waitForNavigation(),p3.evaluate(()=>document.querySelector('#confirmDlg [data-v="1"]').click())]);
+await p3.waitForTimeout(4000);
+const d4=await p3.evaluate(()=>({pref:localStorage.getItem("sebeke-map-engine"),mk:document.getElementById("map").classList.contains("mk-map"),
+  note:[...document.querySelectorAll(".mapnote")].map(x=>x.textContent).join(" ")}));
+ok(d4.pref==="apple"&&(d4.mk||/grafik işlemci/.test(d4.note)),`seçim kaydedildi (${d4.pref}); ${d4.mk?"Apple haritası açıldı":"ekran kartsız tarayıcıda düz harita ve not: "+d4.note}`);
 ok(errs.length===0,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));
 await b.close();console.log(fails?`\n${fails} denetim başarısız`:"\nTüm denetimler geçti");process.exit(fails?1:0);})();
