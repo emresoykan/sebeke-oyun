@@ -234,4 +234,4 @@ Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün �
 - Sonraki yıllardaki düşüş oyunun kendi davranışıdır (rakip yatırımı, güneş doygunluğu); gerçek piyasa için tahmin değildir. Gerçekte fiyatı gaz fiyatı, kur ve talep de belirler.
 - Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı.
 - Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük.
-- Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. Sayfalara güncelleme notu eklendi; sayılar yeniden üretilmedi.
+- Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. 30.10.2026'da güncel modelle ve ilk oyun yılı üzerinden yeniden üretildi: piyasa karşılaştırması bu bölümdeki ve bölgesel rüzgâr bölümündeki kalibrasyon koşularından, proje ekonomisi `scripts/sim_year.cjs` ile (120 gün × 8 koşu, piyasa başına; olay kartları kapalı).

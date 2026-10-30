@@ -385,6 +385,7 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .mk-battl{display:block;margin-top:2px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.8)}
 /* dönen pervaneler (tesis görüntüsünün üstünde, göbek yerlerinde) */
 .mk-rot{position:absolute;pointer-events:none}
+.fac-rots{position:absolute;left:0;top:0;pointer-events:none}
 .mk-rotor{position:absolute;aspect-ratio:1}
 .mk-rotor svg{display:block;width:100%;height:100%;overflow:visible}
 .mk-rotor .bl{fill:#F4F6F7;stroke:rgba(40,48,56,.55);stroke-width:1.2;transform-box:view-box;transform-origin:50% 50%}

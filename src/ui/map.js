@@ -25,6 +25,7 @@ import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
 import { bndOf, occText, liveText, battText } from "./sitelive.js";
 import { siteCap, capMW } from "../rules.js";
+import { addRotors, spinRotors } from "./rotors.js";
 
 maplibregl.setWorkerUrl(workerUrl);
 
@@ -123,24 +124,49 @@ function addGameLayers(){
 }
 
 // Yakınlaşınca tesisin kendisi: 3D modelin gerçek ölçekli kuşbakışı görüntüsü sahanın üstüne yerleşir (siteimage.js;
-// three.js yalnızca ilk yakınlaşmada yüklenir). Santral listesi değişince görüntü yenilenir.
+// three.js yalnızca ilk yakınlaşmada yüklenir). Santral listesi değişince görüntü yenilenir. Görüntü pervanesiz çizilir;
+// pervaneler üstünde dönen bir HTML katmanıdır (rotors.js, Apple haritası ve yakın görünümle aynı).
 const FAC_Z=11;const facs=new Map();let facBusy=false,facAgain=false,facMod=null,facRaf=0;
+function dropFac(id){const f=facs.get(id),src="fac-"+id;if(f&&f.rot)f.rot.remove();facs.delete(id);
+  if(map.getLayer(src))map.removeLayer(src);if(map.getSource(src))map.removeSource(src);}
 async function syncFacilities(){
   if(!map||mk||map.getZoom()<FAC_Z-0.5)return;
   if(facBusy){facAgain=true;return;}facBusy=true;
   try{const F=facMod=await import("./siteimage.js");
+    for(const id of [...facs.keys()])if(!S.sites[id])dropFac(id); // satılan saha
     for(const id of Object.keys(S.sites)){
       const sig=F.siteSig(id),cur=facs.get(id),src="fac-"+id;
-      if(cur&&cur.sig===sig)continue;facs.set(id,{sig});
-      if(!sig){if(map.getLayer(src))map.removeLayer(src);if(map.getSource(src))map.removeSource(src);continue;}
-      const img=await F.siteImage(id);if(!img||facs.get(id).sig!==sig||!map)continue;
+      if(cur&&cur.sig===sig)continue;if(cur&&cur.rot)cur.rot.remove();facs.set(id,{sig});
+      if(!sig){dropFac(id);facs.set(id,{sig});continue;}
+      const img=await F.siteImage(id,true);if(!img||facs.get(id).sig!==sig||!map)continue;
       const f=facs.get(id),coordinates=F.cornersOf(S.sites[id],img);f.img=img;f.url=F.lodFor(img,facPx(S.sites[id],img));
       if(map.getSource(src))map.getSource(src).updateImage({url:f.url,coordinates});
       else{map.addSource(src,{type:"image",url:f.url,coordinates});
         map.addLayer({id:src,type:"raster",source:src,minzoom:FAC_Z-0.5,paint:{"raster-fade-duration":0,"raster-opacity":["interpolate",["linear"],["zoom"],FAC_Z-0.5,0,FAC_Z+1,1]}},"site-pulse");}
+      buildRotors(id,f);
     }
   }catch(e){console.warn("Tesis görüntüleri yüklenemedi:",e);}
   facBusy=false;if(facAgain){facAgain=false;syncFacilities();}
+}
+
+// Dönen pervaneler: görüntüyle aynı kutuda, harita her karede kutuyu görüntünün köşelerine yerleştirir (harita dönmez,
+// eğilmez). Görüntüyle aynı yakınlıkta belirir; ekran dışındaki kutular gizlenir.
+let rotLayer=null;
+function buildRotors(id,f){
+  const hs=f.img.hubs;if(!hs||!hs.length)return;
+  if(!rotLayer){rotLayer=document.createElement("div");rotLayer.className="fac-rots";map.getCanvasContainer().appendChild(rotLayer);
+    map.on("move",placeRotors);map.on("resize",placeRotors);}
+  f.rot=document.createElement("div");f.rot.className="mk-rot";rotLayer.appendChild(f.rot);f.spin=addRotors(f.rot,hs);
+  spinRotors(f.spin,plantStatus(id));placeRotors();
+}
+function placeRotors(){
+  if(!rotLayer||!facMod)return;const op=Math.max(0,Math.min(1,(map.getZoom()-(FAC_Z-0.5))/1.5));
+  rotLayer.style.display=op>0?"":"none";if(!op)return;rotLayer.style.opacity=op;
+  const c=map.getCanvas(),W=c.clientWidth,H=c.clientHeight;
+  for(const [id,f] of facs){const o=S.sites[id];if(!f.rot||!o)continue;
+    const q=facMod.cornersOf(o,f.img),a=map.project(q[0]),b=map.project(q[2]),vis=b.x>0&&a.x<W&&b.y>0&&a.y<H;
+    if(vis!==f.rotOn){f.rotOn=vis;f.rot.style.display=vis?"":"none";}
+    if(vis)Object.assign(f.rot.style,{left:a.x+"px",top:a.y+"px",width:b.x-a.x+"px",height:b.y-a.y+"px"});}
 }
 
 // tesis gerçek ölçekte çizilir; yakınlaştırırken yalnızca ekrandaki boyuta uygun küçültülmüş kopya değişir
@@ -409,6 +435,7 @@ export function drawMap(){
   rivalSites().forEach(({r,s})=>bndFeatures(bf,s,bndOf(null),r.c,`${r.sh} • ${occText(s.mw)}${s.build>0?" • inşaat":""}`));
   map.getSource("bnd").setData(fc(bf));
   syncFacilities();
+  for(const [id,f] of facs)if(f.spin)spinRotors(f.spin,plantStatus(id)); // pervane hızı saatlik üretime göre
   // karla kaplı saha: tesis görüntüsü soluk ve açık (yalnızca değişince boyama özelliği yazılır; wxfx.js)
   for(const [id,f] of facs){const o=S.sites[id],L="fac-"+id;if(!o||!map.getLayer(L))continue;const sn=fxOf(o).snowy;if(f.snow===sn)continue;f.snow=sn;
     map.setPaintProperty(L,"raster-saturation",sn?-0.6:0);map.setPaintProperty(L,"raster-brightness-min",sn?0.35:0);}
