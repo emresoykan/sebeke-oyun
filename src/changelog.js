@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-30.4",t:"Pervaneler yine dönüyor",items:[
+    "Haritada yakınlaşınca rüzgâr türbinlerinin pervaneleri ve gölgeleri yine dönüyor; hız o saatteki rüzgâr üretimine göre değişir, rüzgâr yokken durur.",
+    "Vaka çalışması güncel modelle yeniden hesaplandı (Ayarlar ▸ Vaka çalışması)."]},
   {id:"2026-10-30.3",t:"Akıcı harita",items:[
     "Harita artık varsayılan olarak oyunun kendi haritasıyla açılır: zemini oyunla gelir, yer değiştirirken ya da uzaklaşırken hiç boş kalmaz.",
     "Apple Haritalar isteyenler için Ayarlar ▸ Harita'dan seçilebilir; seçimin hatırlanır. Apple'da yer değiştirince görüntü birkaç saniye gelmeyebilir."]},
