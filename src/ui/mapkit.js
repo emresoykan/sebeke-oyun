@@ -1,6 +1,7 @@
 // --- Ana harita: Apple Haritalar (MapKit JS) ---
-// VITE_MAPKIT_TOKEN tanımlıysa oyun Apple'ın haritasında oynanır (varsayılan hibrit: uydu görüntüsü + yol ve yer adları;
-// sağ üstteki Apple düğmesiyle Standart/Uydu/Hibrit seçilir, seçim hatırlanır). MapKit JS betiği cdn.apple-mapkit.com'dan
+// VITE_MAPKIT_TOKEN tanımlıysa oyun Apple'ın haritasında oynanır (varsayılan Standart harita; sağ üstteki Apple düğmesiyle
+// Standart/Uydu/Hibrit seçilir, seçim hatırlanır). Varsayılan önceden hibritti (uydu görüntüsü + yol ve yer adları): yer
+// değiştirince uydu karoları inene kadar harita karanlık kareler halinde boş kalıyordu; Standart karolar daha hafif. MapKit JS betiği cdn.apple-mapkit.com'dan
 // yüklenir. Belirteç Apple Developer hesabındaki Maps panosunda yalnızca sitenin alan adında çalışacak şekilde (Domain
 // kısıtlı) üretilir; bu yüzden sayfaya gömülmesi amaçlanan kullanımdır. Betik yüklenemezse veya belirteç reddedilirse
 // map.js düz MapLibre haritasına döner.
@@ -25,7 +26,8 @@ import { siteCap, capMW } from "../rules.js";
 
 const TOKEN=import.meta.env.VITE_MAPKIT_TOKEN;
 const SRC="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
-const PREF="sebeke-mk-type",RAD=Math.PI/180;
+// seçim anahtarı v2: varsayılan Standart'a geçerken eski kayıtlı seçimler (çoğu eski varsayılan hibrit) bir kez sıfırlanır
+const PREF="sebeke-mk-type-v2",RAD=Math.PI/180;
 const STATUS={none:"#FFFFFF",pending:"#F2C94C",ok:"#FFFFFF",rejected:"#F06A7D"};
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
 // MapLibre yakınlığı ile kamera yüksekliği (m) arasındaki yaklaşık ilişki (map.js ile aynı)
@@ -218,7 +220,7 @@ function onRegion(){
 export async function initMapKit(el,h){
   if(!TOKEN)throw new Error("VITE_MAPKIT_TOKEN tanımlı değil");
   hooks=h;mk=await loadScript();await authorize();
-  const T=mk.Map.MapTypes;let type=T.Hybrid;
+  const T=mk.Map.MapTypes;let type=T.Standard;
   try{const v=localStorage.getItem(PREF);if(v&&Object.values(T).includes(v))type=v;}catch(e){}
   const mobile=innerWidth<600,end=zoomToH(mobile?3.6:4.6);
   map=new mk.Map(el,{mapType:type,colorScheme:mk.Map.ColorSchemes.Dark,showsMapTypeControl:true,showsZoomControl:false,

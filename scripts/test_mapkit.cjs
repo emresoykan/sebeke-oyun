@@ -14,6 +14,8 @@ const PNG=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42
 const CORS={"access-control-allow-origin":"*"};
 (async()=>{const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
 const ctx=await b.newContext({viewport:{width:1366,height:768}});
+// eski kayıtlı harita türü (önceki anahtar, eski varsayılan hibrit): yeni varsayılanı ezmemeli
+await ctx.addInitScript(()=>{if(!localStorage.getItem("sebeke-mk-type"))localStorage.setItem("sebeke-mk-type","hybrid");});
 await ctx.addInitScript(()=>{if(!localStorage.getItem("sebeke-profile-v1"))localStorage.setItem("sebeke-profile-v1",JSON.stringify({name:"T",company:"D",color:"#1F9D74",spec:"eng",created:1}));});
 await ctx.route(/fonts\.g/,r=>r.abort());
 await ctx.route(/cdn\.apple-mapkit\.com\/mk\//,r=>r.fulfill({status:200,headers:{...CORS,"content-type":"application/javascript"},body:MOCK}));
@@ -24,6 +26,8 @@ await p.goto(URL0+"?map=apple&perf=1");await p.waitForTimeout(6000);
 const st=await p.evaluate(()=>({mk:document.getElementById("map").classList.contains("mk-map")&&!!document.querySelector(".mkmock"),
   note:[...document.querySelectorAll(".mapnote")].map(x=>x.textContent).join(" | ")}));
 ok(st.mk&&!/açılamadı|kapandı/.test(st.note),"harita Apple yolundan açıldı (sahte MapKit)"+(st.note?": "+st.note:""));
+const mt=await p.evaluate(()=>window.__mkmock.maps[0].mapType);
+ok(mt==="standard",`varsayılan harita türü Standart (eski kayıtlı "hybrid" seçimi yok sayıldı): ${mt}`);
 // katman sırası (addTileOverlays): 0 gece, 1 yakın gece (tek renk), 2 potansiyel, 3 gerçek santraller, 4 bulut
 // yakınlaştır: hareket sırasında ve bittikten sonraki 2 sn içinde gece ve bulut katmanı yenilenmemeli
 await p.evaluate(()=>{document.querySelectorAll("dialog[open]").forEach(d=>d.close());window.__mkmock.reloads.length=0;});
@@ -63,5 +67,11 @@ const perf=await p.evaluate(()=>{const b=[...document.querySelectorAll("body > d
 const tl=(perf.match(/Apple karoları:[^\n]*/)||[""])[0],rl=(perf.match(/katman yenilemeleri:[^\n]*/)||[""])[0];
 ok(/Apple karoları: [1-9]/.test(tl),"?perf=1: "+(tl||"Apple karoları satırı yok"));
 ok(/gece \d+/.test(rl),"?perf=1: "+(rl||"katman yenilemeleri satırı yok"));
+// küre düğmesiyle yapılan seçim (yeni anahtar) hatırlanır
+const p2=await ctx.newPage();p2.on("pageerror",e=>errs.push(String(e).slice(0,200)));
+await p2.addInitScript(()=>localStorage.setItem("sebeke-mk-type-v2","satellite"));
+await p2.goto(URL0+"?map=apple");await p2.waitForTimeout(4000);
+const mt2=await p2.evaluate(()=>window.__mkmock.maps[0].mapType);
+ok(mt2==="satellite",`kayıtlı seçim (Uydu) hatırlanıyor: ${mt2}`);
 ok(errs.length===0,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));
 await b.close();console.log(fails?`\n${fails} denetim başarısız`:"\nTüm denetimler geçti");process.exit(fails?1:0);})();
