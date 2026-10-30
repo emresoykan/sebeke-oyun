@@ -6,6 +6,31 @@
 // MapKit'in işçisinden isteniyorsa görünmez), betik ve oturum açma süresi, bizim karo katmanlarımızın kaç kez yenilendiği.
 // Boş ızgaranın nedenini ayırmak için: karolar geç isteniyorsa ya da ana iş parçacığı meşgulse sorun bizde, istekler
 // erken gidip yanıtlar geç geliyorsa Apple tarafında (ağ, sunucu).
+// Düz haritada (MapLibre) ayrıca: kaynağa göre karo yükleme süresi (isteğin başlamasından karonun hazır olmasına: ağ ve
+// çözümleme; bellekteki önbellekten gelen karolar sayılmaz) ve hareket bittikten sonra görünümdeki vektör ve yükseklik
+// karolarının yüklenmesine kadar geçen süre (oyuncunun gördüğü bekleme; bu sırada ayrıntı bulanık ya da eksiktir).
+const FM={src:{},waits:[],moves:0,nw:0};
+const FM_NAMES={omt:"vektör",dem:"yükseklik"};
+export function probeFlatMap(map){
+  window.__perfFlat=FM;window.__perfMap=map; // ölçüm betikleri için (yalnızca ?perf=1)
+  const st=new WeakMap();
+  map.on("sourcedataloading",e=>{if(e.tile&&FM_NAMES[e.sourceId])st.set(e.tile,performance.now());});
+  map.on("sourcedata",e=>{const t=e.tile&&st.get(e.tile);if(t==null)return;st.delete(e.tile);
+    const s=FM.src[e.sourceId]||(FM.src[e.sourceId]={n:0,d:[]});s.n++;s.d.push(performance.now()-t);if(s.d.length>300)s.d.shift();});
+  let seq=0;map.on("movestart",()=>seq++);
+  map.on("moveend",()=>{const my=seq,t0=performance.now();FM.moves++;
+    const poll=()=>{if(seq!==my)return;const d=performance.now()-t0;
+      if(Object.keys(FM_NAMES).every(id=>!map.getSource(id)||map.isSourceLoaded(id))){FM.nw++;FM.waits.push(Math.round(d));if(FM.waits.length>30)FM.waits.shift();return;}
+      if(d<60000)requestAnimationFrame(poll);};
+    requestAnimationFrame(poll);});
+}
+const pct=(a,q)=>{if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y);return Math.round(s[Math.min(s.length-1,Math.floor(q*s.length))]);};
+function flatLine(){
+  if(!FM.moves&&!Object.keys(FM.src).length)return "";
+  const w=FM.waits,src=Object.entries(FM.src).map(([k,s])=>`${FM_NAMES[k]} ${s.n} karo, ortanca ${pct(s.d,0.5)} ms, %90 ${pct(s.d,0.9)} ms`);
+  return `\nhareket sonrası bekleme (son ${w.length}): `+(w.length?`ortanca ${pct(w,0.5)} ms, en uzun ${Math.max(...w)} ms, anında (<100 ms) ${w.filter(x=>x<100).length}`:"henüz yok")+
+    (src.length?`\nkaro yükleme: ${src.join(" • ")}`:"");
+}
 export function initPerfProbe(){
   window.__wp={};
   const box=document.createElement("div");
@@ -41,7 +66,7 @@ export function initPerfProbe(){
     return `Wattlas perf • ${navigator.userAgent.match(/(iPhone|iPad|Mac|Windows|Android|Linux)/)?.[0]||""} • ${Math.round((performance.now()-t0)/1000)} sn\n`+
       `kare: ${Math.round(f/5)}/sn, en uzun aralık ${gap} ms • uzun görev ${lt} (en uzun ${Math.round(ltMax)} ms)${loaf?"":" • betik kaynağı bu tarayıcıda yok"}\n`+
       (worst.length?"en uzun donmalar:\n"+worst.map(w=>`  ${w.ms} ms (${w.at}. sn) ${w.what}`).join("\n"):"donma yok")+
-      apple()+"\noyun işlevleri (toplam / en uzun / sayı):\n"+Object.entries(window.__wp).filter(([k])=>!k.startsWith("Apple yenileme: ")).sort((a,b)=>b[1].t-a[1].t).slice(0,8).map(([k,e])=>`  ${Math.round(e.t)} ms / ${Math.round(e.max)} ms / ${e.n} ${k}`).join("\n");};
+      apple()+flatLine()+"\noyun işlevleri (toplam / en uzun / sayı):\n"+Object.entries(window.__wp).filter(([k])=>!k.startsWith("Apple yenileme: ")).sort((a,b)=>b[1].t-a[1].t).slice(0,8).map(([k,e])=>`  ${Math.round(e.t)} ms / ${Math.round(e.max)} ms / ${e.n} ${k}`).join("\n");};
   // metne dokununca tek satıra küçülür / açılır (telefonda kutu düğmelerin üstünü kapatmasın)
   let mini=matchMedia("(max-width:599px)").matches;txt.onclick=()=>{mini=!mini;txt.textContent=mini?report().split("\n").slice(0,2).join("\n"):report();};
   setInterval(()=>{const r=report();txt.textContent=mini?r.split("\n").slice(0,2).join("\n"):r;},1000);

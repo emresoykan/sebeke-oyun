@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-30.5",t:"Harita daha çabuk yükleniyor",items:[
+    "Harita yakınlaşınca ve yer değiştirince çok daha az veri indiriyor; ayrıntı daha çabuk geliyor. Arazi gölgesi bölge görünümünde biraz daha yumuşak.",
+    "Gezdiğin yerlerin harita ayrıntısı cihazında saklanıyor: aynı yere dönünce ve oyunu bir sonraki açışında beklemeden geliyor, internet kesikken de görünüyor."]},
   {id:"2026-10-30.4",t:"Pervaneler yine dönüyor",items:[
     "Haritada yakınlaşınca rüzgâr türbinlerinin pervaneleri ve gölgeleri yine dönüyor; hız o saatteki rüzgâr üretimine göre değişir, rüzgâr yokken durur.",
     "Vaka çalışması güncel modelle yeniden hesaplandı (Ayarlar ▸ Vaka çalışması)."]},

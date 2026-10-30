@@ -50,7 +50,10 @@ export function buildStyle(){
   if(HD)sources["relief-hd"]={type:"raster",tiles:["rhd://{z}/{x}/{y}"],tileSize:512,minzoom:5,maxzoom:9,bounds:HD_BOUNDS};
   if(ONLINE){
     sources.omt={type:"vector",url:"https://tiles.openfreemap.org/planet"};
-    sources.dem={type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:256,maxzoom:13,attribution:DEM_ATTR};
+    // yükseklik karoları 256 piksel ama 512 sayılır: harita bir kademe kaba veri ister (aynı görünüm için ~2–3 kat az karo,
+    // gölge biraz yumuşar). Benzetimli ağla ölçüm (scripts/bench_mapload.cjs, README: Harita yükleme): 9 adımlık gezintide
+    // yalnızca bu değişiklikle 19,5–20,0 MB yerine 12,6–13,9 MB
+    sources.dem={type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:512,maxzoom:13,attribution:DEM_ATTR};
   }
   const vis=on=>({visibility:on?"visible":"none"});
   const layers=[
