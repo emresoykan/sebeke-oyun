@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-10-30.2",t:"Türkiye fiyatları gerçeğe yakın",items:[
+    "Türkiye'de elektrik fiyatları ~%8 düştü: ilk oyun yılının ortalaması EPİAŞ 2025 ortalamasına (66 $/MWh) eşitlendi. Önceden ilk yıl ~%9 yüksekti. Türkiye'deki santrallerin geliri buna göre azalır; güneşin ve rüzgârın fiyat oranı değişmez."]},
   {id:"2026-10-30",t:"Varsayılan harita: Standart",items:[
     "Apple haritası artık Standart görünümle açılır: karoları uydu görüntüsünden hafiftir, yer değiştirince boş kareler daha kısa sürmeli. Uydu görüntüsü için sağ üstteki küre düğmesinden Uydu ya da Hibrit'i seç; seçimin hatırlanır (önceki seçimler bir kez sıfırlandı)."]},
   {id:"2026-10-29.9",t:"Uzaklaşınca Apple haritası",items:[

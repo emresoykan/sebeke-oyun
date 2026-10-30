@@ -23,6 +23,8 @@ Oyun değerleri: Türkiye piyasasında bir GES (Konya) ve bir RES (Çanakkale) i
 | Öğle fiyatı, 11–14 ortalaması | 33–50 $/MWh (örnek günler) | 4–9 $/MWh | 41–44 $/MWh |
 | GES kapasite faktörü (Konya) | — | %8,2 (kısıntı nedeniyle) | %21,4 |
 
+> **30.10.2026:** Bu tablodaki oyun değerleri 365 oyun gününün ortalamasıdır. Oyunda bir yıl 120 gün sürdüğü için bu yaklaşık üç takvim yılı eder. Türkiye'nin fiyat düzeyi artık ilk oyun yılına göre ayarlı (Avrupa'yla aynı tanım): aşağıdaki "Türkiye fiyat düzeyi: ilk oyun yılı" bölümü.
+
 ## Neden sapıyordu
 - Piyasanın güneş doygunluğu her gün 0,012 artıp ~3 ayda 1,6 tavanına ulaşıyordu; sonrasında öğle fiyatı neredeyse her gün sıfıra iniyordu.
 - Sıfır fiyatlı saatlerde GES üretimi satılamadığı için kısılıyor, yıllık kapasite faktörü %8'e düşüyordu.
@@ -40,7 +42,7 @@ Oyun değerleri: Türkiye piyasasında bir GES (Konya) ve bir RES (Çanakkale) i
 Eski kayıtlarda tavanı aşmış doygunluk değerleri fiyat hesabında yeni tavana indirgenir.
 
 ## Sınırlamalar
-- Güneş oranı yalnızca 7 güne dayanır; günlük oran %18 ile %110 arasında değişti (hafta sonu ve bayram günleri çok düşük). Yıllık değer için daha fazla gün gerekir; sonuç "~%75, belirsizliği yüksek" diye okunmalıdır.
+- Güneş oranı yalnızca 7 güne dayanır; günlük oran %18 ile %110 arasında değişti (hafta sonu ve bayram günleri çok düşük). Yıllık değer için daha fazla gün gerekir; sonuç "~%75, belirsizliği yüksek" diye okunmalıdır. (30.10.2026'da her aydan bir güne, 12 güne genişletildi: oran 0,84. Aşağıdaki bölüm.)
 - EPİAŞ gerçek zamanlı üretimindeki güneş yalnızca lisanslı santralleri kapsar (öğlen ~2–3 GW). Lisanssız güneş tüketim tarafında görünür. Profilin şekli temsilîdir, mutlak üretim değildir.
 - Fiyatlar EPİAŞ'ın USD karşılıklarıdır; kur hareketi dolar fiyatını etkiler.
 - Oyunun piyasası tek bir temsilî noktanın havasıyla çalışır, Türkiye geneli değildir. Oyun yılı ilkbaharda başlar; aylık karşılaştırma yapılmadı.
@@ -188,4 +190,48 @@ Aynı koşularda Türkiye: fiyat 72,1 $/MWh (70,6–73,2), rüzgâr oranı 0,96,
 - Avrupa tek piyasa: Almanya ve İspanya'nın ayrı fiyat bölgeleri bir arada. Filo ağırlıkları Almanya ağırlıklı olduğu için İspanya'daki bir santralin oyundaki oranı gerçekteki %96,5'ten düşük çıkabilir.
 - Filo ağırlıkları yaklaşık (Almanya, İspanya); Kuzey Amerika'nınkiler doğrulanmadı.
 - Hedefler tek yıla (2025) dayanır.
-- **Gözlem (değiştirilmedi):** Türkiye'nin oyundaki ortalama fiyatı 72 $/MWh. EPİAŞ 2025 ortalaması 66,4 $/MWh, ilk kalibrasyonda oyun 65,8'di; aradaki ~%8'lik kayma bu çalışmanın kapsamı dışında bırakıldı.
+- **Düzeltme (30.10.2026):** Bu maddenin ilk sürümünde Türkiye'nin oyundaki fiyatı (72 $/MWh) ile ilk kalibrasyon (65,8) arasında "~%8'lik kayma" olduğu yazıyordu. Kayma yoktu: ilk kalibrasyon 365 oyun gününün (üç takvim yılı) ortalamasıydı, buradaki ölçüm ise ilk 120 günün. Türkiye de ilk oyun yılına göre yeniden ayarlandı (aşağıdaki bölüm).
+
+# Türkiye fiyat düzeyi: ilk oyun yılı (30.10.2026)
+
+## Neden
+- Avrupa ilk oyun yılına (120 gün) göre ayarlıydı, Türkiye ise 365 oyun gününün ortalamasına. Oyunda bir yıl 120 gün sürdüğü için 365 gün yaklaşık üç takvim yılı eder; iki piyasa farklı tanımla kalibre edilmişti.
+- Oyunda fiyat yıllar içinde düşer: rakipler her yıl santral kurar (Türkiye'de yıl ortalaması ilk yıl ~0,2–0,3 GW, üçüncü yıl ~1,3–1,4 GW) ve güneş doygunluğu ilk ~60 günde tavanına çıkar. Bu yüzden 365 günlük ortalama ilk yılın altında kalır.
+- Değişiklikten önceki ölçüm (`REG.T.mult` 1,00; 360 gün × 3 koşu): 1. yıl 72,8, 2. yıl 66,3, 3. yıl 56,8 $/MWh. Üç yılın ortalaması 65,3; ilk kalibrasyonun 65,8'iyle uyumlu. Model kaymamıştı, ama oyuncu ilk yılda EPİAŞ 2025 ortalamasının ~%9 üstünde fiyat görüyordu (birleşik tahmin 72,2 $/MWh).
+- **Düzeltme:** Ekonomi denetiminde ve yukarıdaki "Avrupa rüzgârının fiyat etkisi" bölümünde bu fark "~%8'lik kayma" diye yazılmıştı. Yanlıştı: karşılaştırılan iki ölçüm farklı dönemleri kapsıyordu (ilk 120 gün ile 365 gün).
+
+## Veri
+- **Hedef fiyat:** EPİAŞ PTF 2025 yıllık ortalaması 66,42 USD/MWh (EPİAŞ'ın USD karşılığı; 18.10.2026 kalibrasyonunda alındı).
+- **Güneş oranı:** EPİAŞ PTF × gerçek zamanlı üretim `sun` sütunu, 2025'te 12 gün (her ayın 15'i; Haziran için 1 Haziran). Bu çalışmada eklenen günler: 15 Şubat, 15 Ağustos, 15 Eylül, 15 Kasım, 15 Aralık (EPİAŞ Şeffaflık Platformu, MCP üzerinden).
+  - Oran 0,841 (örnek günlerin baz ortalamasına göre; yıllık baza göre 0,852). Günlük oran 0,18 ile 1,10 arasında, ortanca 0,91.
+  - Eski 7 günlük değer (0,77) bir pazarın (1 Haziran: öğle fiyatı ~1 $/MWh) ve bir cumartesinin (15 Mart) ağırlığını taşıyordu.
+  - Hesap: `scripts/calib_tr_solar.py`.
+- **Rüzgâr oranı:** EPİAŞ tam yıl 0,99 (18.10.2026).
+- ENTSO-E'de Türkiye gün öncesi fiyatı yok (sorgu boş döndü); Avrupa'daki gibi tam yıl, üretim ağırlıklı bir hesap yapılamadı.
+
+## Yapılan değişiklik
+- `REG.T.mult` 1,00 → 0,92. Çarpan bütün saatlik fiyatları orantılı ölçekler: güneş ve rüzgâr oranları değişmez, diğer piyasalar etkilenmez. Çarpanı kullanan iki olay kartının (sabit fiyat teklifleri) tutarları ve fiyat grafiğinin üst sınırı da aynı oranda küçülür.
+- Çarpan beş ölçüm grubunun (18 koşu: çarpan 1,00, 0,91 ve 0,93 ile `calib_market.cjs` 120 gün × 4 ve yıl yıl ölçüm 360 gün × 3) birleşik tahmininden seçildi: çarpan 1,00 iken ilk yıl fiyatı ~72,2 $/MWh, 66,4 ÷ 72,2 = 0,92. Tek bir koşu grubunun ortalaması ±%1,5 oynuyor (0,91 ile 65,2; 0,93 ile 67,7).
+
+## Sonuç
+`scripts/calib_market.cjs`, 120 oyun günü (ilk oyun yılı) × 4 koşu; rakipler açık, olay kartları kapalı.
+
+| Türkiye, ilk oyun yılı | Gerçek 2025 (EPİAŞ) | Önce (çarpan 1,00) | Sonra (çarpan 0,92) |
+|---|---|---|---|
+| Ortalama fiyat | 66,4 $/MWh | 72,1 (70,6–73,2) | 66,2 (64,6–67,5) |
+| Güneş oranı (filo) | ~0,84 (12 örnek gün) | 0,85 | 0,85 (0,84–0,85) |
+| Rüzgâr oranı (filo) | 0,99 | 0,96 | 0,97 (0,95–0,98) |
+
+Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün × 3 koşu, çarpan 1,00 ve 0,91) çarpan 0,92'ye orantılı ölçeklenmiş ortalaması.
+
+| Oyun yılı | Önce (1,00) | Sonra (0,92) | Rakiplerin Türkiye'deki kurulu gücü, yıl ortalaması |
+|---|---|---|---|
+| 1 | 72,8 | ~66 | 0,2–0,3 GW |
+| 2 | 66,3 | ~60 | 0,6–1,0 GW |
+| 3 | 56,8 | ~52 | 1,3–1,4 GW |
+
+## Sınırlamalar
+- Sonraki yıllardaki düşüş oyunun kendi davranışıdır (rakip yatırımı, güneş doygunluğu); gerçek piyasa için tahmin değildir. Gerçekte fiyatı gaz fiyatı, kur ve talep de belirler.
+- Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı.
+- Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük.
+- Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. Sayfalara güncelleme notu eklendi; sayılar yeniden üretilmedi.
