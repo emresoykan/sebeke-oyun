@@ -3,7 +3,8 @@
 // d (tanım), g (oyundaki karşılığı, isteğe bağlı). Tanımlar genel kabul gören anlamı verir; "Oyunda" satırı oyunun
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
-import { FIT, PHS_H, H2, CSP } from "./config.js";
+import { FIT, PHS_H, H2, CSP, YEKDEM } from "./config.js";
+import { ECON_YEAR } from "./loans.js";
 import { SALE } from "./sale.js";
 
 export const CATS=[["piyasa","Piyasa"],["proje","Proje ve izin"],["finans","Finans"],["tekno","Teknoloji"]];
@@ -32,7 +33,10 @@ export const TERMS=[
     g:"Batarya ve pompaj HES ucuz saatlerde depolar, pahalı saatlerde satar; net kazanç Rapor'da \"Batarya (BESS) arbitrajı\" ve \"Pompaj HES arbitrajı\" satırlarındadır."},
   {k:"fit",t:"Alım garantisi",e:"feed-in tariff",c:"piyasa",
     d:"Yenilenebilir üretime belirli bir süre sabit ya da taban fiyat güvencesi veren destek mekanizması. Türkiye'deki karşılığı YEKDEM'dir.",
-    g:`Yalnızca ilk yenilenebilir projene ${FIT.years} gün boyunca ${FIT.p} $/MWh taban fiyat: piyasa bunun altına düşerse fark sana ödenir.`},
+    g:`Başlangıç desteği: yalnızca ilk yenilenebilir projene ${FIT.years} ekonomik yıl (~${Math.round(FIT.years*ECON_YEAR)} oyun günü) boyunca ${FIT.p} $/MWh taban fiyat; piyasa bunun altına düşerse fark sana ödenir. Gerçek Türkiye mekanizması için bkz. YEKDEM.`},
+  {k:"yekdem",t:"YEKDEM",e:"Yenilenebilir Enerji Kaynakları Destekleme Mekanizması",c:"piyasa",
+    d:"Türkiye'de lisanslı yenilenebilir santrallerin bir takvim yılı boyunca enerjisini sabit fiyattan sattığı destek mekanizması. Başvuru her yıl 30 Kasım'a kadar EPDK'ya yapılır ve ertesi yıl için geçerlidir; yıl içinde çıkılmaz. Piyasa fiyatı YEKDEM fiyatının altındaysa kazandırır, üstündeyse kaybettirir. Rüzgâr ve güneşle bütünleşik depolamada, depolanıp şebekeye verilen enerji daha yüksek fiyat alır; şebekeden çekilip depolanan enerji kapsam dışıdır.",
+    g:`Türkiye'deki GES ve kara RES sahaları: saha panelinden ertesi yıl için başvurulur. Fiyat ${String(YEKDEM.p).replace(".",",")} $/MWh; sahadaki bataryanın sahanın kendi üretiminden doldurup verdiği enerji ${String(YEKDEM.store).replace(".",",")} $/MWh (EPİAŞ tablosu, ${YEKDEM.asOf}; dolara çevrilmiş, oyunda sabit). Yeni saha, ilk santralinin işletmeye girdiği yıl ${YEKDEM.newDays} gün içinde o yıl için de katılabilir (oyun kolaylığı).`},
   {k:"ppa",t:"PPA",e:"Power Purchase Agreement",c:"piyasa",
     d:"Üretici ile alıcı arasında uzun vadeli elektrik satış anlaşması. Fiyat sabitlendiği için piyasa fiyat riski alıcıya geçer; karşılığında fiyat genellikle beklenen piyasa fiyatının altındadır.",
     g:"Proje finansmanı tablosunda spot satışla karşılaştırılır."},

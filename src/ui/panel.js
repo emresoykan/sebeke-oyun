@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -23,6 +23,7 @@ import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
 import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
+import { yekEligible, yekStatus, yekApplyNext, yekJoinNow } from "../yekdem.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -136,6 +137,22 @@ function measureSlope(t,id){
     const c=selSite();if(c&&c.lat===t.lat&&c.lon===t.lon)renderPanel();});
 }
 
+// YEKDEM (Türkiye, yekdem.js): bu yılın durumu, ertesi yıl başvurusu; karar için sahanın piyasadaki ortalama satış fiyatı
+const dec=x=>x.toFixed(1).replace(".",",");
+function yekHtml(id){
+  const s=yekStatus(id);let h=`<div class="status${s.on?" ok":""}"><b>YEKDEM ${s.y}:</b> `;
+  h+=s.on?`katılıyor; üretim ${dec(YEKDEM.p)} $/MWh sabit fiyattan satılıyor, yıl içinde çıkılamaz.`:`katılmıyor; üretim piyasa fiyatından satılıyor.`;
+  if(s.price!=null)h+=` Bu sahanın piyasadaki ortalama satış fiyatı ${dec(s.price)} $/MWh.`;
+  h+=s.battery?` Sahadaki bataryanın sahanın kendi üretiminden doldurup verdiği enerji ${dec(YEKDEM.store)} $/MWh alır.`
+    :` Sahaya batarya eklersen, kendi üretiminden depolayıp verdiği enerji ${dec(YEKDEM.store)} $/MWh alır.`;
+  h+=s.open?` ${s.y+1} için son başvuru ${s.deadline} (yaklaşık ${s.daysLeft} oyun günü)${s.next?"; başvurun var":""}.`:` ${s.y+1} başvuru dönemi kapandı${s.next?"; başvurun var":""}.`;
+  if(s.canNow)h+=` Yeni saha: ilk santralin işletmeye girdiği yıl için ${YEKDEM.newDays} gün içinde hemen katılabilirsin.`;
+  if(s.fit)h+=" Başlangıç desteği süren saha bu yıl katılamaz; ertesi yıl katılırsa destek biter.";
+  h+=`</div>`;
+  const b=[];if(s.canNow)b.push(`<button data-a="yekNow">${s.y} için şimdi katıl</button>`);
+  if(s.open)b.push(`<button data-a="yekNext">${s.next?`${s.y+1} başvurusunu geri çek`:`${s.y+1} için başvur`}</button>`);
+  return h+(b.length?`<div class="actions">${b.join("")}</div>`:"");
+}
 export function renderPanel(){const t=performance.now();renderPanelImpl();wp("renderPanel (saha paneli)",t);}
 function renderPanelImpl(){
   const t=selSite(),id=S.sel.id,o=id?S.sites[id]:null,el=document.getElementById("panel");
@@ -204,7 +221,8 @@ function renderPanelImpl(){
     const fpv=mw-capMW(id);
     html+=`<div class="status ok">İzin var. Bu sahada ${mw-fpv}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${fpv?`, gölde ayrıca ${fpv} MW yüzer GES (saha sınırına sayılmaz)`:""}${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
-    if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi: piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir (YEKDEM benzeri taban fiyat). ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
+    if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi (başlangıç desteği): piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir. ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
+    if(fullOn()&&yekEligible(id))html+=yekHtml(id);
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
     if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
@@ -212,7 +230,7 @@ function renderPanelImpl(){
   if(o&&fullOn())html+=sellHtml(id,o);
   el.innerHTML=html;
   const sd=el.querySelector("details.sell");if(sd)sd.ontoggle=()=>{sellOpen=sd.open?id:null;};
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);else if(a==="sell")askSell(S.sel.id);
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);else if(a==="sell")askSell(S.sel.id);else if(a==="yekNow"){yekJoinNow(S.sel.id);renderPanel();}else if(a==="yekNext"){yekApplyNext(S.sel.id);renderPanel();}
     else if(a==="tab"){tab=b.dataset.k;if(o&&o.permit==="ok"&&!ob().tech){ob().tech=1;checkMissions();}renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }

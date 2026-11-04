@@ -3,6 +3,7 @@
 // gününde geçer. Güneşin eğimi (deklinasyon) gün uzunluğunu, öğle güneşinin yüksekliğini ve hava sistemlerinin
 // enlemini belirler; aylık talep çarpanı fiyatları etkiler. DOM'a bağımlı değildir.
 const DAY_MS=864e5, START=Date.UTC(2026,2,20), STEP=3, RAD=Math.PI/180;
+export const CAL_STEP=STEP; // bir oyun günü kaç takvim günü
 export const TR_LAT=39, SOLAR_NOON=12.7; // Türkiye saatiyle (UTC+3) ortalama öğle
 
 export const dateOf=dayNo=>new Date(START+(dayNo-1)*STEP*DAY_MS);
