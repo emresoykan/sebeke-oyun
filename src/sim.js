@@ -27,6 +27,7 @@ import { news, realNews } from "./news.js";
 import { leagueDay } from "./league.js";
 import { capDay, DERATE, h2Rate } from "./support.js";
 import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
+import { hydDay, hydShift, hydVol } from "./hydro.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -36,7 +37,7 @@ export function newDay(){
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl,doyOf(CAL.date));
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
-  yekDay();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; gerçek dünyadan tarihli haberler
+  yekDay();hydDay();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));
@@ -49,16 +50,17 @@ export function newDay(){
     let fw=Array.from({length:24},(_,h)=>fleetWind(k,h));if(fw[0]==null)fw=null;
     const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=fw&&FLEET_CF[k]?fw.map(f=>clamp(f/FLEET_CF[k],0,3)):ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>PV.includes(p.k)&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
-    // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür
-    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1);
-    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]),0,110*mult));
+    // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür; Türkiye'de yılın hidrolojisi
+    // (hydro.js) bütün saatlerden aynı tutarı düşürür ya da ekler
+    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1),hy=k==="T"?hydShift():0;
+    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-hy),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     // fleet ve sunP: filonun saatlik rüzgâr kapasite oranı ve piyasanın güneş üretim profili (kalibrasyon ölçümleri için)
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),fleet:fw,sunP:sunH.map((s,h)=>shape(h)*amp*s),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0,c:0}))};
     priceMods(k,D[k]); // olay etkileri, günlük ortalama ve batarya planı
   });
   S.plants.forEach(p=>{if(p.k!=="hes")return;const t=site(p.t),pr=D[t.mreg].price;
-    let budget=p.down?0:p.mw*24*t.hydro*(0.25+rnd()*0.3)*eqOf(p).perf*factor("out",t.mreg,"hes")*(0.6+1.2*(p.wet??0.35));p.plan=Array(24).fill(0); // son günlerin yağışı ve kar erimesi
+    let budget=p.down?0:p.mw*24*t.hydro*(0.25+rnd()*0.3)*eqOf(p).perf*factor("out",t.mreg,"hes")*(0.6+1.2*(p.wet??0.35))*(t.mreg==="T"?hydVol():1);p.plan=Array(24).fill(0); // son günlerin yağışı ve kar erimesi; Türkiye'de yılın hidrolojisi
     [...Array(24).keys()].sort((a,b)=>pr[b]-pr[a]).forEach(h=>{const e=Math.min(p.mw,budget);p.plan[h]=e;budget-=e;});});
   S.plants.forEach(p=>{if(p.k==="bes")planBio(p);else if(p.k==="phs")planStore(p);else if(p.k==="h2")planH2(p);else if(p.k==="csp")planCSP(p);});
   if(fresh)dailyNews();
@@ -253,5 +255,5 @@ export function planCSP(p,from=0){const t=site(p.t),pr=D[t.mreg].price;p.plan=Ar
   const n=Math.min(24-from,Math.round(heat/p.mw));
   [...Array(24).keys()].filter(h=>h>=from).sort((a,b)=>pr[b]-pr[a]).slice(0,n).forEach(h=>p.plan[h]=1);}
 
-export function newDayHydro(p){const t=site(p.t),pr=D[t.mreg].price;let b=p.down?0:p.mw*24*t.hydro*0.4*eqOf(p).perf;p.plan=Array(24).fill(0);
+export function newDayHydro(p){const t=site(p.t),pr=D[t.mreg].price;let b=p.down?0:p.mw*24*t.hydro*0.4*eqOf(p).perf*(t.mreg==="T"?hydVol():1);p.plan=Array(24).fill(0);
   [...Array(24).keys()].filter(h=>h>=S.hour).sort((a,c)=>pr[c]-pr[a]).forEach(h=>{const e=Math.min(p.mw,b);p.plan[h]=e;b-=e;});}

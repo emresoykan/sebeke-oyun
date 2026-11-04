@@ -19,6 +19,17 @@ export const FIT={p:90,years:5};
 // (EPDK duyurusu, 19.10.2026). Gerçekte fiyat TL'dir ve her ay güncellenir; oyunda dolar cinsinden sabit.
 // newDays: yeni sahanın o yıl için de katılabileceği süre (takvim günü; oyun kolaylığı)
 export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:30,asOf:"Ekim 2026"};
+// Hidrolojik yıl (Türkiye; hydro.js, docs/kalibrasyon.md "Hidrolojik yıl"). Su endeksi w = yılın HES kapasite faktörü ÷
+// 2015–2025 ortalaması (%25,9; TEİAŞ yıllık üretim ÷ yıl sonu kurulu güç). hist: TEİAŞ 2015–2025; bilinmeyen yıllar bunlardan
+// biri rastgele seçilerek belirlenir. known: gerçek yıllar (2026: Ocak–Eylül TEİAŞ, Ekim–Aralık 2025 düzeyinde varsayıldı;
+// tahmin, yıl kapanınca güncellenecek). depth: w−1 = 1 iken en etkili ayda fiyattan düşülen tutar ($/MWh, piyasa çarpanından
+// önce); mon: aylık ağırlık (Ocak…Aralık; ilkbaharda en yüksek); dry: kurak yılda etkinin payı (açığı gaz kapatır, fiyat az
+// yükselir). Ağırlıklar ve derinlik EPİAŞ 2025 ile 2026'nın aylık TL fiyat oranına göre ayarlandı.
+export const HYDRO={
+  hist:{2015:1.14,2016:1.11,2017:0.94,2018:0.93,2019:1.37,2020:1.11,2021:0.78,2022:0.93,2023:0.88,2024:1.02,2025:0.78},
+  known:{2026:1.27},depth:150,dry:0.25,
+  mon:[0.05,0.5,0.5,1,1.15,0.72,0.25,0.25,0.25,0.2,0.1,0.05]
+};
 // Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
 // lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
 // grow/capK: piyasanın güneş doygunluğu her gün grow kadar artar, başlangıç değerinin capK katında durur; wind: rüzgârın fiyat etkisi;

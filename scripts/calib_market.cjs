@@ -2,7 +2,8 @@
 // fiyat oranı (ENTSO-E'nin bölge üretimiyle ölçtüğü yakalama oranına denk: Σ fiyat × üretim ÷ Σ üretim ÷ ortalama fiyat;
 // sıfır fiyatlı saatlerdeki üretim de sayılır) ve örnek santrallerin kendi yakalama oranı. Rüzgâr filosunun ortalama
 // kapasite oranı da yazılır (config.js FLEET_CF). Oyun normal (rakipler yatırım yapar), olay kartları kapalı; her piyasada
-// 5 MW GES ve RES'ler. RUNS koşu × DAYS gün (120 gün = bir takvim yılı).
+// 5 MW GES ve RES'ler. RUNS koşu × DAYS gün (120 gün = bir takvim yılı). Türkiye'de bütün yıllar normal hidrolojik yıl
+// (w 1; hydro.js): ölçülen taban düzeydir, kurak ve yağışlı yıllar için scripts/calib_hydro.cjs.
 // Kullanım: npx vite --port 5182 &  sonra  node scripts/calib_market.cjs http://localhost:5182/sebeke-oyun/ [gün=120] [koşu=4]
 const { chromium } = require("playwright");
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",DAYS=+(process.argv[3]||120),RUNS=+(process.argv[4]||4);
@@ -14,6 +15,7 @@ for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("page
   await p.goto(URL0);await p.waitForTimeout(3000);
   const r=await p.evaluate(async([PL,DAYS])=>{const st=await import("/src/state.js"),w=await import("/src/world.js"),sim=await import("/src/sim.js"),ac=await import("/src/actions.js"),S=st.S;
     S.money=1e10;S.won=true;S.win1=1;S.evCool=1e9;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});
+    S.hyd={};for(let y=2026;y<=2035;y++)S.hyd[y]={w:1,ref:0}; // normal hidrolojik yıl (hydro.js): kalibrasyon taban düzeyi ölçer
     const ids={};for(const [mk,list] of Object.entries(PL))list.forEach(([k,la,lo],i)=>{const id=`${mk}_${k}${i}`;S.sites[id]={...w.describe(la,lo),permit:"ok"};ac.build(id,k,"std");ids[id]={mk,k};});
     sim.newDay();const A={};for(const mk in PL)A[mk]={p:0,n:0,wp:0,w:0,sp:0,s:0,f:0,fn:0,wh:0};
     for(let d=0;d<DAYS;d++){for(const mk in PL){const M=st.D[mk],a=A[mk];for(let h=0;h<24;h++){const pr=M.price[h];a.p+=pr;a.n++;

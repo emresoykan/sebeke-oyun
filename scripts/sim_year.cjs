@@ -1,7 +1,8 @@
 // Oyunu tarayıcıda ekransız çalıştırıp bir piyasada bir GES ve bir RES ile N gün simüle eder; kalibrasyon ve vaka
 // çalışmasındaki göstergeleri yazdırır: ortalama fiyat, güneş ve rüzgâr fiyat oranı (capture rate), kısıntı, kapasite
 // faktörü, öğle fiyatı (11–14), WACC %8/%10/%12'de proje ekonomisi ve proje finansmanı (spot / PPA, baz / fiyat stresi;
-// src/finance.js). Oyun normal (rakipler yatırım yapar), olay kartları kapalı. 120 oyun günü = bir takvim yılı.
+// src/finance.js). Oyun normal (rakipler yatırım yapar), olay kartları kapalı, Türkiye'de normal hidrolojik yıl (hydro.js).
+// 120 oyun günü = bir takvim yılı.
 // Kullanım: önce `npx vite --port 5181`, sonra
 //   node scripts/sim_year.cjs 120 37.9,32.5 40.1,26.4            (Türkiye: Konya GES, Çanakkale RES)
 //   node scripts/sim_year.cjs 120 39.5,-3.5 53.8,9.5             (Avrupa: İspanya iç kesim GES, Kuzey Almanya RES)
@@ -16,7 +17,7 @@ const [DAYS, G, W, URL] = [+process.argv[2] || 120, (process.argv[3] || "37.9,32
   await p.goto(URL); await p.waitForTimeout(5000);
   const r = await p.evaluate(async ([DAYS, G, W]) => {
     const cfg = await import("/src/config.js"), st = await import("/src/state.js"), ac = await import("/src/actions.js"), sim = await import("/src/sim.js"), sl = await import("/src/slope.js"), F = await import("/src/finance.js");
-    const S = st.S; S.money = 9e12; S.won = true; S.evCool = 1e9; Object.keys(S.mSolar).forEach(k => S.mSolar[k] = cfg.REG[k].s0);
+    const S = st.S; S.money = 9e12; S.won = true; S.evCool = 1e9; S.hyd = {}; for (let y = 2026; y <= 2035; y++) S.hyd[y] = { w: 1, ref: 0 }; /* normal hidrolojik yıl (hydro.js) */ Object.keys(S.mSolar).forEach(k => S.mSolar[k] = cfg.REG[k].s0);
     document.querySelectorAll("dialog[open]").forEach(d => d.close()); document.getElementById("pauseBtn")?.click();
     // düz ve izinli bir nokta bulana kadar yakın çevrede dene; izin hemen verilir, standart ekipman
     const mk = async (lat0, lon0, k) => { let id = null; for (let i = 0; i < 12 && !id; i++) { const lat = +(lat0 + (i % 4) * 0.08).toFixed(4), lon = +(lon0 + Math.floor(i / 4) * 0.08).toFixed(4); await sl.slopeOf(lat, lon); S.sel = { id: null, lat, lon }; ac.buyLand(); id = S.sel.id; }

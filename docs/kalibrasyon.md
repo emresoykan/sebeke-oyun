@@ -294,10 +294,75 @@ Yıllık PTF ortalaması (EPİAŞ, $/MWh): 2023 96,6; 2024 68,1; 2025 66,4. TCMB
   - 2026, kurulu güce göre 2019'dan sonra en yağışlı yıl olma yolunda; karşılaştırma yılı 2025 en kuraklardandı. Fiyat düzeyini uç bir yıla ayarlamak tipik yılı temsil etmez.
   - Düşüşün yarısı kurdan geliyor. Oyunda kur yok; TL fiyatın kura yetişip yetişmeyeceği (tarife kararları) belirsiz.
   - 2026'nın tam yıl ortalaması ~47 $/MWh civarında kapanabilir (Kasım–Aralık ~60 $/MWh varsayımıyla; **tahmin**). Yıl kapanınca 2023–2026 ortalaması ya da hidrolojiye göre ağırlıklı bir hedef yeniden değerlendirilebilir.
-- **Öneri (uygulanmadı):** Oyuna "hidrolojik yıl" değişkenliği. Her takvim yılı kurak, normal ya da yağışlı olur. Dağılım TEİAŞ 2015–2025 hidro kapasite faktöründen (%20–36); fiyat etkisi ağırlıkla ilkbahar aylarında (2026: Mart–Haziran). Böylece YEKDEM kararı gerçekteki gibi bir risk kararına döner.
+- **Öneri:** Oyuna "hidrolojik yıl" değişkenliği. Her takvim yılı kurak, normal ya da yağışlı olur. Dağılım TEİAŞ 2015–2025 hidro kapasite faktöründen (%20–36); fiyat etkisi ağırlıkla ilkbahar aylarında (2026: Mart–Haziran). Böylece YEKDEM kararı gerçekteki gibi bir risk kararına döner. **Uygulandı (04.11.2026):** aşağıdaki "Hidrolojik yıl" bölümü.
 
 ## Sınırlamalar
 - Gaz fiyatı (BOTAŞ santral tarifesi), azami fiyat limiti ve tüketim incelenmedi. En yüksek saatlik PTF 2025'te 3.400, 2026'da 4.500 TL/MWh'ti; bunların o yılların fiyat limiti olduğu ayrıca doğrulanmadı.
 - Kur, TL ve USD ortalamalarının oranından türetildi; resmî ortalama kur değil.
 - Kapasite faktörü yıl sonu kurulu güçle hesaplandı; kurulu gücün arttığı yıllarda biraz düşük çıkar. Barajlardaki su, üretimin yıl içine dağılımını da değiştirir; üretim yağışın birebir ölçüsü değildir.
 - Ekim 2026 hidro verisi yok; yıl sonu hidro değeri tahmindir.
+
+# Hidrolojik yıl (04.11.2026)
+
+## Neden
+2026 kontrolünde (yukarıda) Türkiye'nin ilkbahar fiyatlarının çok yağışlı bir yılda çöktüğü görüldü. Oyunda her yıl aynı fiyat düzeyiyle başlıyordu; YEKDEM kararı (sabit fiyat ya da piyasa) bu yüzden risk taşımıyordu. Fiyat düzeyini uç bir yıla ayarlamak yerine yılın hidrolojisi ayrı bir değişken olarak eklendi (`src/hydro.js`, `config.js` `HYDRO`).
+
+## Veri
+- **Su endeksi:** w = yılın HES kapasite faktörü ÷ 2015–2025 ortalaması (%25,9). Kaynak TEİAŞ yıllık hidro üretimi ve yıl sonu kurulu gücü (yukarıdaki tablo). 2015–2025: 1,14; 1,11; 0,94; 0,93; 1,37; 1,11; 0,78; 0,93; 0,88; 1,02; 0,78. 2026: 1,27 (**tahmin**: Ocak–Eylül TEİAŞ, Ekim–Aralık 2025 düzeyinde varsayıldı).
+- **Fiyat etkisi (hedef):** EPİAŞ PTF, TL, aylık ortalama; 2026 (w ~1,27) ÷ 2025 (w 0,78). TL kullanıldı çünkü oyunda kur yok.
+
+| Ay | 2025 (TL/MWh) | 2026 (TL/MWh) | Oran | Hidro değişimi | Hedef oran (÷ 1,15) |
+|---|---|---|---|---|---|
+| Ocak | 2.508,8 | 2.894,9 | 1,15 | −%12 | 1,00 |
+| Şubat | 2.478,3 | 2.078,2 | 0,84 | +%97 | 0,73 |
+| Mart | 2.183,8 | 1.620,3 | 0,74 | +%97 | 0,65 |
+| Nisan | 2.452,7 | 921,1 | 0,38 | +%59 | 0,33 |
+| Mayıs | 2.458,2 | 590,9 | 0,24 | +%58 | 0,21 |
+| Haziran | 2.202,2 | 1.240,2 | 0,56 | +%119 | 0,49 |
+| Temmuz–Ekim | 2.844,2 | 2.819,5 | 0,99 | +%60–154 (Tem–Eyl) | 0,86 |
+
+- **Yorum:** Ocak'ta hidro 2025'ten az olduğu hâlde TL fiyat %15 yüksekti. Bu hidrolojiden bağımsız nominal artış sayıldı ve oranlar 1,15'e bölündü. Bölen tek aya dayanır; ±%5 oynaması hedef oranları aynı ölçüde kaydırır.
+- **Etki doğrusal değil:** 2024 Nisan–Mayıs'ta hidro 2025'in %11 üstündeydi, dolar fiyatı %8 düşüktü (59,2'ye karşı 64,1 $/MWh; kur etkisi ayrılmadı). 2026'da hidro %59 fazlaydı, fiyat %74 düştü. Küçük fazlalık fiyatı az etkiliyor; büyük fazlalık talebin düşük ve güneşin güçlü olduğu aylarda fiyatı sıfıra itiyor.
+- **Kurak yıl:** 2025 (w 0,78) ile 2024'ün (w 1,02) yıllık dolar fiyatı birbirine yakın (66,4 ve 68,1 $/MWh). Açığı gaz kapattığı için kurak yılın fiyatı az yükseltmesi beklenir; ayrı bir hedef çıkarılamadı.
+
+## Model
+- Türkiye piyasasında her saatin fiyatından, piyasa çarpanından önce `depth × mon[ay] × (w − 1)` düşülür. Kurak yılda (w < 1) aynı terim `dry` payıyla (0,25) fiyata eklenir. Fiyat sıfırın altına inmez; bu sınır etkiyi doğal olarak doğrusal olmayan yapar.
+- `depth` 150 $/MWh, aylık ağırlık Ocak…Aralık: 0,05; 0,5; 0,5; 1; 1,15; 0,72; 0,25; 0,25; 0,25; 0,2; 0,1; 0,05. Kasım ve Aralık için gerçek hedef yok (2026 verisi henüz yok); kışın düşük tutuldu.
+- Türkiye'deki HES'lerin günlük su bütçesi w ile çarpılır (2026'da ×1,27).
+- **Yıllar:** 2026 gerçek yıldır (`HYDRO.known`). Sonraki her yıl 1 Ocak'ta 2015–2025'ten biri eşit olasılıkla seçilir. Seçim kayda yazılır; o güne kadar bilinmez, bu yüzden YEKDEM başvurusu (30 Kasım) hidroloji bilinmeden yapılır. Dağılım: 3 kurak (w < 0,9), 4 normal, 3 yağışlı, 1 çok yağışlı (w ≥ 1,25).
+- **Eşit fiyatlı saatler:** Yağışlı ilkbaharda birçok saat sıfır fiyata iner. Batarya planı eşit fiyatta güneşli saati önce seçer, böylece sahadaki GES'in üretimiyle dolar (`mods.js` `battPlan`).
+
+## Sonuç
+`scripts/calib_hydro.cjs`, 120 oyun günü × 6 koşu (iki ölçüm grubu); bütün yıllara aynı w verildi; rakipler açık, olay kartları kapalı. Fiyat $/MWh.
+
+| Ay | w 0,78 (kurak, 2025 gibi) | w 1 (normal) | w 1,27 (2026) | Oyun oranı 1,27 ÷ 0,78 | Hedef oran |
+|---|---|---|---|---|---|
+| Ocak | 76,3 | 75,4 | 73,3 | 0,96 | 1,00 |
+| Şubat | 73,3 | 71,1 | 51,9 | 0,71 | 0,73 |
+| Mart | 66,5 | 62,5 | 45,6 | 0,69 | 0,65 |
+| Nisan | 62,5 | 56,3 | 18,5 | 0,30 | 0,33 |
+| Mayıs | 63,2 | 53,9 | 11,8 | 0,19 | 0,21 |
+| Haziran | 66,8 | 61,2 | 34,8 | 0,52 | 0,49 |
+| Temmuz | 73,3 | 71,8 | 62,6 | 0,85 | 0,86 (Tem–Eki) |
+| Ağustos | 73,8 | 74,2 | 64,0 | 0,87 | |
+| Eylül | 66,7 | 65,7 | 56,0 | 0,84 | |
+| Ekim | 66,2 | 65,0 | 58,9 | 0,89 | |
+| Kasım | 71,3 | 70,1 | 67,0 | 0,94 | — |
+| Aralık | 75,2 | 75,7 | 73,0 | 0,97 | — |
+| **Yıl** | **69,6** (68,9–70,3) | **66,9** (66,3–67,8) | **51,3** (50,0–52,7) | 0,74 | |
+| Çanakkale RES, ortalama satış fiyatı | 68,3 | 65,2 | 49,1 | | |
+| Konya GES, ortalama satış fiyatı (3 koşu) | 59,9 | 56,6 | 40,2 | | |
+
+- **Taban düzey değişmedi:** w = 1 iken model öncekiyle aynıdır (fark terimi sıfır, HES suyu ×1). Normal yılda 66,9 $/MWh; önceki kalibrasyon 66,2 (64,6–67,5), EPİAŞ 2025 66,4. Fark koşudan koşuya oynama içinde.
+- **Kurak yıl** yıllık ortalamayı ~%4 yükseltiyor. **2026 gibi çok yağışlı yıl** ~%23 düşürüyor; Nisan'da saatlerin %10'u, Mayıs'ta %34'ü 5 $/MWh'in altında.
+- **Yeni oyunun ilk yılı** 20 Mart 2026'da başlar ve gerçek 2026'yı yaşar (w 1,27); 2027'nin Ocak–Mart'ı yıl başında seçilen yıla göredir. Bu yüzden ilk yılın Türkiye ortalaması ~51 $/MWh civarındadır, normal yılda ~67. Gerçekte 2026 Ocak–Ekim ortalaması 44,7 $/MWh; farkın bir kısmı kurdur (oyunda kur yok; yukarıdaki 2026 kontrolü).
+- **YEKDEM (59,2 $/MWh)** artık yıla bağlı bir karar:
+  - Çanakkale RES'i normal ve kurak yılda piyasada daha çok kazanır (65,2 ve 68,3), çok yağışlı yılda YEKDEM'de (piyasada 49,1).
+  - Konya GES'i normal yılda YEKDEM'de biraz daha iyi (piyasada 56,6), kurak yılda başa baş (59,9), çok yağışlı yılda YEKDEM açık ara önde (piyasada 40,2).
+
+## Sınırlamalar
+- Hedef tek bir yıl çiftine (2025 kurak, 2026 çok yağışlı) dayanır. Ara değerler (normal, yağışlı) modelin doğrusal olmayan yapısından gelir; gerçek veriyle ayrıca sınanmadı.
+- Etki bütün saatlerde aynı tutardır. Gerçekte Nisan 2026'da saatlerin yarısı 8,1 $/MWh'in altında, ortalama 20,7 $/MWh'ti; akşam saatleri yüksek kaldı (günlük en yüksek–en düşük farkı ortalaması 2025'te 2.167, 2026'da 3.535 TL/MWh). Oyunda sıfıra inen saat payı gerçekte olduğundan az.
+- Su endeksi yıllıktır; gerçekte yağış ve kar erimesi yıl içinde değişir (2026 Ocak'ı kuraktı, Şubat'tan sonra çok yağışlıydı).
+- 2026 değeri tahmindir; TEİAŞ yıllık verisi yayımlanınca güncellenecek.
+- Kalibrasyon koşuları (`calib_market.cjs`) ve vaka çalışması (`sim_year.cjs`) bütün yıllar için w = 1 (normal yıl) kullanır: taban düzey ve proje ekonomisi önceki modelle aynıdır.

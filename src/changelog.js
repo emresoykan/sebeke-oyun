@@ -2,6 +2,11 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-04.2",t:"Kurak ve yağışlı yıllar",items:[
+    "Türkiye'de her takvim yılı kurak, normal, yağışlı ya da çok yağışlı geçer. Yağışlı yılda ilkbaharda bol su fiyatları düşürür, öğle saatleri sıfıra yaklaşır; Türkiye'deki HES'lerine daha çok su gelir. Kurak yılda HES'e daha az su gelir, fiyat biraz yükselir.",
+    "2026 gerçek yıldır ve çok yağışlı geçiyor (TEİAŞ): oyunun ilk ilkbaharında Türkiye fiyatları düşük. Sonraki yıllar 1 Ocak'ta 2015–2025'in gerçek yıllarından biri seçilerek belirlenir; haber bandında ve saha panelinde görünür.",
+    "YEKDEM kararı artık bir risk kararı: ertesi yılın hidrolojisi başvuru tarihinde (30 Kasım) belli değil. Saha panelinde geçmiş yılların dağılımı var.",
+    "Sözlükte \"Hidrolojik yıl\"; haber bandında 2026 ilkbaharının gerçek fiyat haberi (1 Haziran)."]},
   {id:"2026-11-04",t:"Türkiye'de YEKDEM",items:[
     "Türkiye'deki GES ve rüzgâr sahaların için YEKDEM'e katılabilirsin: başvuru her yıl 30 Kasım'a kadar saha panelinden, ertesi yıl boyunca üretim sabit fiyattan (59,2 $/MWh) satılır ve yıl içinde çıkılamaz. Piyasa fiyatı bunun altındaysa kazandırır, üstündeyse kaybettirir.",
     "Sahadaki batarya, sahanın kendi üretiminden doldurup şebekeye verdiği enerji için daha yüksek fiyat (69,9 $/MWh) alır; şebekeden doldurduğu enerji kapsam dışı. Fiyatlar gerçek Ekim 2026 YEKDEM tarifesinden.",

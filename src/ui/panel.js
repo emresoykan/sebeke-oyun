@@ -23,7 +23,8 @@ import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
 import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
-import { yekEligible, yekStatus, yekApplyNext, yekJoinNow } from "../yekdem.js";
+import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
+import { hydText, hydOdds } from "../hydro.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -148,10 +149,16 @@ function yekHtml(id){
   h+=s.open?` ${s.y+1} için son başvuru ${s.deadline} (yaklaşık ${s.daysLeft} oyun günü)${s.next?"; başvurun var":""}.`:` ${s.y+1} başvuru dönemi kapandı${s.next?"; başvurun var":""}.`;
   if(s.canNow)h+=` Yeni saha: ilk santralin işletmeye girdiği yıl için ${YEKDEM.newDays} gün içinde hemen katılabilirsin.`;
   if(s.fit)h+=" Başlangıç desteği süren saha bu yıl katılamaz; ertesi yıl katılırsa destek biter.";
-  h+=`</div>`;
+  h+=`</div>`+hydHtml(s.y,s.open);
   const b=[];if(s.canNow)b.push(`<button data-a="yekNow">${s.y} için şimdi katıl</button>`);
   if(s.open)b.push(`<button data-a="yekNext">${s.next?`${s.y+1} başvurusunu geri çek`:`${s.y+1} için başvur`}</button>`);
   return h+(b.length?`<div class="actions">${b.join("")}</div>`:"");
+}
+// Hidrolojik yıl (hydro.js): bu yılın durumu; YEKDEM kararı için ertesi yılın geçmiş yıllara göre olasılığı
+function hydHtml(y,next){
+  const x=hydText(y);if(!x)return "";let h=`<div class="status"><b>${x.c.i} Hidroloji ${y}:</b> ${x.t}`;
+  if(next){const o=hydOdds();h+=` ${y+1} hidrolojisi 1 Ocak'ta belli olur (${o.first}–${o.last}: ${["kurak","normal","yağışlı","çok yağışlı"].filter(k=>o.c[k]).map(k=>`${o.c[k]} ${k}`).join(", ")} yıl).`;}
+  return h+`</div>`;
 }
 export function renderPanel(){const t=performance.now();renderPanelImpl();wp("renderPanel (saha paneli)",t);}
 function renderPanelImpl(){
@@ -223,6 +230,7 @@ function renderPanelImpl(){
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi (başlangıç desteği): piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir. ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
     if(fullOn()&&yekEligible(id))html+=yekHtml(id);
+    else if(fullOn()&&o.mreg==="T"&&S.plants.some(q=>q.t===id&&q.k==="hes"))html+=hydHtml(yekYear(),false);
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
     if(steepTxt(t)&&allowed(t).length)html+=`<div class="status wait">${steepTxt(t)}</div>`;
     html+=buildHtml(t);
