@@ -22,7 +22,7 @@ import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
-import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
+import { CAP, DERATE, H2SUB, CFD, capDay, h2Grant, cfdGrant, cfdRate } from "../support.js";
 import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
 import { hydText, hydOdds } from "../hydro.js";
 import { yekaStatus } from "../yeka.js";
@@ -93,7 +93,15 @@ function supportNote(t,k){
     return `<div class="eqnote support"><b>Kapasite ödemesi:</b> ${c?`${nm} piyasasında 5 MW bloğa günde ${fmt$(capDay(m,k,BLOCK))} (${c.src}; gücün %${Math.round(DERATE[k]*100)}'i sayılır${k==="batt"?": 2 saatlik depo zirveyi kısa süre karşılar":""}). Tesis arızalıyken${k==="batt"?" ve batarya GÖP masasında boştayken":""} ödenmez.`:`${nm} piyasasında depolamaya kapasite ödemesi yok${m==="T"?" (Türkiye'nin kapasite mekanizmasında depolamaya ilişkin hüküm bulunamadı)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
   if(k==="h2"){const s=H2SUB[m],g=h2Grant(m);
     return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
+  if(k==="off"){const g=cfdGrant(m,k),s=CFD[m];
+    return `<div class="eqnote support"><b>Fark sözleşmesi:</b> ${g?`${s.src}: ${dec(g.p)} $/MWh, ${s.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Piyasa fiyatı altındaysa fark ödenir, üstündeyse sen geri ödersin. Gerçekte ihaleyle kazanılır; oyunda ihale fiyatıyla kazanılmış sayılır.`:`${nm} piyasasında deniz üstü RES'e destek yok; Avrupa'da Britanya'nın fark sözleşmesi fiyatı var.${m==="T"?" Türkiye'nin ilk deniz üstü YEKA'sı 2027'nin ilk çeyreğine planlandı.":""}`}</div>`;}
+  if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama oyundaki yüzer RES maliyeti (NREL 2020 tahmini) bugünkü projelerin altında kaldığı için bu fiyat verilmedi.</div>`;
   return "";
+}
+// fark sözleşmesi olan santraller (support.js): fiyat ve kalan süre
+function cfdHtml(id){
+  const ps=S.plants.filter(p=>p.t===id&&p.cfd);if(!ps.length)return "";
+  return ps.map(p=>{const on=cfdRate(p)!=null;return `<div class="status${on?" ok":""}"><b>Fark sözleşmesi:</b> ${TECH[p.k].n} ${p.mw} MW, ${dec(p.cfd.p)} $/MWh; ${on?`${p.cfd.until-S.dayNo+1} gün kaldı. Fark günlük raporda.`:"süresi doldu, üretim piyasa fiyatından satılıyor."}</div>`;}).join("");
 }
 // Sahayı sat (sale.js): alıcı teklifinin dökümü (defter değeri ve teklif), kredi kapama, nakde geçecek tutar ve kâr/zarar.
 // Kutu kapalı gelir; açıkken yeniden çizimde açık kalır (sellOpen: açık kutunun sahası). Eğitim bitince görünür.
@@ -250,6 +258,7 @@ function renderPanelImpl(){
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi (başlangıç desteği): piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir. ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
     if(o.yeka)html+=yekaHtml(o);
+    html+=cfdHtml(id);
     if(fullOn()&&yekEligible(id))html+=yekHtml(id);
     else if(fullOn()&&o.mreg==="T"&&S.plants.some(q=>q.t===id&&q.k==="hes"))html+=hydHtml(yekYear(),false);
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;

@@ -4,6 +4,7 @@
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
 import { FIT, PHS_H, H2, CSP, YEKDEM, YEKA, GRID } from "./config.js";
+import { CFD } from "./support.js";
 import { ECON_YEAR } from "./loans.js";
 import { SALE } from "./sale.js";
 
@@ -37,6 +38,9 @@ export const TERMS=[
   {k:"yekdem",t:"YEKDEM",e:"Yenilenebilir Enerji Kaynakları Destekleme Mekanizması",c:"piyasa",
     d:"Türkiye'de lisanslı yenilenebilir santrallerin bir takvim yılı boyunca enerjisini sabit fiyattan sattığı destek mekanizması. Başvuru her yıl 30 Kasım'a kadar EPDK'ya yapılır ve ertesi yıl için geçerlidir; yıl içinde çıkılmaz. Piyasa fiyatı YEKDEM fiyatının altındaysa kazandırır, üstündeyse kaybettirir. Rüzgâr ve güneşle bütünleşik depolamada, depolanıp şebekeye verilen enerji daha yüksek fiyat alır; şebekeden çekilip depolanan enerji kapsam dışıdır.",
     g:`Türkiye'deki GES ve kara RES sahaları: saha panelinden ertesi yıl için başvurulur. Fiyat ${String(YEKDEM.p).replace(".",",")} $/MWh; sahadaki bataryanın sahanın kendi üretiminden doldurup verdiği enerji ${String(YEKDEM.store).replace(".",",")} $/MWh (EPİAŞ tablosu, ${YEKDEM.asOf}; dolara çevrilmiş, oyunda sabit). Yeni saha, ilk santralinin işletmeye girdiği yıl ${YEKDEM.newDays} gün içinde o yıl için de katılabilir (oyun kolaylığı).`},
+  {k:"cfd",t:"Fark sözleşmesi (CfD)",e:"Contract for Difference",c:"piyasa",
+    d:"Üreticiye sabit bir sözleşme fiyatı (strike price) güvencesi veren iki yönlü destek: piyasa fiyatı sözleşme fiyatının altındaysa fark üreticiye ödenir, üstündeyse üretici farkı geri öder. Britanya'nın 7. turunda (Ocak 2026) sabit tabanlı deniz üstü rüzgâr 8,2 GW için £91,20/MWh (2024 fiyatlarıyla, enflasyona endeksli, 20 yıl), yüzer rüzgâr £216,49/MWh'ten sözleşme aldı.",
+    g:`Avrupa'da deniz üstü RES (offshore) ilk bloğun kurulumundan itibaren ${CFD.E.years} ekonomik yıl ${String(CFD.E.p).replace(".",",")} $/MWh fark sözleşmesi alır; fark saatlik uzlaştırılır ve proje gelirine katılır (günlük raporda "Fark sözleşmesi"). Yüzer RES ve diğer piyasalar almaz.`},
   {k:"baglanti",t:"Bağlantı kapasitesi",e:"Grid connection capacity",c:"piyasa",
     d:"Bir santralin şebekeye bağlanabileceği güç; iletim şirketi (Türkiye'de TEİAŞ) trafo merkezi ve bölge bazında belirler. Türkiye'de yeni RES ve GES için en kıt kaynaktır: 2026'da lisanssız üretime 3.500 MW açıldı (iletim 1.500, dağıtım 2.000 MW) ve iletimdeki kapasitenin %97'si Eylül sonunda dağıtılmıştı. Lisanslı yeni kapasite büyük ölçüde YEKA ve depolamalı ön lisansla verilir; depolamalı yolda üretim gücü, taahhüt edilen depolama gücünü aşamaz.",
     g:`Türkiye'de yeni RES, GES ve deniz GES'i için her yıl ${GRID.quota} MW serbest kontenjanın var (${GRID.close[1]} Eylül'e kadar; 1 Ocak'ta yenilenir). Sahada batarya varsa blok önce ona bağlanır: üretim gücü sahadaki bataryanın gücünü aşamaz. İlk projen ve YEKA sahasının kendi teknolojisi kontenjana sayılmaz. Rakipler ve diğer piyasalar sınırlanmaz.`},

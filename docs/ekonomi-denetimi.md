@@ -21,6 +21,7 @@ Oyundaki 14 teknolojinin proje ekonomisini üç piyasada (Türkiye T, Avrupa E, 
 - **Offshore RES hiçbir piyasada kârlı değil.**
   - IRR %2–3. Gerçekte de deniz rüzgârı çoğunlukla sabit fiyatlı destek sözleşmeleriyle (CfD) kuruluyor.
   - Oyunda böyle bir destek yok; bu yüzden offshore oyuncu için bir tuzak.
+  - **04.11.2026:** Avrupa'da fark sözleşmesi eklendi (aşağıda, öneri 3).
 - **Hata düzeltildi:** yüzer GES ile deniz üstü GES'inde panel yaşlanması (yıllık %0,5) proje ekonomisine yansımıyordu. Düzeltme LCOE'yi yaklaşık %3 artırdı.
 - **Güneşin yakalama oranı.**
   - Filo düzeyinde (sıfır fiyatlı saatlerdeki üretim dahil) Avrupa'da 0,55; gerçek 2025: Almanya %51,6, İspanya %55,2 (ENTSO-E).
@@ -185,7 +186,13 @@ Depolama ve hidrojen (net gelirle çalışır, LCOE yok):
    - Bu oturumda irena.org'a erişilemedi. Ağ ayarlarında irena.org'a izin verilirse ya da rapor PDF'i sağlanırsa doğrulanmış değerlerle yapılabilir.
    - Hedef: Kuzey Amerika LCOE'leri Lazard aralığına girsin.
 2. ~~**Türkiye fiyat düzeyini yeniden ayarla.**~~ Yapıldı (30.10.2026). Fark kayma değil tanım farkıydı; Türkiye ilk oyun yılına göre ayarlandı (`REG.T.mult` 0,92, ilk yıl 66,2 $/MWh).
-3. **Offshore için destek seçeneği.** Avrupa'da CfD benzeri sabit fiyatlı sözleşme. Sözleşme fiyatı (strike price) ve süresi birincil kaynaktan alınmalı (İngiltere CfD ihale sonuçları, Almanya ihaleleri). Alternatif: destek olmadığını oyuncuya açıkça söyle.
+3. ~~**Offshore için destek seçeneği.**~~ Yapıldı (04.11.2026; `src/support.js` `CFD`).
+   - Avrupa'da sabit tabanlı offshore, Britanya'nın 7. fark sözleşmesi turundaki fiyatı alır: £91,20/MWh (2024 fiyatlarıyla, 20 yıl; ikincil kaynaklar) ≈ 122,0 $/MWh, 20 ekonomik yıl, iki yönlü, saatlik.
+   - Fiyat oranla değil doğrudan alındı: fark sözleşmesi fiyatı maliyete göre belirlenir, oyunun yatırım maliyetleri de gerçek değerlerdir (kapasite ödemesi de Britanya'dan doğrudan alınmıştı). Oranla taşınsaydı (Britanya 2025 ortalama toptan fiyatı ~£81/MWh, ikincil kaynaklar; oyunun Avrupa düzeyi ~88 $/MWh) ~99 $/MWh olurdu ve offshore yine kârsız kalırdı.
+   - Proje ekonomisinde ilk 20 yıl sözleşme fiyatından, son 5 yıl piyasa fiyatından sayılır (`finance.js` `CFD_Y`).
+   - Ölçüm (`node scripts/test_cfd.cjs <adres> 120`, Kuzey Denizi 54,2° K 7,9° D, 10 MW, tek koşu): KF %30,7, piyasa satış fiyatı 83,4 $/MWh; IRR desteksiz %1,9, destekli %6,7; LCOE %10'da 146,5, %7,5'te 124,8 $/MWh; NPV %7,5'te destekli −1,8 M$ (başa baş yakını). Gerçekte Britanya'nın yeni projeleri daha yüksek KF ile bu fiyattan kâr ediyor; Almanya koşullarında (KF ~%31) sınırda kalması Almanya'nın Ağustos 2025 ihalesine teklif gelmemesiyle tutarlı.
+   - Yüzer RES'e verilmedi: Britanya'da £216,49/MWh (≈ 289,6 $/MWh) aldı, ama oyundaki yüzer RES maliyeti (NREL 2020 tahmini) bugünkü projelerin altında; bu fiyatla gerçekte olmayan bir kârlılık çıkardı. Önce yüzer RES maliyeti güncellenmeli.
+   - Türkiye: ilk deniz üstü YEKA 2027'nin ilk çeyreğine planlandı (taslak: 1.000 MW, 7–11 ABD sent/kWh); ihale yapılınca eklenecek. Diğer piyasalarda destek yok.
 4. **Düşük öncelikli:**
    - Avrupa ve Kuzey Amerika HES KF'si (ENTSO-E ve EIA verisiyle).
    - Türkiye'de gelgiti zayıf sahalarda deniz enerjisi uyarısı.
