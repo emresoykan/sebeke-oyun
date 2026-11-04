@@ -232,6 +232,72 @@ Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün �
 
 ## Sınırlamalar
 - Sonraki yıllardaki düşüş oyunun kendi davranışıdır (rakip yatırımı, güneş doygunluğu); gerçek piyasa için tahmin değildir. Gerçekte fiyatı gaz fiyatı, kur ve talep de belirler.
-- Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı.
+- Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı. 2026'nın ilk on ayıyla karşılaştırma: aşağıdaki "Türkiye 2026 kontrolü" bölümü.
 - Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük.
 - Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. 30.10.2026'da güncel modelle ve ilk oyun yılı üzerinden yeniden üretildi: piyasa karşılaştırması bu bölümdeki ve bölgesel rüzgâr bölümündeki kalibrasyon koşularından, proje ekonomisi `scripts/sim_year.cjs` ile (120 gün × 8 koşu, piyasa başına; olay kartları kapalı).
+
+# Türkiye 2026 kontrolü: Ocak–Ekim (04.11.2026)
+
+## Neden
+Türkiye'nin fiyat düzeyi EPİAŞ 2025 ortalamasına (66,4 $/MWh) ayarlı. Haftalık güncelleme sürecinde (`docs/guncellemeler.md`) fiyat kalibrasyonu çeyrekte bir tam veriyle denetlenir. Bu ilk denetim: 2026'nın ilk on ayı 2025'in aynı dönemiyle karşılaştırıldı.
+
+## Veri
+- **Fiyat:** EPİAŞ Şeffaflık Platformu, GÖP PTF (`/markets/dam/data/mcp`), saatlik; EPİAŞ'ın yayımladığı USD ve TL karşılıkları (MCP üzerinden, 04.11.2026). Aylık değerler saatlik basit ortalamadır.
+- **Hidroelektrik üretimi:** TEİAŞ aylık ve yıllık elektrik istatistikleri (MCP üzerinden, 04.11.2026). 2026 Ekim verisi henüz yok.
+- Güneş üretimi ve tüketim TEİAŞ'ta iki yıl arasında belirgin değişmedi; ayrıntılı ay ay karşılaştırma yapılmadı.
+
+| Ay | PTF 2025 ($/MWh) | PTF 2026 ($/MWh) | Değişim | Hidro 2025 (GWh) | Hidro 2026 (GWh) | Değişim |
+|---|---|---|---|---|---|---|
+| Ocak | 70,8 | 67,2 | −%5 | 4.830 | 4.244 | −%12 |
+| Şubat | 68,7 | 47,7 | −%31 | 4.192 | 8.238 | +%97 |
+| Mart | 59,1 | 36,8 | −%38 | 5.396 | 10.610 | +%97 |
+| Nisan | 64,6 | 20,7 | −%68 | 7.325 | 11.666 | +%59 |
+| Mayıs | 63,6 | 13,0 | −%80 | 7.410 | 11.719 | +%58 |
+| Haziran | 56,0 | 26,9 | −%52 | 4.816 | 10.549 | +%119 |
+| Temmuz | 74,0 | 57,6 | −%22 | 5.693 | 9.101 | +%60 |
+| Ağustos | 72,2 | 61,0 | −%16 | 4.489 | 9.091 | +%103 |
+| Eylül | 66,2 | 56,6 | −%15 | 3.261 | 8.268 | +%154 |
+| Ekim | 65,7 | 59,3 | −%10 | — | — | — |
+| **Ocak–Ekim** | **66,1** | **44,7** | **−%32** | 47.412 (Oca–Eyl) | 83.486 (Oca–Eyl) | +%76 |
+
+Nisan ve Mayıs 2026'da saatlik fiyatın ortancası 8,1 ve 4,2 $/MWh'ti: öğle saatlerinin çoğu sıfıra yakındı.
+
+Kur ayrımı (aynı veri, TL karşılığı):
+
+| Dönem | TL/MWh 2025 | TL/MWh 2026 | TL'de değişim | $/MWh 2025 | $/MWh 2026 | Dolarda değişim | Ortalamaların oranından kur (TL/$) |
+|---|---|---|---|---|---|---|---|
+| Ocak–Ekim | 2.567,6 | 2.066,2 | −%19,5 | 66,1 | 44,7 | −%32,3 | 38,8 → 46,2 (+%19) |
+| Temmuz–Ekim | 2.844,2 | 2.819,5 | −%0,9 | 69,6 | 58,6 | −%15,7 | 40,9 → 48,1 (+%18) |
+
+Yıllık hidroelektrik (TEİAŞ). Kapasite faktörü = üretim ÷ (yıl sonu kurulu güç × 8.760 saat); hidro kurulu gücü 2015–2025 arasında 25,9 GW'tan 32,3 GW'a çıktığı için yıllar arası karşılaştırma bununla yapılır.
+
+| Yıl | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 (tahmin) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Üretim (TWh) | 67,1 | 67,2 | 58,2 | 59,9 | 88,8 | 78,1 | 55,9 | 66,8 | 64,0 | 74,9 | 57,4 | ~93 |
+| Kapasite faktörü | %29,6 | %28,8 | %24,4 | %24,2 | %35,6 | %28,8 | %20,3 | %24,2 | %22,9 | %26,6 | %20,3 | ~%33 |
+
+On bir yılın ortalaması 67,1 TWh, kapasite faktörü %25,9. 2026 tahmini: Ocak–Eylül 83,5 TWh, Ekim–Aralık 2025 düzeyinde (10,0 TWh) sürerse; kurulu güç 2025 sonu değeriyle.
+
+Yıllık PTF ortalaması (EPİAŞ, $/MWh): 2023 96,6; 2024 68,1; 2025 66,4. TCMB TÜFE bazlı reel efektif döviz kuru (2025=100; artış TL'nin reel değer kazancı): 2023 83,1; 2024 93,0; 2025 100,0; 2026 Ocak–Ekim 105,1 (EVDS `TP.RK.T1.Y`, yıllık ortalama).
+
+## Bulgular
+- **Düzey:** 2026'nın ilk on ayında PTF 44,7 $/MWh. Oyunun ilk yılı (66,2) ve EPİAŞ 2025 (66,4) bunun ~%48 üstünde.
+- **Düşüşün iki bileşeni:** Dolardaki %32'lik düşüşün yaklaşık yarısı TL fiyatın düşmesinden (−%19,5), kalanı kurdan geliyor: TL dolara karşı ~%19 değer kaybetti (0,805 × 0,841 ≈ 0,677).
+  - Mart–Haziran: TL fiyat da çöktü; dolardaki düşüş −%38 ile −%80 arasında. Hidroelektrik üretimi aynı aylarda 2025'in %58–119 üstündeydi.
+  - Temmuz–Ekim: TL fiyat neredeyse aynı (−%0,9); dolardaki −%16'nın tamamına yakını kur. Hidro bu aylarda da 2025'in çok üstündeydi ama fiyatı ilkbahardaki kadar düşürmedi (yaz talebi olası bir açıklama; ayrıştırılmadı).
+- **Hidroloji:** 2026'nın ilk dokuz ayındaki 83,5 TWh, on bir yılın tam yıl ortalamasını (67,1) şimdiden aşıyor. Yıl ~93 TWh ile kapanırsa üretimde rekor, kurulu güce göre (kapasite faktörü ~%33) 2019'dan (%35,6) sonra en yağışlı yıl olur (**tahmin**). Karşılaştırma yılı 2025 ise 2021'le birlikte on bir yılın en kurak yılıydı (%20,3); ay ay değişimler bu yüzden büyük görünüyor.
+- **Hidroloji tek başına yetmiyor:** 2024 ortalamanın biraz üstündeydi (%26,6) ama PTF 68,1 $/MWh ile 2025'ten yüksekti. Dolar fiyatını hidrolojinin yanı sıra TL fiyatın kura ve enflasyona göre seyri belirliyor. TL 2023'ten beri reel olarak değer kazanıyor (reel efektif kur 83 → 105). 2024'te TL fiyat bununla birlikte yükseldi ve dolar fiyatı korundu; 2026'da TL fiyat nominal olarak düştü. Bunun hidrolojiden mi, tarife ve fiyat limitinden mi geldiği bu kontrolde ayrıştırılmadı.
+- **YEKDEM:** 2026 gibi bir yılda YEKDEM'in sabit fiyatı (oyunda 59,2 $/MWh) piyasa ortalamasının çok üstünde kalır. Oyunun ilk yılında (~66 $/MWh) bu karar sahaya göre değişiyor (README, YEKDEM bölümü).
+
+## Karar
+- **Kalibrasyon değişmedi** (`REG.T.mult` 0,92; hedef EPİAŞ 2025, 66,4 $/MWh). Gerekçe:
+  - 2026, kurulu güce göre 2019'dan sonra en yağışlı yıl olma yolunda; karşılaştırma yılı 2025 en kuraklardandı. Fiyat düzeyini uç bir yıla ayarlamak tipik yılı temsil etmez.
+  - Düşüşün yarısı kurdan geliyor. Oyunda kur yok; TL fiyatın kura yetişip yetişmeyeceği (tarife kararları) belirsiz.
+  - 2026'nın tam yıl ortalaması ~47 $/MWh civarında kapanabilir (Kasım–Aralık ~60 $/MWh varsayımıyla; **tahmin**). Yıl kapanınca 2023–2026 ortalaması ya da hidrolojiye göre ağırlıklı bir hedef yeniden değerlendirilebilir.
+- **Öneri (uygulanmadı):** Oyuna "hidrolojik yıl" değişkenliği. Her takvim yılı kurak, normal ya da yağışlı olur. Dağılım TEİAŞ 2015–2025 hidro kapasite faktöründen (%20–36); fiyat etkisi ağırlıkla ilkbahar aylarında (2026: Mart–Haziran). Böylece YEKDEM kararı gerçekteki gibi bir risk kararına döner.
+
+## Sınırlamalar
+- Gaz fiyatı (BOTAŞ santral tarifesi), azami fiyat limiti ve tüketim incelenmedi. En yüksek saatlik PTF 2025'te 3.400, 2026'da 4.500 TL/MWh'ti; bunların o yılların fiyat limiti olduğu ayrıca doğrulanmadı.
+- Kur, TL ve USD ortalamalarının oranından türetildi; resmî ortalama kur değil.
+- Kapasite faktörü yıl sonu kurulu güçle hesaplandı; kurulu gücün arttığı yıllarda biraz düşük çıkar. Barajlardaki su, üretimin yıl içine dağılımını da değiştirir; üretim yağışın birebir ölçüsü değildir.
+- Ekim 2026 hidro verisi yok; yıl sonu hidro değeri tahmindir.
