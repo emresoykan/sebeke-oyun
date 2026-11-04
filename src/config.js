@@ -19,6 +19,11 @@ export const FIT={p:90,years:5};
 // (EPDK duyurusu, 19.10.2026). Gerçekte fiyat TL'dir ve her ay güncellenir; oyunda dolar cinsinden sabit.
 // newDays: yeni sahanın o yıl için de katılabileceği süre (takvim günü; oyun kolaylığı)
 export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:30,asOf:"Ekim 2026"};
+// Şebeke bağlantı kapasitesi (Türkiye; grid.js, docs/guncellemeler.md). quota: oyuncunun her takvim yılı kontenjan dışı
+// yeni RES, GES ve deniz GES'i için alabileceği bağlantı kapasitesi (MW); 2026 lisanssız tahsisinde bir şirketin iletimden
+// alabileceği üst sınır (75 MW; EPDK 14353, ikincil kaynak). close: kontenjanın kapandığı gün (2026'da iletimdeki 1.500 MW'ın
+// 30 Eylül'de 38,3 MW'ı kalmıştı). store: depolamalı yolda üretim gücünün depolama gücüne oranı en çok 1 (RG 19.11.2022).
+export const GRID={quota:75,close:[8,30],store:1,kinds:["res","ges","spv"]};
 // YEKA (Türkiye; yeka.js, docs/guncellemeler.md). 2026 yarışmaları, ikincil kaynaklardan (Bakanlık duyurusu ve şartname bu
 // ortamdan açılamadı): RES 2 Kasım (7 yarışma, 1.500 MWe), GES 3 Kasım (11 yarışma, 785 MWe); tavan 5,50 €c/kWh, hepsi taban
 // fiyatta kapandı (ec: RES 3,50, GES 3,25 €c/kWh), kazananı MW başına katkı payı belirledi (fees: kaynaklarda tutarlı

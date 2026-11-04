@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-04.4",t:"Şebeke bağlantı kapasitesi",items:[
+    "Türkiye'de yeni RES, GES ve deniz GES'i için her yıl 75 MW serbest bağlantı kontenjanın var; 30 Eylül'de kapanır, 1 Ocak'ta yenilenir. Kurulum panelinde kalan kontenjan görünür.",
+    "Kontenjan bitince depolamalı kurarsın: sahaya önce batarya kur, üretim gücü bataryanın gücünü aşamaz. Sahada boşta batarya varsa yeni blok önce ona bağlanır, kontenjan başka sahalara kalır. YEKA sahası ve ilk projen kontenjana sayılmaz.",
+    "Gerçek 2026'dan: lisanssıza 3.500 MW açıldı, iletimdeki kapasitenin %97'si Eylül sonunda dağıtılmıştı. Haber bandında iki gerçek haber, sözlükte \"Bağlantı kapasitesi\"."]},
   {id:"2026-11-04.3",t:"YEKA yarışmaları",items:[
     "Her yıl 2 Kasım'dan sonra Türkiye'de bir YEKA yarışması kartı çıkar: 2026 yarışmalarının illerinden birinde bir RES ya da GES sahası. Fiyat taban fiyattır; MW başına katkı payını sen seçersin, rakibin teklifi 2026'nın gerçek kazanan tekliflerinden biridir.",
     "Kazanırsan izni hazır, sınırı büyük olabilen bir saha alırsın. Önce serbest piyasada satarsın (RES 6, GES 5 ekonomik yıl), sonra 20 ekonomik yıl sabit fiyat: RES 58,2, GES 54,0 $/MWh. Günlük raporda \"YEKA farkı\" satırı, saha panelinde sözleşmenin durumu.",
