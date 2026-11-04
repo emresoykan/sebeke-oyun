@@ -405,6 +405,7 @@ async function initFlat(){
   ready=true;onGfx(applyGfx);applyGfx(gfx());drawMap();setGameClock(S.hour);
   if(!reducedMotion.matches)map.flyTo({...end,duration:4500,curve:1.6,essential:false});
   if(new URLSearchParams(location.search).has("fps"))fpsMeter();
+  if(new URLSearchParams(location.search).has("perf"))import("./perfprobe.js").then(m=>m.probeFlatMap(map)); // ?perf=1: karo süreleri
   if(import.meta.env.DEV){window.__map=map;}
 }
 
