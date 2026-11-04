@@ -29,6 +29,7 @@ import { capDay, DERATE, h2Rate } from "./support.js";
 import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
 import { hydDay, hydShift, hydVol } from "./hydro.js";
 import { yekaOn, yekaSettle, yekaDay } from "./yeka.js";
+import { gridDay } from "./grid.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -38,7 +39,7 @@ export function newDay(){
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl,doyOf(CAL.date));
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
-  yekDay();hydDay();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; gerçek dünyadan tarihli haberler
+  yekDay();hydDay();gridDay();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));

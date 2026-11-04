@@ -4,6 +4,7 @@ import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
 import { slopeCached } from "./slope.js";
+import { gridBlock } from "./grid.js";
 
 // Arazi eğimi sınırları (%, sahanın 250 m çevresinin ortalaması). Mevzuatta tek bir sayı yok; yaygın saha geliştirme
 // pratiğine göre yaklaşık değerler: sabit eğimli GES düz araziye (≤%10) kurulur, güneye bakan yamaçta ~%15'e kadar
@@ -41,7 +42,8 @@ export const cspOk=t=>!t.sea&&(t.ter==="d"||(t.solar||0)>=CSP_SUN);
 // HES'in kurulu gücünü aşamaz ("lakefull"); buna karşılık saha sınırına (SITE_LIMIT) sayılmaz: arazi kullanmaz, güneş
 // öğlen, HES suyunu akşam pahalı saatlerde kullanır (sade kural; bağlantının saatlik kapasitesi ayrıca denetlenmez)
 const mwOn=(id,k)=>S.plants.reduce((a,p)=>a+(p.t===id&&p.k===k?p.mw:0),0);
-export const siteBlock=(id,k)=>k!=="fpv"?null:!mwOn(id,"hes")?"lake":mwOn(id,"fpv")+5>mwOn(id,"hes")?"lakefull":null;
+// "grid": Türkiye'de bağlantı kapasitesi yok (grid.js: kontenjan bitti, sahada yetecek batarya yok)
+export const siteBlock=(id,k)=>k!=="fpv"?gridBlock(id,k):!mwOn(id,"hes")?"lake":mwOn(id,"fpv")+5>mwOn(id,"hes")?"lakefull":null;
 // saha sınırına sayılan güç (yüzer GES hariç) ve bir bloğun sınıra sığıp sığmadığı
 export const capMW=id=>S.plants.reduce((a,p)=>a+(p.t===id&&p.k!=="fpv"?p.mw:0),0);
 export const fits=(id,k,mw=5)=>k==="fpv"||capMW(id)+mw<=siteCap(S.sites[id]);

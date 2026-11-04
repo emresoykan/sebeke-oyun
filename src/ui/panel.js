@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM, GRID } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -26,6 +26,7 @@ import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
 import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
 import { hydText, hydOdds } from "../hydro.js";
 import { yekaStatus } from "../yeka.js";
+import { gridWay, gridLeft, gridStore, gridOpen, gridScope } from "../grid.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -67,13 +68,23 @@ function buildHtml(t){
     csp:`Aynalar güneşi kuledeki alıcıya odaklar; ısı erimiş tuzda ${CSP.h} saat saklanır, türbin günün en pahalı saatlerinde (akşam zirvesi, gece) üretir. Yalnızca doğrudan güneş ışığı işe yarar: bulutlu havada toplama hızla düşer. Yatırımı GES'in ~5 katı.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
-  h+=supportNote(t,tab);
+  h+=supportNote(t,tab)+gridNote(t,tab);
   // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
   const used=capMW(S.sel.id),cap=siteCap(t);
   if(tab!=="fpv"&&used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
+// Bağlantı kapasitesi notu (grid.js): Türkiye'de RES, GES ve deniz GES'i için kalan serbest kontenjan ve depolamalı yol;
+// batarya sekmesinde bataryanın bağladığı üretim gücü
+function gridNote(t,k){
+  const id=S.sel.id,yr=yekYear();
+  if(k==="batt"&&gridScope(id,"ges"))return `<div class="status">Bağlantı: Türkiye'de bu sahadaki her MW batarya, serbest kontenjan dışında 1 MW RES ya da GES bağlar (depolamalı). Şu an ${gridStore(id)} MW boşta.</div>`;
+  const w=gridWay(id,k);if(w===null)return "";
+  if(w==="none")return `<div class="status wait">Bağlantı kapasitesi yok: ${gridOpen()?`${yr} yılı serbest kontenjanın (${GRID.quota} MW) bitti`:`serbest kontenjan ${GRID.close[1]} Eylül'de kapandı, 1 Ocak'ta yenilenir`}. Bu sahaya önce batarya kur: üretim gücü sahadaki bataryanın gücünü aşamaz (depolamalı). Ya da YEKA yarışmasına gir.</div>`;
+  const st=gridStore(id);
+  return `<div class="status">Bağlantı kapasitesi: ${gridOpen()?`serbest kontenjanından ${gridLeft()} MW kaldı (${GRID.close[1]} Eylül'e kadar)`:`serbest kontenjan ${GRID.close[1]} Eylül'de kapandı`}${st?`; bu sahanın bataryasına ${st} MW daha bağlanabilir`:""}. ${w==="store"?"Bu blok sahadaki bataryaya bağlanır (depolamalı).":"Bu blok kontenjandan düşer."}</div>`;
+}
 // Destek mekanizması notu (support.js): depolamada kapasite ödemesi, elektrolizörde hidrojen üretim desteği; piyasada yoksa
 // bu da söylenir (oyuncu nerede destek olduğunu görsün)
 function supportNote(t,k){

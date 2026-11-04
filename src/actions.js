@@ -18,6 +18,7 @@ import { rivalNear } from "./rivals.js";
 import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
 import { saleOffer } from "./sale.js";
 import { yekBuilt } from "./yekdem.js";
+import { gridUse } from "./grid.js";
 import { render } from "./ui/hud.js";
 import { renderPanel } from "./ui/panel.js";
 import { drawMap } from "./ui/map.js";
@@ -41,6 +42,7 @@ export function undoLast(){
   if(u.kind==="land"){const o=S.sites[u.id];delete S.sites[u.id];S.sel={id:null,lat:o.lat,lon:o.lon};
     addLog(`${o.sea?"Deniz alanı tahsisi":"Arazi alımı"} geri alındı: ${placeName(o)}. ${fmt$(u.c)} iade edildi.`);}
   else{const i=S.plants.findIndex(x=>x.t===u.id&&x.k===u.k&&x.q===u.q),p=S.plants[i];p.mw-=BLOCK;p.cost=(p.cost||0)-(u.cost??u.c);if(p.mw<=0)S.plants.splice(i,1);if(u.loan)dropLoan(u.loan);
+    if(u.grid==="quota"&&S.grid)S.grid.used=Math.max(0,S.grid.used-BLOCK);else if(u.grid==="store"){const o=S.sites[u.id];o.depMW=Math.max(0,(o.depMW||0)-BLOCK);}
     addLog(`${placeName(S.sites[u.id])}: +${BLOCK} MW ${TECH[u.k].n} geri alındı. ${fmt$(u.c)} iade edildi.`);}
   refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));
 }
@@ -63,7 +65,7 @@ export function applyPermit(id,opt="n"){const t=S.sites[id];if(!t||(t.permit!=="
 // loan: yatırımın bir kısmı banka kredisiyle (loans.js); nakitten yalnızca özsermaye payı düşer, borç portföy değerinden çıkar
 export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):null;if(loan&&!(lt&&lt.debt>0))return;
   const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||!fits(id,k,BLOCK)||locked(k)||siteBlock(id,k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
-  const L=lt?openLoan(id,k,q,lt):null;
+  const L=lt?openLoan(id,k,q,lt):null,gw=gridUse(id,k); // bağlantı kapasitesi (grid.js): kontenjandan ya da depolamadan
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
   if(k==="jes"&&o.well==null){o.well=+(0.55+Math.random()*0.55).toFixed(2);
@@ -87,7 +89,7 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   if(k==="csp")planCSP(p,S.hour);
   sfx("build");
   addLog(`${placeName(S.sites[id])}: +${BLOCK} MW ${TECH[k].n} kuruldu (${eqName(k,q)}, ${TIERS[q].toLocaleLowerCase("tr-TR")})${L?`; ${fmt$(L.P)} banka kredisi (%${Math.round(lt.gear*100)} borç, ${L.n} gün vade, ilk ${L.g} gün yalnızca faiz, sonra günlük taksit ${fmt$(L.ds)})`:""}${wd}.`);
-  if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null});
+  if(drill){U=null;clearTimeout(uT);}else markUndo({kind:"build",id,k,q,c:pay,cost:c,loan:L?L.id:null,grid:gw});
   refresh();window.dispatchEvent(new CustomEvent("sebeke:build"));}
 
 // Sahayı sat (sale.js saleOffer): bedel nakde girer, sahaya bağlı krediler bedelden kapanır; saha, santralleri ve
