@@ -2,6 +2,12 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-04",t:"Türkiye'de YEKDEM",items:[
+    "Türkiye'deki GES ve rüzgâr sahaların için YEKDEM'e katılabilirsin: başvuru her yıl 30 Kasım'a kadar saha panelinden, ertesi yıl boyunca üretim sabit fiyattan (59,2 $/MWh) satılır ve yıl içinde çıkılamaz. Piyasa fiyatı bunun altındaysa kazandırır, üstündeyse kaybettirir.",
+    "Sahadaki batarya, sahanın kendi üretiminden doldurup şebekeye verdiği enerji için daha yüksek fiyat (69,9 $/MWh) alır; şebekeden doldurduğu enerji kapsam dışı. Fiyatlar gerçek Ekim 2026 YEKDEM tarifesinden.",
+    "Yeni sahan, ilk santralinin işletmeye girdiği yıl için 30 gün içinde hemen de katılabilir. Günlük raporda \"YEKDEM farkı\" satırı.",
+    "İlk projedeki alım garantisi artık \"başlangıç desteği\" olarak anılıyor; sözlükteki süresi düzeltildi (5 gün değil, ~29 oyun günü).",
+    "Haber bandında gerçek dünyadan haberler: oyun takvimi tarihine gelince görünür (ilki: korunan alanlarda rüzgâr santrallerine 18 türbin sınırı)."]},
   {id:"2026-10-30.5",t:"Harita daha çabuk yükleniyor",items:[
     "Harita yakınlaşınca ve yer değiştirince çok daha az veri indiriyor; ayrıntı daha çabuk geliyor. Arazi gölgesi bölge görünümünde biraz daha yumuşak.",
     "Gezdiğin yerlerin harita ayrıntısı cihazında saklanıyor: aynı yere dönünce ve oyunu bir sonraki açışında beklemeden geliyor, internet kesikken de görünüyor."]},

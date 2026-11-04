@@ -1,5 +1,5 @@
 // Simülasyon: günlük fiyat üretimi, saatlik tick, gün sonu kapanışı
-import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE, PHS_H, H2, CSP, FLEET_CF } from "./config.js";
+import { BASE, EFF, BLOCK, REG, MARKETS, TECH, PROD, GEO_CF, BIO_FUEL, MAR_PREMIUM, BANKRUPT_DAYS, PRICE, PHS_H, H2, CSP, FLEET_CF, YEKDEM } from "./config.js";
 import { payLoans, totalDebt } from "./loans.js";
 import { placeName } from "./world.js";
 import { S, D, setD, save, addLog } from "./state.js";
@@ -23,9 +23,10 @@ import { RENEW, PV, production, cspHeat, dayAhead, settle, deskSummary } from ".
 import { openDesk } from "./ui/desk.js";
 import { acc } from "./finance.js";
 import { rivalsDay, rivalCap } from "./rivals.js";
-import { news } from "./news.js";
+import { news, realNews } from "./news.js";
 import { leagueDay } from "./league.js";
 import { capDay, DERATE, h2Rate } from "./support.js";
+import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
 
 const site=id=>S.sites[id];
 const SEASON_NOTE={spr:"Kar erimesiyle HES'lere bol su geliyor, talep düşük: fiyatlar gevşer.",sum:"Uzun günler GES'i parlatıyor; sıcak hava akşam talebini artırır, Ege'de meltem esiyor.",aut:"Günler kısalıyor, yağışlar başlıyor.",win:"Kısa günler GES üretimini düşürür; fırtınalar ve kar artar, rüzgâr güçlenir, ısınma talebi fiyatları yükseltir."};
@@ -35,10 +36,11 @@ export function newDay(){
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl,doyOf(CAL.date));
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
+  yekDay();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));
-  setD({st:{E:z(),R:z(),imb:0,bNet:0,pNet:0,cap:0,h2kg:0,h2R:0,h2C:0,h2Z:0,h2Sub:0,h2G:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0,fit:0},wxf:forecast(S.wx,24)});
+  setD({st:{E:z(),R:z(),imb:0,bNet:0,pNet:0,cap:0,h2kg:0,h2R:0,h2C:0,h2Z:0,h2Sub:0,h2G:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0,fit:0,yek:0},wxf:forecast(S.wx,24)});
   MARKETS.forEach(k=>{
     // piyasanın temsilî noktasındaki saatlik hava tahmini: bulut güneş üretimini, rüzgâr rüzgâr üretimini, sıcak hava akşam talebini belirler
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
@@ -87,6 +89,7 @@ export function tick(){
   for(const k in LIVE)delete LIVE[k];
   const dev={},val={},batts={},bm=S.desk?S.desk.batt:"arb"; // piyasa başına sapma (gerçek − taahhüt) ve değeri
   const ren={},h2s=[]; // saha başına bu saatin rüzgâr/güneş/deniz üretimi (kısıntı öncesi) ve elektrolizörler (yeşil hidrojen desteği)
+  const Y=yekYear(),yg={},yv={},yev=[]; // YEKDEM (yekdem.js): saha başına uygun üretim ve satış değeri, batarya olayları
   S.plants.forEach(p=>{
     const t=site(p.t), M=D[t.mreg], m=t.mreg, pr=M.price[h], g=M.gen[h], q=eqOf(p), ac=acc(p);
     const ox=TECH[p.k].opex*q.opex*p.mw/BLOCK/24;st.opex+=ox;cash-=ox;
@@ -108,7 +111,8 @@ export function tick(){
       if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;ac.r+=x;} // yenilik desteği gerçekleşen üretime ödenir
       // alım garantisi (ilk proje, config.js FIT): piyasa fiyatı tabanın altındaysa fark gerçekleşen üretime ödenir. Proje
       // ekonomisine (ac) katılmaz: ömür boyu getiri hesabı desteksiz piyasa fiyatıyla kalır
-      if(t.fit&&S.dayNo<=t.fit.until&&e>0&&sp<t.fit.p){const x=e*(t.fit.p-Math.max(0,sp));cash+=x;st.fit+=x;}
+      const yk=YEKDEM.kinds.includes(p.k)&&yekOn(p.t,Y);if(yk){yg[p.t]=(yg[p.t]||0)+e;yv[p.t]=(yv[p.t]||0)+e*sp;}
+      if(t.fit&&S.dayNo<=t.fit.until&&e>0&&sp<t.fit.p&&!yk){const x=e*(t.fit.p-Math.max(0,sp));cash+=x;st.fit+=x;}
       if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="fpv"||p.k==="spv")g.s+=e;else if(p.k==="mar")g.m+=e;else g.w+=e;}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
     else if(p.k==="jes"){const e=geoOut(p,h);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
@@ -129,14 +133,17 @@ export function tick(){
     else if(p.k==="bes"){const e=p.plan?p.plan[h]:0,f=e*bioFuel(p);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);ac.f+=f;st.E.bes+=e;st.R.bes+=e*sp;st.da+=e*sp;st.fuel+=f;g.o+=e;cash+=e*sp-f;}
     else if(p.k==="batt"){p.soc=p.soc||0;const cap=p.mw*2;
       if(bm==="bal"){(batts[m]=batts[m]||[]).push(p);return;}if(bm==="off")return;
-      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr);st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
-      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr);st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
+      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);yekBatt(yev,p,e,true,p.soc,0,pr,Y);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr);st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
+      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);yekBatt(yev,p,e,false,p.soc,r,pr,Y);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr);st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
   });
   // yeşil hidrojen desteği (support.js): sahanın bu saatteki rüzgâr/güneş/deniz üretimiyle karşılanan elektrikten üretilen
   // kg'a ödenir; sahada birden çok elektrolizör kaydı varsa üretim tüketimleri oranında paylaştırılır
   if(h2s.length){const use={};h2s.forEach(x=>use[x.p.t]=(use[x.p.t]||0)+x.e);
     h2s.forEach(({p,kg,ac})=>{const g=Math.min(1,(ren[p.t]||0)/use[p.t]),kgG=kg*g,x=kgG*h2Rate(p);st.h2G+=kgG;
       if(x>0){cash+=x;st.h2Sub+=x;ac.r+=x;ac.sub=(ac.sub||0)+x;}});}
+  // YEKDEM: sahanın şebekeye verdiği uygun üretim sabit fiyattan, bataryanın sahanın kendi üretiminden doldurup verdiği
+  // enerji depolama fiyatından (fark nakde eklenir ya da düşülür; yekdem.js)
+  if(yev.length||Object.keys(yg).length){const x=yekSettle(yg,yv,yev);if(x){cash+=x;st.yek+=x;}}
   // dengesizlik uzlaştırması: piyasa başına net sapma; dengeleme modundaki batarya önce sapmayı kapatır
   for(const m in dev){const c=settle(m,dev[m],D[m].price[h],batts[m]||[],st);st.dev+=Math.abs(dev[m]);cash+=c;st.imb+=val[m]-c;}
   S.money+=cash;
@@ -153,7 +160,7 @@ export function endDay(){
   const st=D.st, E=st.E, R=st.R;
   const net=dayNet(st);
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
-  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,pNet:st.pNet,cap:st.cap,h2:{kg:st.h2kg,r:st.h2R,c:st.h2C,z:st.h2Z,s:st.h2Sub,g:st.h2G},curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,err:st.fcE>0?st.fcErr/st.fcE:0};
+  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,pNet:st.pNet,cap:st.cap,h2:{kg:st.h2kg,r:st.h2R,c:st.h2C,z:st.h2Z,s:st.h2Sub,g:st.h2G},curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,yek:st.yek,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
   MARKETS.forEach(k=>S.mSolar[k]=Math.min(solarCap(k),S.mSolar[k]+PRICE.grow));
   // izin süreçleri
@@ -216,7 +223,7 @@ export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p
 
 // Günün net kazancı: satış gelirleri (destek primleri dahil) − dengesizlik + batarya ve pompaj − işletme − tahmin servisi
 // − yakıt + hidrojen geliri − elektrolizörün elektriği + kapasite ödemesi + hidrojen desteği
-export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet+(st.pNet||0)-st.opex-st.fee-(st.fuel||0)+(st.fit||0)+(st.h2R||0)-(st.h2C||0)+(st.cap||0)+(st.h2Sub||0);
+export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet+(st.pNet||0)-st.opex-st.fee-(st.fuel||0)+(st.fit||0)+(st.yek||0)+(st.h2R||0)-(st.h2C||0)+(st.cap||0)+(st.h2Sub||0);
 
 // JES: rezervuar verimine (ilk sondajda belli olur) bağlı sabit, hava ve saatten bağımsız üretim
 function geoOut(p,h){const t=site(p.t);return p.mw*Math.min(0.96,GEO_CF*(t.well??1)*eqOf(p).perf)*factor("out",t.mreg,"jes",h);}

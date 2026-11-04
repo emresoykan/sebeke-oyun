@@ -9,9 +9,16 @@ export const START_MONEY=250000, START_TOPUP=100000;
 export const UNDO_MS=10000, BANKRUPT_DAYS=7;
 // Ara zafer: portföy değeri WIN1'e ulaşınca "Bölgesel oyuncu" ekranı (hedef GOAL sürer)
 export const WIN1=1e6;
-// İlk projeye alım garantisi (YEKDEM benzeri taban fiyat): ilk yenilenebilir santralin kurulduğu saha, p $/MWh'nin altında
-// kalan saatlerde farkı alır; süre ekonomik yıl cinsinden (oyunda ~5,8 gün/yıl). Bot ölçümü: scripts/econ_bot.cjs --s fit2
+// İlk projeye alım garantisi (başlangıç desteği, oyun dengesi için; gerçek YEKDEM aşağıda): ilk yenilenebilir santralin
+// kurulduğu saha, p $/MWh'nin altında kalan saatlerde farkı alır; süre ekonomik yıl cinsinden (oyunda ~5,8 gün/yıl).
+// Bot ölçümü: scripts/econ_bot.cjs --s fit2
 export const FIT={p:90,years:5};
+// YEKDEM (Türkiye, yekdem.js): EPİAŞ YEKDEM fiyat tablosu, Ekim 2026 (ikincil kaynaktan; EPİAŞ'ın kendi tablosu bu oturumdan
+// doğrulanamadı): GES ve karasal RES 289,74, rüzgâr/güneşle bütünleşik depolamadan verilen enerji 341,74 kuruş/kWh.
+// Kur: EPİAŞ'ın 1 Ekim 2026 PTF dolar karşılığı (48,91 TL/$) → p 59,2 ve store 69,9 $/MWh. Başvuru her yıl 30 Kasım'a kadar
+// (EPDK duyurusu, 19.10.2026). Gerçekte fiyat TL'dir ve her ay güncellenir; oyunda dolar cinsinden sabit.
+// newDays: yeni sahanın o yıl için de katılabileceği süre (takvim günü; oyun kolaylığı)
+export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:30,asOf:"Ekim 2026"};
 // Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
 // lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
 // grow/capK: piyasanın güneş doygunluğu her gün grow kadar artar, başlangıç değerinin capK katında durur; wind: rüzgârın fiyat etkisi;
