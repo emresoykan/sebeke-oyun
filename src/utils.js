@@ -1,6 +1,6 @@
 // Matematik, profil ve biçimlendirme yardımcıları
 import { CAL, TR_LAT } from "./calendar.js";
-export const rnd=Math.random, clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+export const rnd=()=>Math.random(), clamp=(x,a,b)=>Math.min(b,Math.max(a,x)); // rnd her çağrıda Math.random'a gider: testler sabitleyebilir
 export function gauss(){let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
 // Güneş eğrisi (0-1): gün doğumu ve batımı mevsime göre değişir (Türkiye enlemi; takvim calendar.js'te).
 // Üretimde 1,24 katsayısı: mevsimli eğrinin yıllık ortalaması eski sabit 13 saatlik eğriye denk gelsin diye

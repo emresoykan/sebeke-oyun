@@ -6,6 +6,7 @@
 // Etkiler gün başında fiyatlara, saatlik tick'te üretim ve gelire uygulanır; her gün sonunda süreleri bir azalır.
 import { S, D } from "./state.js";
 import { EFF } from "./config.js";
+import { shape } from "./utils.js";
 
 const hit=(x,m,k,h)=>!(x.w>0)&&(!x.m||x.m===m)&&(!x.k||!k||x.k.includes(k))&&(!x.h||h==null||(h>=x.h[0]&&h<=x.h[1]));
 export const mods=(t,m,k,h)=>(S.mods||[]).filter(x=>x.t===t&&hit(x,m,k,h));
@@ -28,9 +29,10 @@ export function priceMods(k,M){
   for(let h=0;h<24;h++)M.price[h]*=factor("price",k,null,h);
   M.avg=M.price.reduce((a,b)=>a+b,0)/24;M.plan=battPlan(M.price);
 }
-// Batarya: en ucuz iki saatte şarj, en pahalı iki saatte deşarj (kâr verimi karşılıyorsa)
+// Batarya: en ucuz iki saatte şarj, en pahalı iki saatte deşarj (kâr verimi karşılıyorsa). Eşit fiyatta (ör. yağışlı
+// ilkbaharda sıfır fiyatlı saatler) güneşli saat önce gelir: batarya sahadaki GES'in üretimiyle dolar
 export function battPlan(price){
-  const idx=[...Array(24).keys()].sort((a,b)=>price[a]-price[b]),ch=idx.slice(0,2),dis=idx.slice(-2),plan=Array(24).fill(0);
+  const idx=[...Array(24).keys()].sort((a,b)=>price[a]-price[b]||shape(b)-shape(a)),ch=idx.slice(0,2),dis=idx.slice(-2),plan=Array(24).fill(0);
   if((price[dis[0]]+price[dis[1]])*EFF>(price[ch[0]]+price[ch[1]])*1.05){ch.forEach(h=>plan[h]=1);dis.forEach(h=>plan[h]=-1);}
   return plan;
 }
