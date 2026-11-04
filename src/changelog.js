@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-04.3",t:"YEKA yarışmaları",items:[
+    "Her yıl 2 Kasım'dan sonra Türkiye'de bir YEKA yarışması kartı çıkar: 2026 yarışmalarının illerinden birinde bir RES ya da GES sahası. Fiyat taban fiyattır; MW başına katkı payını sen seçersin, rakibin teklifi 2026'nın gerçek kazanan tekliflerinden biridir.",
+    "Kazanırsan izni hazır, sınırı büyük olabilen bir saha alırsın. Önce serbest piyasada satarsın (RES 6, GES 5 ekonomik yıl), sonra 20 ekonomik yıl sabit fiyat: RES 58,2, GES 54,0 $/MWh. Günlük raporda \"YEKA farkı\" satırı, saha panelinde sözleşmenin durumu.",
+    "Haber bandında 2026 YEKA RES ve GES sonuçları; sözlükte \"YEKA\"."]},
   {id:"2026-11-04.2",t:"Kurak ve yağışlı yıllar",items:[
     "Türkiye'de her takvim yılı kurak, normal, yağışlı ya da çok yağışlı geçer. Yağışlı yılda ilkbaharda bol su fiyatları düşürür, öğle saatleri sıfıra yaklaşır; Türkiye'deki HES'lerine daha çok su gelir. Kurak yılda HES'e daha az su gelir, fiyat biraz yükselir.",
     "2026 gerçek yıldır ve çok yağışlı geçiyor (TEİAŞ): oyunun ilk ilkbaharında Türkiye fiyatları düşük. Sonraki yıllar 1 Ocak'ta 2015–2025'in gerçek yıllarından biri seçilerek belirlenir; haber bandında ve saha panelinde görünür.",

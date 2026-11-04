@@ -19,6 +19,21 @@ export const FIT={p:90,years:5};
 // (EPDK duyurusu, 19.10.2026). Gerçekte fiyat TL'dir ve her ay güncellenir; oyunda dolar cinsinden sabit.
 // newDays: yeni sahanın o yıl için de katılabileceği süre (takvim günü; oyun kolaylığı)
 export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:30,asOf:"Ekim 2026"};
+// YEKA (Türkiye; yeka.js, docs/guncellemeler.md). 2026 yarışmaları, ikincil kaynaklardan (Bakanlık duyurusu ve şartname bu
+// ortamdan açılamadı): RES 2 Kasım (7 yarışma, 1.500 MWe), GES 3 Kasım (11 yarışma, 785 MWe); tavan 5,50 €c/kWh, hepsi taban
+// fiyatta kapandı (ec: RES 3,50, GES 3,25 €c/kWh), kazananı MW başına katkı payı belirledi (fees: kaynaklarda tutarlı
+// kazanan teklifler, bin €/MW). Sözleşme: imzadan sonra merch yıl serbest piyasa (RES 72, GES 60 ay), sonra years yıl yarışma
+// fiyatından alım. sites: 2026 yarışmalarının illeri, gerçek kapasite (MWe) ve oyunda kırsal bir nokta; oyundaki saha sınırı
+// gerçek kapasitenin üçte biri (5 MW'a yuvarlı, en az 10). Sabit fiyat oyuna oranıyla taşınır: gerçek fiyat ($; eur, FRED
+// 23.10.2026) ÷ 2026 Ocak–Ekim PTF ortalaması (ref, EPİAŞ) × oyunun normal yıl fiyat düzeyi (lvl, EPİAŞ 2025 hedefi) →
+// RES 58,2, GES 54,0 $/MWh. bids: oyuncunun seçebileceği katkı payları (bin €/MW).
+export const YEKA={eur:1.1199,ref:44.74,lvl:66.4,years:20,bids:[20,45,90],
+  res:{n:"RES",ec:3.50,merch:6,fees:[30,42,0,20,154,16,72],
+    sites:[["Sivas",320,39.45,36.8],["Balıkesir-1",140,39.75,27.55],["Balıkesir-2",235,39.45,27.7],["Balıkesir-3",170,39.95,27.9],["Balıkesir-4",140,39.3,28.2],["Manisa",235,38.95,27.95],["Kütahya",260,39.3,29.6]]},
+  ges:{n:"GES",ec:3.25,merch:5,fees:[22,91,16,36,36,64],
+    sites:[["Ankara-1",40,39.5,32.4],["Ankara-2",30,39.3,33.0],["Malatya-1",55,38.25,38.0],["Diyarbakır",200,37.6,40.0],["Batman",25,37.85,41.0],["Elazığ",40,38.55,39.4],["Konya",110,37.6,32.9],["Kahramanmaraş-3",50,37.45,37.0],["Mardin-2",120,37.25,40.9],["Denizli",30,37.75,29.35]]}
+};
+for(const k of ["res","ges"])YEKA[k].p=Math.round(YEKA[k].ec*10*YEKA.eur/YEKA.ref*YEKA.lvl*10)/10; // oyundaki sabit fiyat ($/MWh)
 // Hidrolojik yıl (Türkiye; hydro.js, docs/kalibrasyon.md "Hidrolojik yıl"). Su endeksi w = yılın HES kapasite faktörü ÷
 // 2015–2025 ortalaması (%25,9; TEİAŞ yıllık üretim ÷ yıl sonu kurulu güç). hist: TEİAŞ 2015–2025; bilinmeyen yıllar bunlardan
 // biri rastgele seçilerek belirlenir. known: gerçek yıllar (2026: Ocak–Eylül TEİAŞ, Ekim–Aralık 2025 düzeyinde varsayıldı;

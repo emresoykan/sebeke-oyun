@@ -3,7 +3,7 @@
 // d (tanım), g (oyundaki karşılığı, isteğe bağlı). Tanımlar genel kabul gören anlamı verir; "Oyunda" satırı oyunun
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
-import { FIT, PHS_H, H2, CSP, YEKDEM } from "./config.js";
+import { FIT, PHS_H, H2, CSP, YEKDEM, YEKA } from "./config.js";
 import { ECON_YEAR } from "./loans.js";
 import { SALE } from "./sale.js";
 
@@ -37,6 +37,9 @@ export const TERMS=[
   {k:"yekdem",t:"YEKDEM",e:"Yenilenebilir Enerji Kaynakları Destekleme Mekanizması",c:"piyasa",
     d:"Türkiye'de lisanslı yenilenebilir santrallerin bir takvim yılı boyunca enerjisini sabit fiyattan sattığı destek mekanizması. Başvuru her yıl 30 Kasım'a kadar EPDK'ya yapılır ve ertesi yıl için geçerlidir; yıl içinde çıkılmaz. Piyasa fiyatı YEKDEM fiyatının altındaysa kazandırır, üstündeyse kaybettirir. Rüzgâr ve güneşle bütünleşik depolamada, depolanıp şebekeye verilen enerji daha yüksek fiyat alır; şebekeden çekilip depolanan enerji kapsam dışıdır.",
     g:`Türkiye'deki GES ve kara RES sahaları: saha panelinden ertesi yıl için başvurulur. Fiyat ${String(YEKDEM.p).replace(".",",")} $/MWh; sahadaki bataryanın sahanın kendi üretiminden doldurup verdiği enerji ${String(YEKDEM.store).replace(".",",")} $/MWh (EPİAŞ tablosu, ${YEKDEM.asOf}; dolara çevrilmiş, oyunda sabit). Yeni saha, ilk santralinin işletmeye girdiği yıl ${YEKDEM.newDays} gün içinde o yıl için de katılabilir (oyun kolaylığı).`},
+  {k:"yeka",t:"YEKA",e:"Yenilenebilir Enerji Kaynak Alanı (renewable energy resource zone auction)",c:"piyasa",
+    d:"Bakanlığın belirli illerde saha ve şebeke bağlantı kapasitesi tahsis ettiği yarışma. Teklifler tavan fiyattan iner; 2026'da RES (1.500 MWe) ve GES (785 MWe) yarışmalarının hepsi taban fiyatta (RES 3,50, GES 3,25 €c/kWh) kapandı ve kazananı MW başına katkı payı belirledi. Kazanan önce serbest piyasada satar (RES 72, GES 60 ay), sonra 20 yıl yarışma fiyatından satar.",
+    g:`Türkiye: her yıl 2 Kasım'dan sonra bir YEKA kartı çıkar (RES ya da GES, 2026 illeri). Katkı payını seçersin; rakibin teklifi 2026'nın gerçek kazanan tekliflerinden biridir. Kazanırsan izni hazır saha alırsın; serbest piyasa döneminden sonra 20 ekonomik yıl sabit fiyat. Oyunda kur ve şebeke kıtlığı olmadığı için sabit fiyat gerçek fiyatın 2026 piyasasına oranıyla taşındı: RES ${YEKA.res.p.toFixed(1).replace(".",",")}, GES ${YEKA.ges.p.toFixed(1).replace(".",",")} $/MWh.`},
   {k:"hidro",t:"Hidrolojik yıl",e:"Hydrological year (wet/dry year)",c:"piyasa",
     d:"Bir yılın yağış ve kar durumuna göre hidroelektrik üretiminin uzun dönem ortalamasından sapması. Türkiye'de HES kapasite faktörü 2015–2025 arasında %20 ile %36 arasında oynadı (TEİAŞ). Yağışlı yılda bol su, talebin düşük ve güneşin güçlü olduğu ilkbaharda fiyatı sıfıra yaklaştırır (2026 Nisan–Mayıs PTF ortalaması 20,7 ve 13,0 $/MWh); kurak yılda açığı gaz santralleri kapatır.",
     g:"Türkiye piyasası: her takvim yılı kurak, normal, yağışlı ya da çok yağışlı olur. 2026 gerçek yıldır (çok yağışlı); sonraki yıllar 1 Ocak'ta TEİAŞ 2015–2025 yıllarından biri seçilerek belirlenir. Yağışlı yılda ilkbahar fiyatları düşer, Türkiye'deki HES'lere daha çok su gelir. Ertesi yılın YEKDEM kararı hidroloji bilinmeden verilir. Saha panelinde ve haber bandında görünür."},
