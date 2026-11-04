@@ -4,6 +4,10 @@
 export const REAL_NEWS=[
   {id:"2026-06-01-hidro",d:"2026-06-01",i:"🌊",
     t:"Türkiye'de Nisan ve Mayıs'ta gün öncesi fiyatı (PTF) ortalaması 20,7 ve 13,0 $/MWh'e indi; bir yıl önce 64,6 ve 63,6'ydı. Aynı aylarda HES üretimi ayda ~11,7 TWh ile 2025'in %58–59 üstündeydi. Saatlerin yarısında fiyat Nisan'da 8,1, Mayıs'ta 4,2 $/MWh'in altındaydı (EPİAŞ, TEİAŞ)."},
+  {id:"2026-11-02-yeka-res",d:"2026-11-02",i:"🌬️",
+    t:"YEKA RES-2026: 7 yarışmada 1.500 MWe rüzgâr kapasitesi tahsis edildi. Yarışmaların hepsi taban fiyatta (3,50 €c/kWh) kapandı; kazananı MW başına katkı payı belirledi (0–154 bin €/MW, toplam 62,9 milyon €, KDV hariç). Sözleşmeden sonraki 72 ay serbest piyasa, ardından 20 yıl bu fiyattan alım."},
+  {id:"2026-11-03-yeka-ges",d:"2026-11-03",i:"☀️",
+    t:"YEKA GES-2026: 11 yarışmada 785 MWe güneş kapasitesi tahsis edildi (3 yarışma iptal edildi). Taban fiyat 3,25 €c/kWh; katkı payları MW başına 16–91 bin €, toplam 37,9 milyon € (KDV dahil). Sözleşmeden sonraki 60 ay serbest piyasa, ardından 20 yıl bu fiyattan alım."},
   {id:"2026-11-03-ilke157",d:"2026-11-03",i:"🏞️",
     t:"Nitelikli doğal koruma alanlarında rüzgâr santralleri için 50 MWm güç sınırı kaldırıldı; türbin sayısı en çok 18 (önceden 20). Projeler koruma amaçlı imar planına göre değerlendirilecek (157 sayılı İlke Kararı, Resmî Gazete 33419). Karar milli parkları kapsamıyor; oyundaki korunan alanlar milli parktır."},
 ];

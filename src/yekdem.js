@@ -25,7 +25,7 @@ const kindOk=k=>YEKDEM.kinds.includes(k);
 const trn=x=>String(x).replace(".",","); // Türkçe ondalık
 
 // sahada YEKDEM'e uygun, işletmede santral var mı (Türkiye, izinli saha)
-export function yekEligible(id){const o=S.sites[id];return !!(o&&o.mreg==="T"&&o.permit==="ok"&&S.plants.some(p=>p.t===id&&kindOk(p.k)));}
+export function yekEligible(id){const o=S.sites[id];return !!(o&&o.mreg==="T"&&o.permit==="ok"&&!o.yeka&&S.plants.some(p=>p.t===id&&kindOk(p.k)));}
 // saha o yıl YEKDEM'de mi
 export const yekOn=(id,y=yekYear())=>{const o=S.sites[id];return !!(o&&o.mreg==="T"&&o.yek&&o.yek[y]);};
 

@@ -25,6 +25,7 @@ import { pf } from "../finance.js";
 import { CAP, DERATE, H2SUB, capDay, h2Grant } from "../support.js";
 import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
 import { hydText, hydOdds } from "../hydro.js";
+import { yekaStatus } from "../yeka.js";
 
 const coord=(v,p,n)=>Math.abs(v).toFixed(2).replace(".",",")+"°"+(v>=0?p:n);
 const near=t=>t.cityKm<5?`${t.city}`:`${t.city} (${t.cityKm} km)`;
@@ -154,6 +155,14 @@ function yekHtml(id){
   if(s.open)b.push(`<button data-a="yekNext">${s.next?`${s.y+1} başvurusunu geri çek`:`${s.y+1} için başvur`}</button>`);
   return h+(b.length?`<div class="actions">${b.join("")}</div>`:"");
 }
+// YEKA sahası (yeka.js): sözleşmenin dönemi ve fiyatı
+function yekaHtml(o){
+  const s=yekaStatus(o);if(!s)return "";const tk=s.k==="res"?"RES":"GES";
+  const ph=s.phase==="merch"?`Serbest piyasa dönemi: ${s.daysToFix} gün sonra ${tk} üretimi ${dec(s.p)} $/MWh sabit fiyata geçer ve ${s.fixDays} gün öyle kalır.`
+    :s.phase==="fixed"?`Sabit fiyat dönemi: ${tk} üretimi ${dec(s.p)} $/MWh'ten satılıyor (fark günlük raporda "YEKA farkı"); ${s.daysLeft} gün kaldı.`
+    :"Sözleşme bitti; üretim piyasa fiyatından satılıyor.";
+  return `<div class="status${s.phase==="fixed"?" ok":""}"><b>YEKA ${s.n}:</b> ${ph} Katkı payı ${fmt$(s.fee)} (${s.bid} bin €/MW) ödendi. YEKDEM'e ayrıca başvurulamaz.</div>`;
+}
 // Hidrolojik yıl (hydro.js): bu yılın durumu; YEKDEM kararı için ertesi yılın geçmiş yıllara göre olasılığı
 function hydHtml(y,next){
   const x=hydText(y);if(!x)return "";let h=`<div class="status"><b>${x.c.i} Hidroloji ${y}:</b> ${x.t}`;
@@ -226,9 +235,10 @@ function renderPanelImpl(){
   }else{
     const mw=siteMW(id),list=S.plants.filter(q=>q.t===id).map(q=>`${TECH[q.k].n} ${q.mw} MW${q.k==="batt"?` / ${q.mw*2} MWh`:q.k==="phs"?` / ${q.mw*PHS_H} MWh`:""} (${eqName(q.k,tierOf(q))}${q.down?", arızalı":""})`).join(", ");
     const fpv=mw-capMW(id);
-    html+=`<div class="status ok">İzin var. Bu sahada ${mw-fpv}/${siteCap(o)} MW kurulu${o.cap?" (küçültülmüş proje)":""}${fpv?`, gölde ayrıca ${fpv} MW yüzer GES (saha sınırına sayılmaz)`:""}${list?": "+list:""}.</div>`;
+    html+=`<div class="status ok">İzin var. Bu sahada ${mw-fpv}/${siteCap(o)} MW kurulu${o.yeka?" (YEKA sahası)":o.cap?" (küçültülmüş proje)":""}${fpv?`, gölde ayrıca ${fpv} MW yüzer GES (saha sınırına sayılmaz)`:""}${list?": "+list:""}.</div>`;
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi (başlangıç desteği): piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir. ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
+    if(o.yeka)html+=yekaHtml(o);
     if(fullOn()&&yekEligible(id))html+=yekHtml(id);
     else if(fullOn()&&o.mreg==="T"&&S.plants.some(q=>q.t===id&&q.k==="hes"))html+=hydHtml(yekYear(),false);
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;
