@@ -5,7 +5,7 @@
 // aşağıdaki gerçek dünya varsayımlarıdır. Proje göstergeleri (plantFinance) vergi ve finansman öncesidir; proje
 // finansmanı (projectFinance) borç, vergi ve satış sözleşmesini (PPA) ekler. Enflasyon, arazi, şebeke bağlantısı ve hurda
 // değeri hariçtir.
-import { TECH } from "./config.js";
+import { TECH, capexMul } from "./config.js";
 import { EQUIP, tierOf } from "./equipment.js";
 
 // Yatırım maliyeti (USD/kW): IRENA, Renewable Power Generation Costs in 2024 (Temmuz 2025), küresel ağırlıklı ortalama
@@ -18,7 +18,9 @@ export const FIN={
   res:{capex:1041,opex:40,life:25,src:"IRENA 2024"},
   off:{capex:2852,opex:80,life:25,src:"IRENA 2024"},
   // yüzer rüzgâr: IRENA değeri yok. NREL (2020) Kaliforniya ticari ölçek yüzer santral tahmini 5.355 $/kW; 2024 ATB değeri
-  // doğrulanamadı. İşletme gideri varsayım
+  // doğrulanamadı. Kıyas (05.11.2026, ikincil kaynaklar): NREL 2023 temsilî ABD projeleri sabit tabanlı 5.441, yüzer 7.349 $/kW
+  // (oran 1,35); NREL Offshore Wind Market Report 2024: Avrupa ve ABD'de sabit tabanlı 5 yıllık ortalama ~3.900 $/kW → yüzer
+  // ~5.270 $/kW. Değer bu aralıkta kaldığı için değiştirilmedi. İşletme gideri varsayım
   flo:{capex:5355,opex:110,life:25,src:"NREL 2020 tahmini (varsayım)"},
   hes:{capex:2267,opex:45,life:40,src:"IRENA 2024"},
   jes:{capex:4015,opex:110,life:30,src:"IRENA 2024"},
@@ -81,7 +83,8 @@ function base(p){
   const yr=x=>a.cap>0?(x||0)/a.cap*p.mw*8760:0,cap1=yr(a.cp),sub1=yr(a.sub),net1=batt?yr(a.r-(a.cp||0)-(a.sub||0)):0;
   const E=Array.from({length:f.life},(_,t)=>PV_DEGR.includes(p.k)?e1*(1-DEGR)**t:e1);
   const priceAt=(t,sx=0)=>strike!=null&&t<CFD_Y?strike:price*(1-sx);
-  return {f,batt,capex:f.capex*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
+  // yatırım: küresel ortalama × piyasa katsayısı (config.js CAPEX_M; p.m santralin piyasası)
+  return {f,batt,capex:f.capex*capexMul(p.k,p.m)*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
 }
 
 // Bir santral kaydının gerçek dünya göstergeleri (vergi ve finansman öncesi); yeterli veri yoksa {wait:true}

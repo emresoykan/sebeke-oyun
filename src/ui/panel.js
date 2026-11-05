@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM, GRID } from "../config.js";
+import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM, GRID, capexMul } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -52,7 +52,7 @@ function loanNote(t,k){
 function buildHtml(t){
   const ks=allowed(t);if(!ks.length)return `<div class="status bad">${steepTxt(t)} Bu sahaya yeni tesis kurulamaz.</div>`;if(!ks.includes(tab))tab=ks[0];
   let h=`<div class="eqtabs" role="tablist">`+ks.map(k=>`<button role="tab" aria-selected="${k===tab}" class="${k===tab?"on":""}" style="${techVars(TECH[k].c)}" data-a="tab" data-k="${k}">${TECH[k].n}</button>`).join("")+`</div>`;
-  h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q);
+  h+=`<div class="eqcards">`+TIER_ORDER.map(q=>{const e=EQUIP[tab][q],c=capexOf(tab,q,t.mreg);
     const perf=tab==="batt"||tab==="phs"?`<span>Verim</span><b>${pctTxt(e.rte)}</b><span>Süre</span><b>${tab==="phs"?PHS_H:2} saat</b>`:tab==="h2"?`<span>Tüketim</span><b>${Math.round(H2.kwh/e.perf)} kWh/kg</b>`:`<span>Üretim</span><b>${pctTxt(e.perf)}</b>`;
     return `<div class="eqcard t-${q}"><div class="eqtier">${TIERS[q]}</div><div class="eqname">${eqName(tab,q)}</div><div class="eqspec">${e.spec}</div>
       <div class="eqstats">${perf}<span>Arızasız gün</span><b>${pctTxt(e.avail)}</b><span>İşletme gideri</span><b>${pctTxt(e.opex)}</b></div>
@@ -68,13 +68,18 @@ function buildHtml(t){
     csp:`Aynalar güneşi kuledeki alıcıya odaklar; ısı erimiş tuzda ${CSP.h} saat saklanır, türbin günün en pahalı saatlerinde (akşam zirvesi, gece) üretir. Yalnızca doğrudan güneş ışığı işe yarar: bulutlu havada toplama hızla düşer. Yatırımı GES'in ~5 katı.`,
     mar:locked("mar")?`Gelişmekte olan teknoloji: toplam ${MAR_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW).`:`Gelgit günde iki kez güçlenir ve önceden hesaplanır; dalga havaya bağlıdır. Üretime MWh başına +${MAR_PREMIUM} $ yenilik desteği ödenir.`};
   if(proOn())h+=loanNote(t,tab); // kredi ilk satıştan sonra açılır (tutorial.js)
-  h+=supportNote(t,tab)+gridNote(t,tab);
+  h+=supportNote(t,tab)+gridNote(t,tab)+capexNote(t,tab);
   // saha dolu: düğmeler kapalı; nedeni açıkça yazılır (batarya da saha sınırına sayılır)
   const used=capMW(S.sel.id),cap=siteCap(t);
   if(tab!=="fpv"&&used+BLOCK>cap)h=`<div class="status wait sitefull">Saha dolu: ${used}/${cap} MW kurulu. Saha sınırına batarya dahil tüm tesisler sayılır; bu sahaya yeni blok eklenemez. Batarya ya da yeni santral için başka bir saha aç.</div>`+h;
   return h+`<div class="eqnote">${TN[tab]?TN[tab]+" ":""}Yüzdeler standart kademeye göre. Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırında en çok üretimi verir.</div>`;
 }
 
+// Piyasaya göre yatırım maliyeti notu (config.js CAPEX_M): katsayı 1 değilse
+function capexNote(t,k){
+  const x=capexMul(k,t.mreg);if(Math.abs(x-1)<0.005)return "";
+  return `<div class="eqnote">Yatırım maliyeti: ${REG[t.mreg].n} piyasasında güneş santralleri küresel ortalamanın %${Math.round(Math.abs(x-1)*100)} ${x>1?"üstünde":"altında"} (IRENA 2024 bölge ortalaması). Fiyatlar buna göre.</div>`;
+}
 // Bağlantı kapasitesi notu (grid.js): Türkiye'de RES, GES ve deniz GES'i için kalan serbest kontenjan ve depolamalı yol;
 // batarya sekmesinde bataryanın bağladığı üretim gücü
 function gridNote(t,k){
@@ -95,7 +100,7 @@ function supportNote(t,k){
     return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
   if(k==="off"){const g=cfdGrant(m,k),s=CFD[m];
     return `<div class="eqnote support"><b>Fark sözleşmesi:</b> ${g?`${s.src}: ${dec(g.p)} $/MWh, ${s.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Piyasa fiyatı altındaysa fark ödenir, üstündeyse sen geri ödersin. Gerçekte ihaleyle kazanılır; oyunda ihale fiyatıyla kazanılmış sayılır.`:`${nm} piyasasında deniz üstü RES'e destek yok; Avrupa'da Britanya'nın fark sözleşmesi fiyatı var.${m==="T"?" Türkiye'nin ilk deniz üstü YEKA'sı 2027'nin ilk çeyreğine planlandı.":""}`}</div>`;}
-  if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama oyundaki yüzer RES maliyeti (NREL 2020 tahmini) bugünkü projelerin altında kaldığı için bu fiyat verilmedi.</div>`;
+  if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama bu fiyat iki küçük, erken proje içindi; oyundaki yüzer RES maliyeti ticari ölçek tahmini olduğu için bu fiyat gerçekte olmayan bir kâr verirdi.</div>`;
   return "";
 }
 // fark sözleşmesi olan santraller (support.js): fiyat ve kalan süre

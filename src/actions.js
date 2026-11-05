@@ -64,7 +64,7 @@ export function applyPermit(id,opt="n"){const t=S.sites[id];if(!t||(t.permit!=="
 // Santral kur: aynı sahada aynı teknoloji ve ekipman kademesi tek kayıtta birikir; yatırılan tutar (cost) portföy değerine girer.
 // loan: yatırımın bir kısmı banka kredisiyle (loans.js); nakitten yalnızca özsermaye payı düşer, borç portföy değerinden çıkar
 export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):null;if(loan&&!(lt&&lt.debt>0))return;
-  const c=capexOf(k,q),pay=lt?lt.equity:c;if(S.money<pay||!fits(id,k,BLOCK)||locked(k)||siteBlock(id,k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
+  const c=capexOf(k,q,S.sites[id]&&S.sites[id].mreg),pay=lt?lt.equity:c;if(S.money<pay||!fits(id,k,BLOCK)||locked(k)||siteBlock(id,k)||!allowed(S.sites[id]).includes(k))return;S.money-=pay;
   const L=lt?openLoan(id,k,q,lt):null,gw=gridUse(id,k); // bağlantı kapasitesi (grid.js): kontenjandan ya da depolamadan
   const o=S.sites[id],drill=k==="jes"&&o.well==null;
   // JES: ilk kuyu sondajı rezervuarın verimini ortaya çıkarır (sondaj riski); sahadaki sonraki bloklar aynı rezervuarı kullanır
@@ -72,7 +72,7 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
     const r=o.well>=0.95?"beklenenden iyi":o.well>=0.8?"beklendiği gibi":o.well>=0.68?"beklenenden zayıf":"hayal kırıklığı";
     addLog(`${placeName(o)}: jeotermal sondaj tamamlandı, rezervuar ${r} (beklenenin %${Math.round(o.well*100)}'i). Sahadaki tüm JES blokları bu verimle üretir.`);}
   let p=S.plants.find(x=>x.t===id&&x.k===k&&x.q===q);
-  if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c};S.plants.push(p);}
+  if(p){p.mw+=BLOCK;p.cost=(p.cost||0)+c;}else{p={t:id,k,q,mw:BLOCK,soc:0,cost:c,m:o.mreg};S.plants.push(p);} // m: piyasa (proje ekonomisinde yatırım katsayısı)
   yekBuilt(id,k); // YEKDEM: sahanın ilk uygun santralinin işletmeye girdiği tarih (yeni saha o yıl da katılabilir)
   // ilk yenilenebilir santral: sahası alım garantisi kapsamına girer (config.js FIT)
   if(!S.fitDone&&["ges","res","off","flo","mar","fpv","spv"].includes(k)){S.fitDone=1;const days=Math.round(FIT.years*ECON_YEAR);o.fit={p:FIT.p,until:S.dayNo+days};

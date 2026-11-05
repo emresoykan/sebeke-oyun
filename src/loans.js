@@ -34,7 +34,7 @@ export function histCFADS(mreg,k,q="std"){
 // kredi koşulları: piyasa, faiz, vade, anüite, borç tutarı ve dayanağı
 export function loanTerms(id,k,q="std"){
   const o=S.sites[id];if(!o)return null;
-  const capex=capexOf(k,q),mk=o.mreg==="E"?"E":"T",R=(mk==="E"?pf.rateE:pf.rateT)/100;
+  const capex=capexOf(k,q,o.mreg),mk=o.mreg==="E"?"E":"T",R=(mk==="E"?pf.rateE:pf.rateT)/100;
   const rd=(1+R)**(1/ECON_YEAR)-1,n=Math.max(2,Math.round(pf.tenor*ECON_YEAR)),g=Math.min(n-1,Math.round(Math.min(GRACE,pf.tenor-1)*ECON_YEAR)),
     nA=n-g,ann=rd>0?(1-(1+rd)**-nA)/rd:nA; // anüite faktörü ödemeli dönem için
   const cf=histCFADS(o.mreg,k,q),capG=pf.gear/100;

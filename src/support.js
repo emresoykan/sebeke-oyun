@@ -32,8 +32,9 @@
 //   fiyatıyla kazanılmış sayılır. Fiyat doğrudan alındı (kapasite ödemesi gibi, oranla değil): fark sözleşmesi fiyatı maliyete
 //   göre belirlenir, oyunun yatırım maliyetleri de gerçek değerlerdir. Fark proje gelirine (ac) katılır: proje ekonomisi destekli
 //   getiriyi gösterir (25 yıllık ömrün son 5 yılı da sözleşme fiyatıyla sayılır; basitleştirme).
-//  Yüzer RES'e verilmedi: AR7 yüzer fiyatı £216,49/MWh (≈ 289,6 $/MWh) oyundaki yüzer RES maliyetiyle (NREL 2020 tahmini,
-//   LCOE ~197–234 $/MWh) gerçekte olmayan bir kârlılık verirdi; önce yüzer RES maliyeti güncellenmeli.
+//  Yüzer RES'e verilmedi: AR7 yüzer fiyatı £216,49/MWh (≈ 289,6 $/MWh) iki küçük, erken proje (192,5 MW) içindi. Oyundaki
+//   yüzer RES maliyeti ticari ölçek tahmini (5.355 $/kW, LCOE ~197–234 $/MWh; finance.js'teki kıyasla aralıkta): bu fiyat
+//   gerçekte olmayan bir kârlılık verirdi.
 //  Almanya: Ağustos 2025 ihalesine teklif gelmedi; iki yönlü CfD'li yasa taslağı (2 Eylül 2026) henüz yasalaşmadı.
 //  Türkiye: ilk deniz üstü YEKA 2027'nin ilk çeyreğine planlandı (taslak: 1.000 MW, 7–11 ABD sent/kWh, %25 yerlilik; haber
 //   kaynakları); oyunda henüz destek yok. Diğer piyasalar için veri toplanmadı.

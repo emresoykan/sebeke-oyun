@@ -19,6 +19,16 @@ export const FIT={p:90,years:5};
 // (EPDK duyurusu, 19.10.2026). Gerçekte fiyat TL'dir ve her ay güncellenir; oyunda dolar cinsinden sabit.
 // newDays: yeni sahanın o yıl için de katılabileceği süre (takvim günü; oyun kolaylığı)
 export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:30,asOf:"Ekim 2026"};
+// Piyasaya göre yatırım maliyeti (equipment.js capexOf: oyundaki kurulum bedeli; finance.js: proje ekonomisi). Katsayı: bölgenin
+// IRENA 2024 ağırlıklı ortalama toplam kurulum maliyeti ÷ küresel ortalama. Yalnızca güneş ailesi (GES; yüzer GES ve deniz GES'i
+// GES maliyetinden türetildiği için aynı katsayı): küresel 691, Avrupa 779, ABD 1.058, Çin 591, Afrika 1.093 $/kW (2024 doları;
+// IRENA "Renewable Power Generation Costs in 2024", ikincil kaynaklar: pv magazine, PV Tech; rapor bu ortamdan açılamadı). Asya
+// pazarı Çin'le (en büyük pazar; Hindistan 525), Kuzey Amerika ABD'yle temsil edildi. Türkiye, Güney Amerika, Orta Doğu ve
+// Okyanusya için değer bulunamadı: küresel ortalama. Rüzgâr ve diğer teknolojilerde ülke değeri bulunamadı (Çin'de karada rüzgâr
+// 1.000 $/kW'ın altında, kesin değer yok). Rakiplerin yatırımı değişmedi (fiyat kalibrasyonu korunur).
+export const CAPEX_M={ges:{E:779/691,N:1058/691,A:591/691,F:1093/691}};
+const SOLAR_FAM=["ges","fpv","spv"];
+export const capexMul=(k,m)=>{const t=CAPEX_M[SOLAR_FAM.includes(k)?"ges":k];return (t&&t[m])||1;};
 // Şebeke bağlantı kapasitesi (Türkiye; grid.js, docs/guncellemeler.md). quota: oyuncunun her takvim yılı kontenjan dışı
 // yeni RES, GES ve deniz GES'i için alabileceği bağlantı kapasitesi (MW); 2026 lisanssız tahsisinde bir şirketin iletimden
 // alabileceği üst sınır (75 MW; EPDK 14353, ikincil kaynak). close: kontenjanın kapandığı gün (2026'da iletimdeki 1.500 MW'ın
