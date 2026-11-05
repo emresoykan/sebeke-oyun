@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-04.5",t:"Deniz üstü rüzgâra fark sözleşmesi",items:[
+    "Avrupa'da deniz üstü RES (offshore) artık fark sözleşmesi alır: Britanya'nın Ocak 2026 turundaki fiyatla 122,0 $/MWh, ilk bloğun kurulumundan itibaren 20 ekonomik yıl (~116 gün). Piyasa fiyatı altındaysa fark sana ödenir, üstündeyse geri ödersin.",
+    "Fark proje gelirine katılır: santralin getirisi (IRR) destekli değeri gösterir. Günlük raporda \"Fark sözleşmesi\" satırı, saha panelinde kalan süre. Daha önce kurduğun offshore santraller bugünden başlayarak alır.",
+    "Yüzer RES ve diğer piyasalar almaz. Haber bandında Britanya'nın sonuçları ve Türkiye'nin 2027'ye planlanan ilk deniz üstü YEKA'sı; sözlükte \"Fark sözleşmesi\"."]},
   {id:"2026-11-04.4",t:"Şebeke bağlantı kapasitesi",items:[
     "Türkiye'de yeni RES, GES ve deniz GES'i için her yıl 75 MW serbest bağlantı kontenjanın var; 30 Eylül'de kapanır, 1 Ocak'ta yenilenir. Kurulum panelinde kalan kontenjan görünür.",
     "Kontenjan bitince depolamalı kurarsın: sahaya önce batarya kur, üretim gücü bataryanın gücünü aşamaz. Sahada boşta batarya varsa yeni blok önce ona bağlanır, kontenjan başka sahalara kalır. YEKA sahası ve ilk projen kontenjana sayılmaz.",

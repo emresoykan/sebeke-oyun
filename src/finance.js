@@ -46,6 +46,7 @@ export const FIN={
 // Gelirini net kaydeden teknolojiler: depolama (satış − alış) ve hidrojen (hidrojen geliri − elektrik); üretim ve LCOE yok
 export const NET=["batt","phs","h2"];
 export const SUB_Y=10; // hidrojen üretim desteğinin süresi (yıl; support.js H2SUB)
+export const CFD_Y=20; // deniz üstü RES fark sözleşmesinin süresi (yıl; support.js CFD)
 export const DEGR=0.005;            // GES yıllık üretim kaybı (varsayım); panelli tüm türlere (kara, yüzer, deniz üstü)
 const PV_DEGR=["ges","fpv","spv"];
 export const MIN_H=72;              // gösterge için en az 72 saatlik (3 oyun günü) işletme verisi
@@ -72,21 +73,24 @@ function base(p){
   const a=p.ac,f=FIN[p.k];if(!a||a.h<MIN_H||!f)return null;
   const q=EQUIP[p.k][tierOf(p)],kw=p.mw*1000,batt=NET.includes(p.k);
   const cf=a.cap>0?a.e/a.cap:0; // kapasite faktörü: üretim / (kurulu güç × saat); güç sonradan arttıysa da doğru kalır
-  const e1=batt?0:cf*p.mw*8760,price=a.e>0?a.r/a.e:0,fuelPerMWh=a.e>0?a.f/a.e:0;
+  // fark sözleşmesi (support.js): satış fiyatı sözleşme farkı çıkarılarak piyasa fiyatıdır; sözleşmeli santral ilk CFD_Y yıl
+  // sözleşme fiyatından, sonra piyasa fiyatından satar (fiyat stresinden etkilenmez)
+  const e1=batt?0:cf*p.mw*8760,price=a.e>0?(a.r-(a.cf||0))/a.e:0,fuelPerMWh=a.e>0?a.f/a.e:0,strike=p.cfd?p.cfd.p:null;
   // depolama ve hidrojen: MW başına net gelirin yıllığa çevrilmesi. Destekler ayrılır (support.js): kapasite ödemesi
   // ömür boyu süren piyasa geliri sayılır (fiyat stresinden etkilenmez); hidrojen desteği yalnızca ilk SUB_Y yıl
   const yr=x=>a.cap>0?(x||0)/a.cap*p.mw*8760:0,cap1=yr(a.cp),sub1=yr(a.sub),net1=batt?yr(a.r-(a.cp||0)-(a.sub||0)):0;
   const E=Array.from({length:f.life},(_,t)=>PV_DEGR.includes(p.k)?e1*(1-DEGR)**t:e1);
-  return {f,batt,capex:f.capex*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
+  const priceAt=(t,sx=0)=>strike!=null&&t<CFD_Y?strike:price*(1-sx);
+  return {f,batt,capex:f.capex*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
 }
 
 // Bir santral kaydının gerçek dünya göstergeleri (vergi ve finansman öncesi); yeterli veri yoksa {wait:true}
 export function plantFinance(p){
   const b=base(p);if(!b)return {wait:true,h:p.ac?p.ac.h:0};
-  const {capex,opex,cf,e1,net1,cap1,sub1,price,fuelPerMWh,E,batt,life,days,f}=b,flows=[];let disc=0,discE=0;
-  E.forEach((e,i)=>{const t=i+1,cost=opex+e*fuelPerMWh;flows.push((batt?net1-opex:e*price-cost)+cap1+(i<SUB_Y?sub1:0));disc+=cost/(1+wacc)**t;discE+=e/(1+wacc)**t;});
+  const {capex,opex,cf,e1,net1,cap1,sub1,price,strike,priceAt,fuelPerMWh,E,batt,life,days,f}=b,flows=[];let disc=0,discE=0;
+  E.forEach((e,i)=>{const t=i+1,cost=opex+e*fuelPerMWh;flows.push((batt?net1-opex:e*priceAt(i)-cost)+cap1+(i<SUB_Y?sub1:0));disc+=cost/(1+wacc)**t;discE+=e/(1+wacc)**t;});
   const lcoe=batt||discE<=0?null:(capex+disc)/discE;
-  return {capex,opex,cf,e1,net1,price,lcoe,npv:npvAt(wacc,capex,flows),irr:irrOf(capex,flows),pb:paybackOf(capex,flows),life,days,src:f.src};
+  return {capex,opex,cf,e1,net1,price,strike,lcoe,npv:npvAt(wacc,capex,flows),irr:irrOf(capex,flows),pb:paybackOf(capex,flows),life,days,src:f.src};
 }
 
 export const SHORT_DAYS=30; // daha kısa veride mevsimsellik yıllık değeri saptırabilir
@@ -119,9 +123,9 @@ export function resetPf(){pf={...PF_DEFAULT};try{localStorage.removeItem(PF_KEY)
 export function projectFinance(p,mode="spot",market="T",stress=0){
   const b=base(p);if(!b)return {wait:true};
   const mk=market==="E"?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(mk==="E"?pf.taxE:pf.taxT)/100;
-  const {capex,opex,E,price,fuelPerMWh,net1,cap1,sub1,batt,life}=b,ppa=mode==="ppa"&&!batt;
+  const {capex,opex,E,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,batt,life}=b,ppa=mode==="ppa"&&!batt&&strike==null; // sözleşmeli santralde PPA yok
   const N=Math.max(1,Math.min(pf.tenor,life-2)),dep=Math.min(pf.dep,life),depY=capex/dep,ppaP=price*(1-pf.ppaDisc/100);
-  const ebitdaAt=sx=>E.map((e,t)=>(batt?net1*(1-sx)-opex:e*(ppa&&t<pf.ppaYears?ppaP:price*(1-sx))-opex-e*fuelPerMWh)+cap1+(t<SUB_Y?sub1:0));
+  const ebitdaAt=sx=>E.map((e,t)=>(batt?net1*(1-sx)-opex:e*(ppa&&t<pf.ppaYears?ppaP:priceAt(t,sx))-opex-e*fuelPerMWh)+cap1+(t<SUB_Y?sub1:0));
   // vergi; geçmiş yıl zararı önce en eskisinden mahsup edilir. Türkiye'de en çok 5 yıl devreder (KVK md. 9); Avrupa'da süre
   // sınırı yok (basitleştirme: Almanya ve İspanya'daki yıllık mahsup üst sınırları uygulanmadı)
   const life5=mk==="T"?5:Infinity;

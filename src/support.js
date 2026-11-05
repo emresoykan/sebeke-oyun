@@ -1,4 +1,4 @@
-// --- Destek mekanizmaları: depolamaya kapasite ödemesi, yeşil hidrojene üretim desteği ---
+// --- Destek mekanizmaları: depolamaya kapasite ödemesi, yeşil hidrojene üretim desteği, deniz üstü rüzgâra fark sözleşmesi ---
 // Gerçek mekanizmalardan, piyasaya göre (oyunda yalnızca kaynağı bulunan piyasalarda). Ödemeler gerçek ölçekte günlüktür
 // (satış geliri gibi): yıllık tutar ÷ 365 her oyun günü. Kurlar FRED, 23.10.2026: 1 £ = 1,3375 $, 1 € = 1,1199 $.
 //
@@ -23,6 +23,20 @@
 //  Yeşil koşulu: destek yalnızca aynı sahadaki rüzgâr, güneş ve deniz santrallerinin o saatteki üretimiyle karşılanan
 //  elektrikten üretilen hidrojene ödenir (saatlik eşleşme). Gerçek kurallar daha esnek: AB 2029 sonuna kadar aylık, sonra
 //  saatlik eşleşme ve sözleşmeyle şebekeden yeşil elektrik kabul eder; 45V da sertifikayla şebeke elektriği kabul eder.
+//
+// Deniz üstü rüzgâra fark sözleşmesi (CfD; sabit tabanlı offshore RES, ilk bloğun kurulumundan itibaren 20 ekonomik yıl):
+//  Avrupa: Britanya CfD 7. tahsis turu (AR7, sonuç 14 Ocak 2026): sabit tabanlı offshore 8,2 GW, £91,20/MWh (2024
+//   fiyatlarıyla, TÜFE'ye endeksli; İskoç proje £89,49), 20 yıl (ikincil kaynaklar: Westwood, Carbon Brief, Energy UK; gov.uk
+//   sonuç sayfası açılamadı). ≈ 122,0 $/MWh. İki yönlü: piyasa fiyatı sözleşme fiyatının altındaysa fark ödenir, üstündeyse
+//   üretici farkı geri öder (saatlik, gün öncesi fiyatına göre). Gerçekte rekabetçi ihale ve bütçe sınırı var; oyunda ihale
+//   fiyatıyla kazanılmış sayılır. Fiyat doğrudan alındı (kapasite ödemesi gibi, oranla değil): fark sözleşmesi fiyatı maliyete
+//   göre belirlenir, oyunun yatırım maliyetleri de gerçek değerlerdir. Fark proje gelirine (ac) katılır: proje ekonomisi destekli
+//   getiriyi gösterir (25 yıllık ömrün son 5 yılı da sözleşme fiyatıyla sayılır; basitleştirme).
+//  Yüzer RES'e verilmedi: AR7 yüzer fiyatı £216,49/MWh (≈ 289,6 $/MWh) oyundaki yüzer RES maliyetiyle (NREL 2020 tahmini,
+//   LCOE ~197–234 $/MWh) gerçekte olmayan bir kârlılık verirdi; önce yüzer RES maliyeti güncellenmeli.
+//  Almanya: Ağustos 2025 ihalesine teklif gelmedi; iki yönlü CfD'li yasa taslağı (2 Eylül 2026) henüz yasalaşmadı.
+//  Türkiye: ilk deniz üstü YEKA 2027'nin ilk çeyreğine planlandı (taslak: 1.000 MW, 7–11 ABD sent/kWh, %25 yerlilik; haber
+//   kaynakları); oyunda henüz destek yok. Diğer piyasalar için veri toplanmadı.
 import { S } from "./state.js";
 import { CAL } from "./calendar.js";
 import { ECON_YEAR } from "./loans.js";
@@ -33,6 +47,7 @@ export const CAP={
   N:{kw:329.17*365/1000,src:"PJM 2026/27 kapasite açık artırması 329,17 $/MW-gün"}
 };
 export const DERATE={batt:0.2094,phs:0.9};
+export const CFD={E:{k:"off",p:Math.round(91.20*FX.gbp*10)/10,years:20,src:"Britanya CfD 7. tur (Ocak 2026), sabit tabanlı offshore £91,20/MWh"}};
 export const H2SUB={
   E:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
   N:{kg:3,years:10,until:Date.UTC(2028,0,1),src:"ABD 45V vergi kredisi, en çok 3 $/kg (inşaata 2028'den önce başlanmalı)"}
@@ -46,3 +61,9 @@ export function h2Grant(m){
 }
 // santralin bugünkü hidrojen desteği ($/kg; hak yoksa ya da süresi dolduysa 0)
 export const h2Rate=p=>p.h2s&&S.dayNo<=p.h2s.until?p.h2s.kg:0;
+// kurulumda fark sözleşmesi hakkı: {p: $/MWh, until: son oyun günü} ya da null (piyasada ya da bu teknolojide yok)
+export function cfdGrant(m,k){const s=CFD[m];if(!s||s.k!==k)return null;return {p:s.p,until:S.dayNo+Math.round(s.years*ECON_YEAR)};}
+// santralin bugünkü sözleşme fiyatı ($/MWh) ya da null
+export const cfdRate=p=>p.cfd&&S.dayNo<=p.cfd.until?p.cfd.p:null;
+// eski kayıtlar (sim.js newDay): sözleşmesi hiç belirlenmemiş uygun santral bugünden başlar
+export function cfdMigrate(){S.plants.forEach(p=>{if(p.cfd===undefined&&p.k==="off"&&S.sites[p.t])p.cfd=cfdGrant(S.sites[p.t].mreg,p.k);});}

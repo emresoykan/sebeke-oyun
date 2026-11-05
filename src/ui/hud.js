@@ -107,6 +107,7 @@ export function renderReport(){
   <div style="overflow-x:auto"><table><tr><th>Santral</th><th>Üretim</th><th>Piyasa değeri</th><th>Ort. fiyat</th></tr>${rows||'<tr><td colspan="4" style="text-align:left;color:var(--muted)">Henüz üretim yok.</td></tr>'}
   ${L.fuel>0?`<tr><td>Biyokütle yakıtı</td><td></td><td class="neg">−${fmt$(L.fuel)}</td><td></td></tr>`:""}
   ${L.fit>0?`<tr><td>Alım garantisi desteği <small class="mut">taban fiyatla piyasa farkı</small></td><td></td><td class="pos">+${fmt$(L.fit)}</td><td></td></tr>`:""}
+  ${L.cfd?`<tr><td>Fark sözleşmesi <small class="mut">deniz üstü RES, sözleşme fiyatıyla piyasa farkı</small></td><td></td><td class="${L.cfd<0?"neg":"pos"}">${L.cfd>0?"+":""}${fmt$(L.cfd)}</td><td></td></tr>`:""}
   ${L.yeka?`<tr><td>YEKA farkı <small class="mut">sözleşme fiyatıyla piyasa farkı</small></td><td></td><td class="${L.yeka<0?"neg":"pos"}">${L.yeka>0?"+":""}${fmt$(L.yeka)}</td><td></td></tr>`:""}
   ${L.yek?`<tr><td>YEKDEM farkı <small class="mut">sabit fiyatla piyasa farkı</small></td><td></td><td class="${L.yek<0?"neg":"pos"}">${L.yek>0?"+":""}${fmt$(L.yek)}</td><td></td></tr>`:""}
   ${L.bNet||S.plants.some(p=>p.k==="batt")?`<tr><td>Batarya (BESS) arbitrajı</td><td></td><td>${fmt$(L.bNet)}</td><td></td></tr>`:""}
