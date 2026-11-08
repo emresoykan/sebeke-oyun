@@ -235,6 +235,7 @@ Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün �
 - Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı. 2026'nın ilk on ayıyla karşılaştırma: aşağıdaki "Türkiye 2026 kontrolü" bölümü.
 - Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük.
 - Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. 30.10.2026'da güncel modelle ve ilk oyun yılı üzerinden yeniden üretildi: piyasa karşılaştırması bu bölümdeki ve bölgesel rüzgâr bölümündeki kalibrasyon koşularından, proje ekonomisi `scripts/sim_year.cjs` ile (120 gün × 8 koşu, piyasa başına; olay kartları kapalı).
+- 08.11.2026: GES yatırım maliyeti piyasaya bağlandı (Avrupa 779 $/kW, `config.js` `CAPEX_M`). Vaka çalışmasının Avrupa proje satırları 8 yeni koşuyla yenilendi: Avrupa GES IRR'ı %10,7–13,3 (önce %12,5–15,2). Aynı koşular 691 $/kW ile %12,4–15,3 verir; düşüşün tamamı maliyettendir (koşu başına 1,7–2,0 puan). Türkiye'de 8 yeni koşu eski aralıklarda kaldı (ortalama fiyat 66,2 $/MWh; GES IRR %11,8–13,6, RES %15,7–22,4); Türkiye satırları korundu.
 
 # Türkiye 2026 kontrolü: Ocak–Ekim (04.11.2026)
 
