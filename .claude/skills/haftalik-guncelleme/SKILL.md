@@ -44,7 +44,9 @@ Düzenli kontroller (başlık olmasa da):
 - **Her ay başı:** EPİAŞ'ın yeni YEKDEM tablosu → `config.js` `YEKDEM` (`p`, `store`, `asOf`; dolar karşılığı ay başındaki
   PTF dolar kuruyla). Son TEİAŞ aylık hidro verisi → `HYDRO.known` içindeki yılın tahmini.
 - **Çeyrekte bir:** tam fiyat kontrolü, `docs/kalibrasyon.md`'deki "Türkiye 2026 kontrolü" bölümünün yöntemiyle (EPİAŞ
-  aylık USD ve TL, TEİAŞ hidro, TCMB reel kur). Kalibrasyon yalnızca tipik bir yılı temsil eden kanıtla değişir.
+  aylık USD ve TL, TEİAŞ hidro, TCMB reel kur). Yağışlı ya da kurak bir ilkbahardan sonra saat gruplarını da karşılaştır
+  (EPİAŞ saatlik PTF; `docs/kalibrasyon.md` "Saatlik dağılım", `calib_hydro.cjs` saat grubu tablosu). Kalibrasyon yalnızca
+  tipik bir yılı temsil eden kanıtla değişir.
 - **Olay oldukça:** YEKA turları (yeni il, fiyat, katkı payı), deniz üstü YEKA, lisanssız kapasite duyuruları, offshore
   fark sözleşmesi turları, IRENA yıllık maliyet raporu (Temmuz).
 

@@ -327,7 +327,7 @@ Yıllık PTF ortalaması (EPİAŞ, $/MWh): 2023 96,6; 2024 68,1; 2025 66,4. TCMB
 - **Kurak yıl:** 2025 (w 0,78) ile 2024'ün (w 1,02) yıllık dolar fiyatı birbirine yakın (66,4 ve 68,1 $/MWh). Açığı gaz kapattığı için kurak yılın fiyatı az yükseltmesi beklenir; ayrı bir hedef çıkarılamadı.
 
 ## Model
-- Türkiye piyasasında her saatin fiyatından, piyasa çarpanından önce `depth × mon[ay] × (w − 1)` düşülür. Kurak yılda (w < 1) aynı terim `dry` payıyla (0,25) fiyata eklenir. Fiyat sıfırın altına inmez; bu sınır etkiyi doğal olarak doğrusal olmayan yapar.
+- Türkiye piyasasında her saatin fiyatından, piyasa çarpanından önce `depth × mon[ay] × (w − 1)` düşülür (08.11.2026'dan beri yağışlı yılda saatlik ağırlıkla çarpılır; aşağıda "Saatlik dağılım"). Kurak yılda (w < 1) aynı terim `dry` payıyla (0,25) fiyata eklenir. Fiyat sıfırın altına inmez; bu sınır etkiyi doğal olarak doğrusal olmayan yapar.
 - `depth` 150 $/MWh, aylık ağırlık Ocak…Aralık: 0,05; 0,5; 0,5; 1; 1,15; 0,72; 0,25; 0,25; 0,25; 0,2; 0,1; 0,05. Kasım ve Aralık için gerçek hedef yok (2026 verisi henüz yok); kışın düşük tutuldu.
 - Türkiye'deki HES'lerin günlük su bütçesi w ile çarpılır (2026'da ×1,27).
 - **Yıllar:** 2026 gerçek yıldır (`HYDRO.known`). Sonraki her yıl 1 Ocak'ta 2015–2025'ten biri eşit olasılıkla seçilir. Seçim kayda yazılır; o güne kadar bilinmez, bu yüzden YEKDEM başvurusu (30 Kasım) hidroloji bilinmeden yapılır. Dağılım: 3 kurak (w < 0,9), 4 normal, 3 yağışlı, 1 çok yağışlı (w ≥ 1,25).
@@ -363,7 +363,53 @@ Yıllık PTF ortalaması (EPİAŞ, $/MWh): 2023 96,6; 2024 68,1; 2025 66,4. TCMB
 
 ## Sınırlamalar
 - Hedef tek bir yıl çiftine (2025 kurak, 2026 çok yağışlı) dayanır. Ara değerler (normal, yağışlı) modelin doğrusal olmayan yapısından gelir; gerçek veriyle ayrıca sınanmadı.
-- Etki bütün saatlerde aynı tutardır. Gerçekte Nisan 2026'da saatlerin yarısı 8,1 $/MWh'in altında, ortalama 20,7 $/MWh'ti; akşam saatleri yüksek kaldı (günlük en yüksek–en düşük farkı ortalaması 2025'te 2.167, 2026'da 3.535 TL/MWh). Oyunda sıfıra inen saat payı gerçekte olduğundan az.
+- ~~Etki bütün saatlerde aynı tutardır.~~ 08.11.2026'da giderildi: aşağıda "Saatlik dağılım".
 - Su endeksi yıllıktır; gerçekte yağış ve kar erimesi yıl içinde değişir (2026 Ocak'ı kuraktı, Şubat'tan sonra çok yağışlıydı).
 - 2026 değeri tahmindir; TEİAŞ yıllık verisi yayımlanınca güncellenecek.
 - Kalibrasyon koşuları (`calib_market.cjs`) ve vaka çalışması (`sim_year.cjs`) bütün yıllar için w = 1 (normal yıl) kullanır: taban düzey ve proje ekonomisi önceki modelle aynıdır.
+
+# Hidrolojik yıl: saatlik dağılım (08.11.2026)
+
+## Neden
+İlk modelde yağışlı yılın fiyat etkisi bütün saatlerde aynı tutardı. EPİAŞ'ın saatlik verisi gerçeğin böyle olmadığını gösterdi: 2026 ilkbaharında öğle ve gece saatleri sıfıra indi, akşam zirvesi ise bir yıl öncesine yakın kaldı. Oyunda akşam fiyatı fazla düşüyor, sıfıra inen saat payı az kalıyor, günlük fiyat farkı yağışlı yılda büyüyeceği yerde küçülüyordu. Bu, bataryanın ve akşam üreten santrallerin yağışlı yıldaki değerini olduğundan düşük gösteriyordu.
+
+## Veri
+EPİAŞ PTF, saatlik, TL; 2025 (kurak, w 0,78) ve 2026 (çok yağışlı, w ~1,27) Mart–Haziran, her yıl 2.928 saat. Oranlar 2026 ÷ 2025 ÷ 1,15 (hidrolojiden bağımsız nominal artış, yukarıdaki "Hidrolojik yıl" bölümü).
+
+| Ay | Gece 0–6 | Öğle 10–15 | Akşam 19–21 | Gün | 5 $/MWh altındaki saatler, 2025 → 2026 | Günlük en yüksek–en düşük farkı |
+|---|---|---|---|---|---|---|
+| Mart | 0,58 | 0,58 | 0,84 | 0,65 | %5 → %14 | 1,11 |
+| Nisan | 0,23 | 0,09 | 0,83 | 0,33 | %3 → %32 | 1,42 |
+| Mayıs | 0,10 | 0,03 | 0,64 | 0,21 | %5 → %58 | 1,00 |
+| Haziran | 0,40 | 0,21 | 0,88 | 0,49 | %12 → %26 | 1,18 |
+
+- **Saat başına düşüş (TL/MWh, 2025 × 1,15 − 2026):** gece (0–6) ayına göre ~1.150 (Mart) ile ~2.900 (Mayıs) arası; saat 20'de 210–1.055. Gece düşüşüne oranı, dört ayın ortalaması: saat 17: 0,87; 18: 0,83; 19: 0,46; 20: 0,25; 21: 0,41; 22: 0,61; 23: 0,85.
+- **Öğle:** 2026'da öğle saatlerinin %35'i (Mart) ile %97'si (Mayıs) 5 $/MWh'in altında. Fiyat tabana dayandığı için TL farkı öğlenin gerçek etkisini ölçmez.
+- **Günlük fark ortalamaya göre:** 2025'te ortalama fiyatın 0,88–1,17 katı, 2026'da 1,55 (Mart) ile 4,88 (Mayıs) katı. Dolar olarak 2026'da 57–79 $/MWh.
+
+## Model
+- Yağışlı yılda (w > 1) saatlik terim `depth × mon[ay] × (w − 1) × hr[saat]` olur (`config.js` `HYDRO.hr`, `hydro.js` `hydShift`). Kurak yılda saatlik ağırlık yok: açığı gaz kapatır, bütün saatlere eşit küçük artış (ayrı bir saatlik hedef yok).
+- **Ağırlıklar:** gece ve sabah (0–8) 1; öğle (9–16) 1,25; akşam 17: 0,85, 18: 0,75, 19: 0,4, 20: 0,2, 21: 0,35, 22: 0,6, 23: 0,85. Akşam ağırlıkları verideki orandan, biraz aşağı yuvarlanarak alındı. Öğle ağırlığı doğrudan ölçülemediği için 5 $/MWh altındaki saat payını tutturacak şekilde seçildi.
+- **Derinlik** 150'den 160'a çıktı: akşam ağırlığı düştüğü için aylık ortalama oranlar aynı kalsın diye. Kurak yılın payı 0,25'ten 0,23'e indi; kurak yılın etkisi (derinlik × pay) aynı kaldı (37,5'e karşı 36,8).
+- **Denenen iki ayar** (`calib_hydro.cjs` 7. ve 8. bağımsız değişkeni koda dokunmadan ayar dener): öğle ağırlığı 1, derinlik 165 aylık oranları tutturdu ama Nisan'da 5 $/MWh altındaki saat payı %23'te kaldı (hedef %32), Haziran'ın öğle oranı 0,31 oldu (hedef 0,21). Seçilen ayar ikisinde de hedefe daha yakın.
+
+## Sonuç
+`scripts/calib_hydro.cjs`, 120 oyun günü × 3 koşu, her su endeksi için; bütün yıllara aynı w; rakipler açık, olay kartları kapalı. Oranlar w 1,27 ÷ w 0,78; parantezde EPİAŞ hedefi.
+
+| Ay | Gece | Öğle | Akşam | Gün | 5 $/MWh altı (w 1,27) | Akşam ÷ gün (w 1,27) | Günlük fark |
+|---|---|---|---|---|---|---|---|
+| Mart | 0,61 (0,58) | 0,47 (0,58) | 0,90 (0,84) | 0,66 (0,65) | %1 (%14) | 1,74 (1,70) | 1,42 (1,11) |
+| Nisan | 0,20 (0,23) | 0,01 (0,09) | 0,75 (0,83) | 0,30 (0,33) | %31 (%32) | 3,20 (3,47) | 1,65 (1,42) |
+| Mayıs | 0,08 (0,10) | 0,00 (0,03) | 0,69 (0,64) | 0,23 (0,21) | %53 (%58) | 4,12 (4,22) | 1,36 (1,00) |
+| Haziran | 0,48 (0,40) | 0,19 (0,21) | 0,84 (0,88) | 0,51 (0,49) | %5 (%26) | 2,25 (2,70) | 1,59 (1,18) |
+
+- **Önceki modele göre:** Nisan'da akşam oranı 0,40'tan 0,75'e çıktı (hedef 0,83); 5 $/MWh altındaki saat payı %11'den %31'e (hedef %32); günlük fark yağışlı yılda artık küçülmüyor, büyüyor (önceki 0,89, şimdi 1,65).
+- **Yıllık ortalama korundu:** kurak yıl 70,2, normal yıl 66,6, w 1,27 51,1 $/MWh (önce 69,6; 66,9; 51,3; fark koşudan koşuya oynama içinde). Normal yılda model değişmedi (fark terimi sıfır); kalibrasyon ve vaka çalışması etkilenmez.
+- **Santrallerin ortalama satış fiyatı (kurak / normal / w 1,27):** Konya GES 60,5 / 55,4 / 40,8 (önce 59,9 / 56,6 / 40,2); Çanakkale RES 68,2 / 65,2 / 49,1 (önce 68,3 / 65,2 / 49,1). YEKDEM kararı (59,2 $/MWh) için önceki sonuç değişmedi.
+- **Günlük fark dolar olarak gerçeğe yakın:** w 1,27'de Mart–Haziran 61–77 $/MWh (gerçek 2026: 57–79); ortalamanın 1,39–4,53 katı (gerçek 1,55–4,88).
+
+## Sınırlamalar
+- **Günlük farkın artışı gerçekte olduğundan büyük** (Nisan 1,65'e karşı 1,42). Neden: oyunun kurak ve normal yıldaki günlük farkı gerçekten dar (ortalama fiyatın 0,64–0,76 katı; gerçek 2025'te 0,88–1,17). Bu fark yukarıdaki taban kalibrasyonundan (güneş fiyat oranı) geliyor; burada değiştirilmedi. Sonuç: yağışlı yılda bataryanın kazancındaki artış biraz abartılı olabilir.
+- **Mart ve Haziran'da sıfır saat az** (%1 ve %5; gerçek %14 ve %26). Oyunda bu aylarda öğle fiyatı tabana inmeden kalıyor. Öğle ağırlığını artırmak Nisan–Mayıs'ı aşırı düşürür; aylık öğle ağırlığı ayrı ayarlanmadı.
+- **Mayıs akşamı az düşüyor** (0,69'a karşı 0,64). Saatlik ağırlık bütün aylarda aynı.
+- Hedef yine tek yıl çiftine dayanır; yağışlı (w 1,1–1,25) yılların saatlik dağılımı gerçek veriyle sınanmadı. Kurak yılın saatlik etkisi ölçülmedi.

@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-08.2",t:"Yağışlı yılda akşam fiyatları",items:[
+    "Türkiye'de yağışlı yılda fiyat düşüşü artık saate göre değişiyor: öğle ve gece saatleri sıfıra yaklaşır, akşam zirvesi (19–21) yüksek kalır. Gerçek 2026'da da Nisan'da saatlerin üçte biri 5 $/MWh'in altındaydı, akşam TL fiyatı ise bir yıl öncesine yakındı (EPİAŞ).",
+    "Günlük en yüksek ile en düşük fiyat arasındaki fark yağışlı ilkbaharda büyür: batarya ucuz saatte doldurup akşam satarak daha çok kazanır. Yıllık ortalama fiyat aynı kalır (çok yağışlı yılda ~51 $/MWh)."]},
   {id:"2026-11-08",t:"Türkiye kıyıları düzeltildi",items:[
     "Deniz GES'i ve diğer deniz sahaları artık haritada karada görünmüyor: Türkiye çevresinde kara ve deniz ayrıntılı kıyı verisiyle ayrılıyor (önceki kaba kıyı ~2 km sapıyordu).",
     "Kıyıya 1 km'den yakın şeritte saha açılmaz; saha panelinde nedeni yazar.",

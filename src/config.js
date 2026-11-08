@@ -54,11 +54,15 @@ for(const k of ["res","ges"])YEKA[k].p=Math.round(YEKA[k].ec*10*YEKA.eur/YEKA.re
 // biri rastgele seçilerek belirlenir. known: gerçek yıllar (2026: Ocak–Eylül TEİAŞ, Ekim–Aralık 2025 düzeyinde varsayıldı;
 // tahmin, yıl kapanınca güncellenecek). depth: w−1 = 1 iken en etkili ayda fiyattan düşülen tutar ($/MWh, piyasa çarpanından
 // önce); mon: aylık ağırlık (Ocak…Aralık; ilkbaharda en yüksek); dry: kurak yılda etkinin payı (açığı gaz kapatır, fiyat az
-// yükselir). Ağırlıklar ve derinlik EPİAŞ 2025 ile 2026'nın aylık TL fiyat oranına göre ayarlandı.
+// yükselir); hr: yağışlı yılda saatlik ağırlık (0…23). Aylık ağırlıklar ve derinlik EPİAŞ 2025 ile 2026'nın aylık TL fiyat
+// oranına göre ayarlandı. Saatlik ağırlık: akşam (17–23) 2026 Mart–Haziran'ın saatlik TL fiyat düşüşünün gece düşüşüne oranından
+// (saat 20'de ~0,25); öğle (9–16) 1,25, çünkü öğle fiyatı zaten tabana yakın ve TL farkı ölçülemiyor; 5 $/MWh altındaki saat
+// payını tutturacak şekilde (docs/kalibrasyon.md "Saatlik dağılım").
 export const HYDRO={
   hist:{2015:1.14,2016:1.11,2017:0.94,2018:0.93,2019:1.37,2020:1.11,2021:0.78,2022:0.93,2023:0.88,2024:1.02,2025:0.78},
-  known:{2026:1.27},depth:150,dry:0.25,
-  mon:[0.05,0.5,0.5,1,1.15,0.72,0.25,0.25,0.25,0.2,0.1,0.05]
+  known:{2026:1.27},depth:160,dry:0.23,
+  mon:[0.05,0.5,0.5,1,1.15,0.72,0.25,0.25,0.25,0.2,0.1,0.05],
+  hr:[1,1,1,1,1,1,1,1,1,1.25,1.25,1.25,1.25,1.25,1.25,1.25,1.25,0.85,0.75,0.4,0.2,0.35,0.6,0.85]
 };
 // Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
 // lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
