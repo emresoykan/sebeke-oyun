@@ -4,7 +4,7 @@
 // rezervuar ısısının dönüşümüne (JES) veya yakıt verimine (BES) çarpan; avail: bir günün arızasız geçme olasılığı; rte: bataryada şarj-deşarj verimi.
 // Denge: ekonomi kademesi aynı parayla daha çok MW kurdurur ama az üretir ve sık arızalanır; premium
 // pahalıdır ama 40 MW'lık saha sınırında MW başına en çok üretimi verir.
-import { TECH } from "./config.js";
+import { TECH, capexMul } from "./config.js";
 import { spec } from "./profile.js";
 import { factor } from "./mods.js";
 
@@ -98,4 +98,5 @@ export const eqOf=p=>EQUIP[p.k][tierOf(p)];
 export const eqName=(k,q)=>`${EQUIP[k][q].brand} ${EQUIP[k][q].model}`;
 
 // 5 MW'lık bir bloğun kurulum maliyeti (finansçı uzmanlığı %6 indirim alır; olay kartları fiyatı geçici değiştirebilir)
-export const capexOf=(k,q)=>Math.round(TECH[k].capex*EQUIP[k][q].capex*(spec()==="fin"?0.94:1)*factor("capex",null,k)/100)*100;
+// m: sahanın piyasası (config.js CAPEX_M; verilmezse küresel ortalama)
+export const capexOf=(k,q,m)=>Math.round(TECH[k].capex*capexMul(k,m)*EQUIP[k][q].capex*(spec()==="fin"?0.94:1)*factor("capex",null,k)/100)*100;

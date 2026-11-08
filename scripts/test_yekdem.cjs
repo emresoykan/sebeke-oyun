@@ -40,6 +40,8 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   out.report=(document.getElementById("report")||{}).innerText||"";
   // 5) bataryalı gün: her saat yeşil pay ≤ dolum; fark, GES ve batarya kaydından yeniden hesaplanır
   ac.build("TR1","batt","std");const bt=S.plants.find(q=>q.t==="TR1"&&q.k==="batt");exp=0;let inv=true,gUp=0,gDown=0;
+  // batarya planı öğlende doldur, akşam boşalt: bulutlu günde en ucuz saatler gece olabilir; test yeşil pay hesabını sınar
+  {const P=D().T.plan;P.fill(0);P[11]=1;P[12]=1;P[19]=-1;P[20]=-1;}
   for(let h=0;h<24;h++){const e0=ges.ac.e,r0=ges.ac.r,so=bt.soc,ar0=bt.ac?bt.ac.r:0,g0=bt.gsoc||0,hh=S.hour,pr=D().T.price[hh];sim.tick();
     const de=ges.ac.e-e0,dr=ges.ac.r-r0,ds=bt.soc-so,g1=bt.gsoc||0;if(g1>bt.soc+1e-9)inv=false;
     let avail=de,x=0;if(ds>0){const g=Math.min(ds,avail);avail-=g;}if(ds<0){const e=-ds,rr=(bt.ac.r-ar0)/(e*pr),gOut=g0-g1;x+=gOut*rr*(PS-pr);gDown+=gOut;}

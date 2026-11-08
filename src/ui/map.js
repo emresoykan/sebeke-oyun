@@ -323,7 +323,7 @@ function mapCenter(){
 function panPx(dx,dy){if(mk)mk.panBy(dy,dx);else if(map)map.panBy([dx,dy],{duration:reducedMotion.matches?0:200});}
 let annT=0;
 function announce(){clearTimeout(annT);annT=setTimeout(()=>{const c=mapCenter(),el=document.getElementById("mapStatus");if(!c||!el)return;
-  const t=describe(c.lat,c.lon),where=t.urban?`${t.country||t.city}, yerleşim alanı, ${t.city}`:t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
+  const t=describe(c.lat,c.lon),where=t.urban?`${t.country||t.city}, yerleşim alanı, ${t.city}`:t.shore?`Kıyı şeridi, ${t.city} yakını (saha açılamaz)`:t.sea?`${t.shallow?"Sığ deniz":"Açık deniz"}, ${t.city} açıkları`:`${t.country}, ${TER_N[t.ter]||""}, ${t.city} yakını`;
   el.textContent=`İmleç: ${where}. Seçmek için Enter.`;},500);}
 // Klavye modu yalnızca haritaya klavyeyle (Tab) gelinince açılır; fareyle tıklayınca kapanır. Böylece fareyle oynayan
 // birinin boşluk tuşu oyunu duraklatmaya devam eder. Seçim yalnızca Enter ile yapılır (boşluk her zaman duraklatır).

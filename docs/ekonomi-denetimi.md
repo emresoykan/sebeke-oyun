@@ -15,6 +15,7 @@ Oyundaki 14 teknolojinin proje ekonomisini üç piyasada (Türkiye T, Avrupa E, 
   - Oyun her piyasada IRENA'nın küresel ağırlıklı ortalama yatırım maliyetini kullanıyor. Bu ortalama Çin'in düşük maliyetlerinin ağırlığını taşıyor.
   - Sonuç olarak Avrupa'da ve Kuzey Amerika'da LCOE düşük, IRR yüksek çıkıyor.
   - Kanıt: Kuzey Amerika'da GES'in oyundaki LCOE'si %7,5 iskontoyla 36 $/MWh. Lazard'ın ABD aralığı 38–78 $/MWh (2025), yani oyun aralığın altında. IRENA'ya göre ABD'de GES yatırımı 1.058 $/kW, küresel ortalama 691 $/kW (ikincil kaynak).
+  - **05.11.2026:** Güneş için piyasa katsayısı eklendi (aşağıda, öneri 1); Kuzey Amerika GES'inin LCOE'si 39,8 $/MWh oldu.
 - **Avrupa'da rüzgârın yakalama oranı düzeltildi.**
   - Önce: 0,97 (fiyattaki rüzgâr etkisi tek bir noktanın havasından geliyordu).
   - Sonra: Kuzey Almanya'daki RES'te 0,87 (0,85–0,89); ENTSO-E'de Almanya 2025 değeri 0,866. Bu santralin IRR'ı %14,1'den %12,0'ye indi.
@@ -181,17 +182,19 @@ Depolama ve hidrojen (net gelirle çalışır, LCOE yok):
 
 ## Öneriler (öncelik sırasıyla)
 
-1. **Piyasaya göre yatırım çarpanı ekle** (`REG[k].capex` ya da `FIN` içinde teknoloji × piyasa).
-   - Değerler IRENA'nın ülke ve bölge tablolarından (Türkiye, Avrupa, ABD) alınmalı.
-   - Bu oturumda irena.org'a erişilemedi. Ağ ayarlarında irena.org'a izin verilirse ya da rapor PDF'i sağlanırsa doğrulanmış değerlerle yapılabilir.
-   - Hedef: Kuzey Amerika LCOE'leri Lazard aralığına girsin.
+1. **Piyasaya göre yatırım çarpanı.** Güneş için yapıldı (05.11.2026; `config.js` `CAPEX_M`, `capexMul`).
+   - Katsayı = bölgenin IRENA 2024 ağırlıklı ortalama kurulum maliyeti ÷ küresel ortalama (691 $/kW): Avrupa 779 (×1,127), ABD 1.058 (×1,531), Çin 591 (×0,855; Asya pazarı), Afrika 1.093 (×1,582). İkincil kaynaklar (pv magazine, PV Tech); irena.org yine açılamadı.
+   - GES, yüzer GES ve deniz GES'ine uygulanır; hem oyundaki kurulum bedeli hem proje ekonomisi değişir. Rakiplerin yatırımı değişmedi (fiyat kalibrasyonu korunur).
+   - Türkiye, Güney Amerika, Orta Doğu ve Okyanusya için güneş değeri; rüzgâr, offshore ve diğer teknolojiler için ülke değeri bulunamadı: küresel ortalama kaldı.
+   - Ölçüm (`node scripts/test_capex.cjs <adres> 60`, %7,5, 5 MW GES, tek koşu): LCOE Türkiye 31,0, Avrupa 38,3, Kuzey Amerika 39,8 (önce 36; Lazard ABD aralığı 38–78 içinde), Asya 24,4 $/MWh. IRR Türkiye %9,6 (2026'nın yağışlı ilkbaharı), Avrupa %14,7, Kuzey Amerika %12,7, Asya %25,5.
+   - Yüzer RES maliyeti (5.355 $/kW) kıyaslandı: NREL 2023 temsilî ABD projelerinde yüzer/sabit oranı 1,35 (7.349 ÷ 5.441 $/kW), Avrupa'da sabit tabanlı ortalama ~3.900 $/kW → yüzer ~5.270 $/kW. Değer aralıkta; değiştirilmedi (ikincil kaynaklar).
 2. ~~**Türkiye fiyat düzeyini yeniden ayarla.**~~ Yapıldı (30.10.2026). Fark kayma değil tanım farkıydı; Türkiye ilk oyun yılına göre ayarlandı (`REG.T.mult` 0,92, ilk yıl 66,2 $/MWh).
 3. ~~**Offshore için destek seçeneği.**~~ Yapıldı (04.11.2026; `src/support.js` `CFD`).
    - Avrupa'da sabit tabanlı offshore, Britanya'nın 7. fark sözleşmesi turundaki fiyatı alır: £91,20/MWh (2024 fiyatlarıyla, 20 yıl; ikincil kaynaklar) ≈ 122,0 $/MWh, 20 ekonomik yıl, iki yönlü, saatlik.
    - Fiyat oranla değil doğrudan alındı: fark sözleşmesi fiyatı maliyete göre belirlenir, oyunun yatırım maliyetleri de gerçek değerlerdir (kapasite ödemesi de Britanya'dan doğrudan alınmıştı). Oranla taşınsaydı (Britanya 2025 ortalama toptan fiyatı ~£81/MWh, ikincil kaynaklar; oyunun Avrupa düzeyi ~88 $/MWh) ~99 $/MWh olurdu ve offshore yine kârsız kalırdı.
    - Proje ekonomisinde ilk 20 yıl sözleşme fiyatından, son 5 yıl piyasa fiyatından sayılır (`finance.js` `CFD_Y`).
    - Ölçüm (`node scripts/test_cfd.cjs <adres> 120`, Kuzey Denizi 54,2° K 7,9° D, 10 MW, tek koşu): KF %30,7, piyasa satış fiyatı 83,4 $/MWh; IRR desteksiz %1,9, destekli %6,7; LCOE %10'da 146,5, %7,5'te 124,8 $/MWh; NPV %7,5'te destekli −1,8 M$ (başa baş yakını). Gerçekte Britanya'nın yeni projeleri daha yüksek KF ile bu fiyattan kâr ediyor; Almanya koşullarında (KF ~%31) sınırda kalması Almanya'nın Ağustos 2025 ihalesine teklif gelmemesiyle tutarlı.
-   - Yüzer RES'e verilmedi: Britanya'da £216,49/MWh (≈ 289,6 $/MWh) aldı, ama oyundaki yüzer RES maliyeti (NREL 2020 tahmini) bugünkü projelerin altında; bu fiyatla gerçekte olmayan bir kârlılık çıkardı. Önce yüzer RES maliyeti güncellenmeli.
+   - Yüzer RES'e verilmedi: Britanya'da £216,49/MWh (≈ 289,6 $/MWh) aldı, ama bu fiyat iki küçük, erken proje (192,5 MW) içindi. Oyundaki yüzer RES maliyeti ticari ölçek tahmini (5.355 $/kW; 05.11.2026 kıyasında aralıkta, öneri 1): bu fiyatla gerçekte olmayan bir kârlılık çıkardı.
    - Türkiye: ilk deniz üstü YEKA 2027'nin ilk çeyreğine planlandı (taslak: 1.000 MW, 7–11 ABD sent/kWh); ihale yapılınca eklenecek. Diğer piyasalarda destek yok.
 4. **Düşük öncelikli:**
    - Avrupa ve Kuzey Amerika HES KF'si (ENTSO-E ve EIA verisiyle).

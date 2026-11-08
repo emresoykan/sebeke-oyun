@@ -39,6 +39,7 @@ export function newDay(){
   const prev=seasonOf(CAL.date);setCalendar(S.dayNo);setSeason(CAL.decl,doyOf(CAL.date));
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
+  S.plants.forEach(p=>{if(!p.m&&S.sites[p.t])p.m=S.sites[p.t].mreg;}); // eski kayıt: santralin piyasası (proje ekonomisi)
   yekDay();hydDay();gridDay();cfdMigrate();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();

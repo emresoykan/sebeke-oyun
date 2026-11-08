@@ -15,6 +15,11 @@ tarifeleri güncel tutmak.
    - oyuna girmez (oyunda karşılığı yok, ya da gerçek şirket adı içerir; oyundaki şirketler kurgusaldır).
 4. **Uygulama:** Öneri onaylanınca uygulanır; test, sürüm notu (`src/changelog.js`) ve bu kayıt güncellenir.
 
+**Tek komut (05.11.2026):** Claude Code'da `/haftalik-guncelleme` ve ardından başlıklar (ya da "haftalık güncelleme"). Adımlar
+`.claude/skills/haftalik-guncelleme/SKILL.md` içinde: doğrulama araçları, düzenli kontroller (her hafta PTF, her ay YEKDEM
+tarifesi ve hidro, çeyrekte bir fiyat kontrolü), dosya haritası, test ve rapor. Yardımcılar: `node scripts/weekly_values.cjs`
+(oyundaki gerçek dünya değerleri ve kontrol yerleri), `node scripts/test_all.cjs` (bütün testler, kendi Vite sunucusuyla).
+
 ## 2026-11-04
 
 | Gelişme | Grup | Oyundaki karşılığı | Kaynak ve doğrulama |
