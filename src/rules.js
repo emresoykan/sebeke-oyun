@@ -29,7 +29,7 @@ export const allowed=t=>baseAllowed(t).filter(k=>!tooSteep(k,t));
 // eğim kuralı uygulanmadan önceki liste (panelde hangi teknolojinin eğim yüzünden düştüğünü söylemek için)
 export function baseAllowed(t){
   fillRes(t);
-  if(t.urban)return[];if(t.sea)return t.shallow?["off",...(t.coastKm<=SPV_KM?["spv"]:[]),"flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
+  if(t.urban||t.shore)return[];if(t.sea)return t.shallow?["off",...(t.coastKm<=SPV_KM?["spv"]:[]),"flo","mar"]:t.deep?["flo"]:[];if(!t.mreg)return[];
   const a=["ges","res"];if(t.ter==="m")a.push("hes","fpv","phs");if(t.geo>=0.3)a.push("jes");if(t.bio>=0.4)a.push("bes");
   if(cspOk(t))a.push("csp");a.push("batt","h2");return a;
 }

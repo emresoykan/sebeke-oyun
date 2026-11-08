@@ -13,7 +13,7 @@ await p.goto(URL0);await p.waitForTimeout(3500);
 const r=await p.evaluate(async()=>{
   const st=await import("/src/state.js"),w=await import("/src/world.js"),ru=await import("/src/rules.js"),ac=await import("/src/actions.js"),cfg=await import("/src/config.js"),S=st.S,out={};
   S.money=9e7;S.won=true;S.win1=1;S.evCool=99999;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});for(const k in S.rivals||{})S.rivals[k].sites=[];
-  // Antalya körfezi (kıyıya ~7 km), Kuzey Denizi açığı (~49 km), derin bant, kara
+  // Antalya körfezi (ayrıntılı kıyıya ~8 km; coasttr.js), Kuzey Denizi açığı (~49 km), derin bant, kara
   const near=w.describe(36.75,31.2),far=w.describe(54.2,7.9),land=w.describe(36.9,30.9);
   out.near={km:near.coastKm,sun:near.solar,a:ru.baseAllowed(near)};out.far={km:far.coastKm,a:ru.baseAllowed(far)};out.land=ru.baseAllowed(land);
   // eski kayıt: sığ deniz sahasında güneş 0 ve kıyı uzaklığı yok; fillRes tamamlar
@@ -50,7 +50,7 @@ ok(d.rep,"raporda 'GES denizde' satırı");
 ok(!d.fin.wait&&d.fin.lcoe>0,`proje ekonomisi: LCOE ${d.fin.lcoe} $/MWh, IRR ${d.fin.irr==null?"yok":(d.fin.irr*100).toFixed(1)+"%"}`);
 ok(d.sale,"satış teklifi hesaplanır");
 ok(/kazık/.test(d.note)&&/20 km/.test(d.note),"saha panelinde deniz GES'i notu");
-ok(/Güneş/.test(d.res)&&/Kıyıya~?\s*~?7 km/.test(d.res.replace(/\s+/g," ").replace("Kıyıya ","Kıyıya")),`saha kaynakları: ${d.res.replace(/\s+/g," ").slice(0,160)}`);
+ok(/Güneş/.test(d.res)&&new RegExp(`Kıyıya~?\\s*~?${Math.round(r.near.km)} km`).test(d.res.replace(/\s+/g," ").replace("Kıyıya ","Kıyıya")),`saha kaynakları: ${d.res.replace(/\s+/g," ").slice(0,160)}`);
 ok(d.img>0,`tesis görüntüsü çizildi (${d.img} px)`);
 ok(errs.length===0,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));
 await b.close();console.log(fails?`\n${fails} denetim başarısız`:"\nTüm denetimler geçti");process.exit(fails?1:0);})();

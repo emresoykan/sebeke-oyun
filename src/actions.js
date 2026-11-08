@@ -48,7 +48,7 @@ export function undoLast(){
 }
 
 // Seçili noktada yeni saha aç (arazi satın al / deniz alanı kirala)
-export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||(!t.sea&&!allowed(t).length)||(t.deep&&locked("flo")))return;S.money-=c;
+export function buyLand(){const t=describe(S.sel.lat,S.sel.lon),c=landCost(t);if(S.money<c||rivalNear(t.lat,t.lon)||t.urban||t.shore||(!t.sea&&!allowed(t).length)||(t.deep&&locked("flo")))return;S.money-=c;
   const id="s"+(S.nextId++),sl=slopeCached(t.lat,t.lon);S.sites[id]={...t,permit:"none"};if(sl)S.sites[id].slope=sl;S.sel={id,lat:t.lat,lon:t.lon};
   addLog(`${t.sea?"Deniz alanı tahsisi":"Arazi"} alındı: ${placeName(t)} (${REG[t.mreg].n} piyasası). Sıradaki adım: izin başvurusu.`);markUndo({kind:"land",id,c});refresh();window.dispatchEvent(new CustomEvent("sebeke:land"));}
 // opt: reddedilen başvurudan sonra seçilen yol (rules.js permitOptions); yoksa normal başvuru.

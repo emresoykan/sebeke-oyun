@@ -7,6 +7,7 @@ import cities from "./data/cities.json";
 import { PROTECTED } from "./data/protected.js";
 import { GHI, WS50 } from "./data/resource.js";
 import { urbanAt } from "./urban.js";
+import { landTR, coastKmTR, SHORE_KM } from "./coasttr.js";
 import { MARKETS, COAST_KM, SHALLOW_KM, FLOAT_KM } from "./config.js";
 
 const R=6371, rad=Math.PI/180;
@@ -55,7 +56,7 @@ const BIO={pl:0.8,f:0.9,m:0.45,d:0.1,p:0,i:0};
 // Eski kayıtlardaki sahalarda yeni kaynak alanları yok: konumdan tamamlanır
 export function fillRes(t){
   // sığ deniz: güneş kaynağı (deniz üstü GES) ve kıyıya uzaklık eski kayıtlarda yok
-  if(t.sea){if(t.shallow){if(t.tide==null)t.tide=tideAt(t.lat,t.lon);if(!t.solar)t.solar=sunOf(t.lat,t.lon);if(t.coastKm==null)t.coastKm=+nearestShore(t.lon,t.lat,SHALLOW_KM).km.toFixed(1);}}
+  if(t.sea){if(t.shallow){if(t.tide==null)t.tide=tideAt(t.lat,t.lon);if(!t.solar)t.solar=sunOf(t.lat,t.lon);if(t.coastKm==null){const ck=coastKmTR(t.lon,t.lat);t.coastKm=+(ck!=null&&ck!==Infinity?ck:nearestShore(t.lon,t.lat,SHALLOW_KM).km).toFixed(1);}}}
   else{if(t.geo==null)t.geo=geoAt(t.lat,t.lon);if(t.bio==null)t.bio=BIO[t.ter]??0;}
   return t;
 }
@@ -96,16 +97,24 @@ function landTer(c,lat,lon){const park=protectedAt(lat,lon);return {park,ter:(c.
 // piyasa dışı) null döner. Korunan alanlarda puan döner ama p=1 işaretlenir (izin neredeyse çıkmaz).
 export function potentialAt(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
-  const c=countryAt(lon,lat);
+  const c=landCountry(lon,lat);
   if(c){if(c.m==="G"||c.m==="X"||!MARKETS.includes(c.m)||urbanAt(lat,lon)===true)return null;const {park,ter}=landTer(c,lat,lon);
     return {s:sunOf(lat,lon),w:windOf(lat,lon,ter,coastKm(lon,lat)<=COAST_KM,c.m,c.a3),p:park?1:0};}
   const n=nearestCountry(lon,lat,SHALLOW_KM)||(Math.abs(lat)<66?nearestCountry(lon,lat,FLOAT_KM):null); // derin bant: yalnızca yüzer rüzgâr
   return n&&MARKETS.includes(n.m)&&Math.abs(lat)<66&&urbanAt(lat,lon)!==true?{s:0,w:seaWindOf(lat,lon,n.m),p:0}:null;
 }
 
+// Noktanın kara ülkesi ya da null (deniz). Türkiye çevresinde kara/deniz kararı ayrıntılı kıyıdan (coasttr.js): 1:50m poligon
+// yalnızca hangi ülke olduğunu söyler; kaba kıyının denize düşürdüğü kara noktası en yakın ülkeye bağlanır
+function landCountry(lon,lat){
+  const c=countryAt(lon,lat),l=landTR(lon,lat);
+  if(l===null)return c;if(!l)return null;return c||nearestCountry(lon,lat,30)||null;
+}
 export function describe(lat,lon){
   lon=((lon+540)%360)-180;lat=Math.max(-89.9,Math.min(89.9,lat));
-  const t={lat:+lat.toFixed(3),lon:+lon.toFixed(3)},c=countryAt(lon,lat);
+  const t={lat:+lat.toFixed(3),lon:+lon.toFixed(3)},c=landCountry(lon,lat),ck=coastKmTR(lon,lat);
+  // kıyı şeridi: ayrıntılı kıyıya SHORE_KM'den yakın; saha açılamaz (rules.js baseAllowed, actions.js buyLand)
+  if(ck!=null&&ck<SHORE_KM)t.shore=true;
   if(c){
     t.reg=c.m;t.sea=false;t.country=c.n;t.a3=c.a3;
     const {park,ter}=landTer(c,lat,lon);if(park)t.park=park;t.ter=ter;
@@ -118,7 +127,7 @@ export function describe(lat,lon){
     t.reg=null;t.sea=true;const sh=nearestShore(lon,lat,SHALLOW_KM),n=sh.c;
     t.shallow=!!n&&MARKETS.includes(n.m)&&Math.abs(lat)<66;
     // sığ denizde güneş kaynağı da var (deniz üstü GES); kıyıya uzaklık kıyıya yakın kurulan tesisler için
-    if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=sunOf(lat,lon);t.coastKm=+sh.km.toFixed(1);t.hydro=0;t.tide=tideAt(lat,lon);}
+    if(t.shallow){t.mreg=n.m;t.country=n.n;t.a3=n.a3;t.wind=seaWindOf(lat,lon,n.m);t.solar=sunOf(lat,lon);t.coastKm=+(ck!=null&&ck!==Infinity?ck:sh.km).toFixed(1);t.hydro=0;t.tide=tideAt(lat,lon);}
     // derin deniz bandı (kıyıya SHALLOW_KM–FLOAT_KM): sabit temel kurulamaz, yalnızca yüzer rüzgâr
     else if(Math.abs(lat)<66){const d=nearestCountry(lon,lat,FLOAT_KM);if(d&&MARKETS.includes(d.m)){t.deep=true;t.mreg=d.m;t.country=d.n;t.a3=d.a3;t.wind=seaWindOf(lat,lon,d.m);t.solar=0;t.hydro=0;}}
   }

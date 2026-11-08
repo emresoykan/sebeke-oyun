@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-08",t:"Türkiye kıyıları düzeltildi",items:[
+    "Deniz GES'i ve diğer deniz sahaları artık haritada karada görünmüyor: Türkiye çevresinde kara ve deniz ayrıntılı kıyı verisiyle ayrılıyor (önceki kaba kıyı ~2 km sapıyordu).",
+    "Kıyıya 1 km'den yakın şeritte saha açılmaz; saha panelinde nedeni yazar.",
+    "Eski kayıtlarda yanlış tarafta ya da kıyı şeridinde kalan sahaların en yakın uygun noktaya bir kez taşındı; santraller yerinde, günlüğe not düşüldü."]},
   {id:"2026-11-05",t:"Güneş santralinin maliyeti piyasaya göre",items:[
     "Güneş santrallerinin (GES, yüzer GES, deniz GES'i) kurulum bedeli artık piyasaya göre değişiyor: Avrupa'da %13, Kuzey Amerika'da %53, Afrika'da %58 pahalı, Asya'da %15 ucuz (IRENA 2024 bölge ortalamaları). Türkiye ve diğer piyasalar küresel ortalamada.",
     "Kurulum panelinde not; santrallerin getirisi (proje ekonomisi) aynı maliyetle hesaplanır. Rüzgâr ve diğer teknolojiler değişmedi."]},

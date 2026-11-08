@@ -231,6 +231,8 @@ function renderPanelImpl(){
     html+=`<div class="status bad">Bu bölge rakip şirketin sahasına çok yakın: ${SITE_MIN_KM} km içinde yeni saha açılamaz.</div>`;}
   else if(!o&&t.urban){
     html+=`<div class="status bad">Yerleşim alanı${t.cityKm<5?` (${t.city})`:""}: şehir ve kasabaların yapılaşmış bölgelerinde santral için arazi satın alınamaz. Kentin dışındaki tarım arazisi, mera ya da sanayi bölgelerine bak.</div>`;
+  }else if(!o&&t.shore){
+    html+=`<div class="status bad">Kıyı şeridi: kıyıya 1 km'den yakın noktalarda saha açılamaz. ${t.sea?"Biraz daha açığa":"Biraz daha içeriye"} bak. (Gerçekte kıyı kenar çizgisinden itibaren 100 m'lik sahil şeridinde yapılaşma yasak; oyundaki 1 km, kıyı verisinin çözünürlüğü için pay.)</div>`;
   }else if(!o&&t.deep&&locked("flo")){
     html+=`<div class="status bad">Derin deniz: yalnızca yüzer rüzgâr kurulabilir, o da toplam ${FLO_UNLOCK} MW kurulu güce ulaşınca açılır (şu an ${totalMW()} MW). Şimdilik kıyıya 200 km'ye kadar sığ sulara bak.</div>`;
   }else if(!o&&!t.sea&&!allowed(t).length){

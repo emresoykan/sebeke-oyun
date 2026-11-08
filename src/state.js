@@ -3,7 +3,8 @@
 // ES modül bağlamaları dışarıdan yeniden atanamadığı için atamalar setS/setD ile yapılır.
 // S.sites: satın alınan sahalar (id -> konum, arazi bilgisi, izin durumu); S.sel: seçili nokta {id, lat, lon}.
 import { SAVE_KEY, REG, MARKETS, START_MONEY, START_TOPUP } from "./config.js";
-import { describe } from "./world.js";
+import { describe, placeName } from "./world.js";
+import { landTR, coastKmTR, nearestValid, SHORE_KM } from "./coasttr.js";
 import { renderLog } from "./ui/hud.js";
 import { freshStats } from "./profile.js";
 
@@ -11,7 +12,7 @@ export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,loans:[],mv:3,ob:{}};}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,coastV:1,loans:[],mv:3,ob:{}};}
 export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
 // Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
 // (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
@@ -30,6 +31,17 @@ function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.topup1){o.mo
     if(o.plants.length)Object.assign(o.ob,{tech:1,prod:1,sale:1,repReady:1,rep:1,card:1});o.mv=2;}
   // görev zinciri v3: eğitimden sonra "İlk kredili bloğunu kur" eklendi (9. sıra); alım garantisi yalnızca yeni projelere
   if(o.mv<3){if(o.mi!=null&&o.mi>=9)o.mi++;if(o.plants.length)o.fitDone=1;o.mv=3;}
+  // kıyı v1 (coasttr.js): Türkiye çevresinde ayrıntılı kıyı. Kaba kıyı yüzünden yanlış tarafta (denizdeki saha karada,
+  // karadaki saha denizde) ya da kıyı şeridinde kalan sahalar en yakın uygun noktaya bir kez taşınır; rakip sahaları da
+  if((o.coastV||0)<1){const moved=[];
+    Object.values(o.sites).forEach(t=>{const l=landTR(t.lon,t.lat);if(l===null)return;
+      if(l===!t.sea&&coastKmTR(t.lon,t.lat,SHORE_KM+1)>=SHORE_KM)return;const n=nearestValid(t.lon,t.lat,!!t.sea);if(!n)return;
+      t.lat=n.lat;t.lon=n.lon;delete t.slope;if(t.sea){const k=coastKmTR(n.lon,n.lat);if(k!=null&&k!==Infinity)t.coastKm=+k.toFixed(1);}
+      moved.push(`${placeName(t)} ${n.km.toFixed(2).replace(".",",")} km`);});
+    if(o.rivals)Object.values(o.rivals).forEach(r=>(r.sites||[]).forEach(s=>{const l=landTR(s.lon,s.lat);if(l===null)return;
+      if(l&&coastKmTR(s.lon,s.lat,SHORE_KM+1)>=SHORE_KM)return;const n=nearestValid(s.lon,s.lat,false);if(n){s.lat=n.lat;s.lon=n.lon;}}));
+    if(moved.length)o.log=[`Gün ${o.dayNo}: Türkiye kıyıları ayrıntılı kıyı verisine geçti; yanlış tarafta ya da kıyı şeridinde kalan sahaların taşındı: ${moved.join(", ")}.`,...(o.log||[])].slice(0,8);
+    o.coastV=1;}
   o.resV=3;return o;}
 let frozen=false;
 // Kayıt dosyası yüklenirken sayfa yenilenene kadar mevcut durum kaydın üzerine yazılmaz
