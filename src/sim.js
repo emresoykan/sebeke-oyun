@@ -54,9 +54,9 @@ export function newDay(){
     const sunH=ws.map(w=>clamp(clearFactor(w.c)/0.8,0.25,1.1)),windH=fw&&FLEET_CF[k]?fw.map(f=>clamp(f/FLEET_CF[k],0,3)):ws.map(w=>clamp(w.v/7,0.3,1.8));
     const solarMW=S.plants.filter(p=>PV.includes(p.k)&&site(p.t).mreg===k).reduce((a,p)=>a+p.mw,0);
     // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür; Türkiye'de yılın hidrolojisi
-    // (hydro.js) bütün saatlerden aynı tutarı düşürür ya da ekler
-    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1),hy=k==="T"?hydShift():0;
-    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-hy),0,110*mult));
+    // (hydro.js) saatlik fiyattan bir tutar düşürür ya da ekler (yağışlı yılda akşam zirvesinde az)
+    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1),hy=k==="T"?BASE.map((_,h)=>hydShift(CAL.date,h)):null;
+    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(0.92+0.16*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-(hy?hy[h]:0)),0,110*mult));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     // fleet ve sunP: filonun saatlik rüzgâr kapasite oranı ve piyasanın güneş üretim profili (kalibrasyon ölçümleri için)
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),fleet:fw,sunP:sunH.map((s,h)=>shape(h)*amp*s),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0,c:0}))};

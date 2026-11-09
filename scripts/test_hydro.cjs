@@ -25,18 +25,21 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   // 2) fiyat terimi: Nisan 2026, Ocak 2026; kurak yılda küçük pay
   const d=(y,m)=>new Date(Date.UTC(y,m,15));
   out.shift={apr:H.hydShift(d(2026,3)),jan:H.hydShift(d(2026,0))};
-  S.hyd[2031]={w:0.78,ref:2025};out.shift.dry=H.hydShift(d(2031,3));
-  out.shiftOk=near(out.shift.apr,C.depth*C.mon[3]*(C.known[2026]-1))&&near(out.shift.jan,C.depth*C.mon[0]*(C.known[2026]-1))&&near(out.shift.dry,C.depth*C.mon[3]*(-0.22)*C.dry);
+  out.shift.eve=H.hydShift(d(2026,3),20);S.hyd[2031]={w:0.78,ref:2025};out.shift.dry=H.hydShift(d(2031,3));out.shift.dryEve=H.hydShift(d(2031,3),20);
+  // saatlik ağırlık: yağışlı yılda akşam zirvesi az düşer, gece ve öğle tam; kurak yılda bütün saatler eşit
+  out.hrOk=C.hr.length===24&&C.hr[3]===1&&C.hr[12]>=1&&C.hr[20]<0.5&&C.hr.every(x=>x>0);
+  out.shiftOk=near(out.shift.apr,C.depth*C.mon[3]*(C.known[2026]-1))&&near(out.shift.jan,C.depth*C.mon[0]*(C.known[2026]-1))&&near(out.shift.eve,out.shift.apr*C.hr[20])
+    &&near(out.shift.dry,C.depth*C.mon[3]*(-0.22)*C.dry)&&near(out.shift.dryEve,out.shift.dry);
   // 3) aynı gün, aynı hava ve rastgelelik: Türkiye fiyatı yalnızca hidrolojiyle değişir; HES su bütçesi w ile ölçeklenir
   S.sites.m={...w.describe(40.95,39.75),permit:"ok"};ac.build("m","hes","std");const hes=S.plants.find(q=>q.t==="m"&&q.k==="hes");
   S.dayNo=dayFor(2026,3,15);S.hour=0;S.newsDay=S.dayNo; // yeni gün haberleri ve rakip hamleleri tekrarlanmasın
   const wx0=JSON.stringify(S.wx),mR=Math.random,run=(W)=>{S.wx=JSON.parse(wx0);S.hyd[2026]={w:W,ref:0};hes.wet=0.35;let i=0;Math.random=()=>((i++*0.6180339887)%1);
     sim.newDay();Math.random=mR;return {T:[...D().T.price],E:[...D().E.price],hes:hes.plan.reduce((a,x)=>a+x,0)};};
   const a=run(1),b=run(1.27),mult=cfg.REG.T.mult,sh=C.depth*C.mon[3]*0.27*mult;
-  const diffs=a.T.map((x,h)=>[x,b.T[h]]).filter(([x,y])=>y>0.01&&x<110*mult-0.01).map(([x,y])=>x-y);
+  const kept=a.T.map((x,h)=>[x,b.T[h],h]).filter(([x,y])=>y>0.01&&x<110*mult-0.01),diffs=kept.map(([x,y])=>x-y);
   out.day={sh,n:diffs.length,min:Math.min(...diffs),max:Math.max(...diffs),zeroA:a.T.filter(x=>x<0.01).length,zeroB:b.T.filter(x=>x<0.01).length,
     sameE:a.E.every((x,h)=>near(x,b.E[h],1e-9)),hesA:a.hes,hesB:b.hes,hesCap:hes.mw*24};
-  out.dayOk=diffs.length>0&&diffs.every(x=>near(x,sh,1e-6))&&out.day.sameE;
+  out.dayOk=diffs.length>0&&kept.every(([x,y,h])=>near(x-y,sh*C.hr[h],1e-6))&&out.day.sameE;
   out.hesOk=a.hes>0&&a.hes<hes.mw*24*0.9&&near(b.hes/a.hes,1.27,1e-6);
   S.hyd[2026]={w:C.known[2026],real:1};
   // 4) yıl geçişi: 2027 önceden bilinmiyor; 1 Ocak'ta geçmiş yıllardan biri seçilir, haber ve kayıt
@@ -59,8 +62,9 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   st.save();out.saved=Object.keys(localStorage).some(k=>{const v=localStorage.getItem(k)||"";return v.includes('"hyd":{')&&v.includes(`"2027":{"w":${h27.w}`);});
   return out;},u);
 ok(r.start.h&&r.start.h.w===1.27&&r.start.h.real&&r.start.news===1&&r.start.next===null,`oyunun başı: 2026 gerçek yıl (w ${r.start.h&&r.start.h.w}), haber bir kez, 2027 henüz belli değil`);
-ok(r.shiftOk,`fiyat terimi: Nisan ${r.shift.apr.toFixed(2)}, Ocak ${r.shift.jan.toFixed(2)}, kurak Nisan ${r.shift.dry.toFixed(2)} $/MWh (piyasa çarpanından önce)`);
-ok(r.dayOk,`aynı gün: Türkiye fiyatı kesilmeyen ${r.day.n} saatte tam ${r.day.sh.toFixed(2)} $/MWh düşük (${r.day.min.toFixed(2)}–${r.day.max.toFixed(2)}); sıfır saat ${r.day.zeroA} → ${r.day.zeroB}; Avrupa aynı`);
+ok(r.hrOk,"saatlik ağırlık: 24 saat, gece 1, öğle en az 1, saat 20 yarının altında");
+ok(r.shiftOk,`fiyat terimi: Nisan ${r.shift.apr.toFixed(2)} (saat 20: ${r.shift.eve.toFixed(2)}), Ocak ${r.shift.jan.toFixed(2)}, kurak Nisan ${r.shift.dry.toFixed(2)} (saat 20 aynı) $/MWh (piyasa çarpanından önce)`);
+ok(r.dayOk,`aynı gün: Türkiye fiyatı kesilmeyen ${r.day.n} saatte tam ağırlıklı tutar kadar düşük (en etkili saatte ${r.day.sh.toFixed(2)}; ${r.day.min.toFixed(2)}–${r.day.max.toFixed(2)} $/MWh); sıfır saat ${r.day.zeroA} → ${r.day.zeroB}; Avrupa aynı`);
 ok(r.hesOk,`Türkiye HES su bütçesi w ile: ${r.day.hesA.toFixed(1)} → ${r.day.hesB.toFixed(1)} MWh (×${(r.day.hesB/r.day.hesA).toFixed(3)})`);
 ok(r.pre2027===null&&r.y27Ok,`yıl geçişi: 2027 Aralık'ta bilinmiyor, 1 Ocak'ta seçildi (${r.h27&&r.h27.ref} gibi, w ${r.h27&&r.h27.w}), haber ve kayıt`);
 ok(r.dist.n===11&&r.dist.min>180&&r.dist.max<370&&Math.abs(r.dist.mean-1)<0.02,`seçim dağılımı: 11 yılın hepsi (${r.dist.min}–${r.dist.max} kez / 3000), ortalama w ${r.dist.mean.toFixed(3)}`);

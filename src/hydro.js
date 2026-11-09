@@ -7,6 +7,9 @@
 // 1 Ocak'ta TEİAŞ 2015–2025 yıllarından biri rastgele seçilerek belirlenir. Bu yüzden ertesi yılın YEKDEM kararı (30 Kasım)
 // hidroloji bilinmeden verilir. Türkiye piyasasında saatlik fiyattan aylık ağırlıkla depth × (w − 1) düşülür (kurak yılda
 // dry payıyla eklenir; sıfırın altına inmez); Türkiye'deki HES'lerin su bütçesi w ile çarpılır.
+// Saatlik dağılım: yağışlı yılda fazla su gece ve öğle saatlerinin fiyatını düşürür, akşam zirvesinde (19–21) fiyatı yine gaz
+// ve barajlı HES belirler. 2026 Mart–Haziran'da TL fiyat geceleri 2025'e göre ~1.150–2.900 TL/MWh düştü, saat 20'de yalnızca
+// 210–1.055 (EPİAŞ). Oyunda yağışlı yılın terimi saatlik ağırlıkla (HYDRO.hr) çarpılır; kurak yılda bütün saatlere eşit.
 import { S, addLog } from "./state.js";
 import { CAL } from "./calendar.js";
 import { HYDRO } from "./config.js";
@@ -32,10 +35,11 @@ export function hydClass(w){
 // geçmiş yılların sınıf dağılımı (panel: ertesi yılın riski için)
 export function hydOdds(){const c={};HIST.forEach(h=>{const n=hydClass(h.w).n;c[n]=(c[n]||0)+1;});return {c,n:HIST.length,first:HIST[0].y,last:HIST[HIST.length-1].y};}
 
-// Türkiye piyasasında saatlik fiyattan düşülecek tutar ($/MWh, piyasa çarpanından önce; eksi ise fiyat artar)
-export function hydShift(d=CAL.date){
-  const w=hydW(d.getUTCFullYear()),x=w-1;
-  return HYDRO.depth*HYDRO.mon[d.getUTCMonth()]*(x<0?x*HYDRO.dry:x);
+// Türkiye piyasasında h saatinin fiyatından düşülecek tutar ($/MWh, piyasa çarpanından önce; eksi ise fiyat artar).
+// h verilmezse saatlik ağırlık 1 (en etkili saat)
+export function hydShift(d=CAL.date,h=null){
+  const w=hydW(d.getUTCFullYear()),x=w-1,b=HYDRO.depth*HYDRO.mon[d.getUTCMonth()];
+  return x<0?b*x*HYDRO.dry:b*x*(h==null?1:HYDRO.hr[h]);
 }
 // Türkiye'deki HES'lerin su bütçesi çarpanı
 export const hydVol=()=>hydW();
@@ -45,7 +49,7 @@ export function hydText(y=yearNow()){
   const h=hydOf(y);if(!h)return null;const c=hydClass(h.w);
   const vol=h.w>=1?`ortalamanın %${pct(h.w)} üstünde`:`ortalamanın %${pct(h.w)} altında`;
   const src=h.real?"gerçek yıl, TEİAŞ":`${h.ref} gibi`;
-  const eff=c.k==="dry"?"ilkbahar fiyatları biraz yüksek":c.k==="norm"?"fiyatlara etkisi küçük":"ilkbaharda Türkiye'de fiyatlar düşük, öğle saatleri sıfıra yakın";
+  const eff=c.k==="dry"?"ilkbahar fiyatları biraz yüksek":c.k==="norm"?"fiyatlara etkisi küçük":"ilkbaharda Türkiye'de fiyatlar düşük, öğle ve gece saatleri sıfıra yakın; akşam zirvesi yüksek kalır";
   return {c,t:`${c.n} bir yıl (${src}). HES'lere ${vol} su gelir; ${eff}.`};
 }
 

@@ -7,7 +7,7 @@ export const REAL_NEWS=[
   {id:"2026-03-02-lisanssiz",d:"2026-03-02",i:"🔌",
     t:"TEİAŞ 2026 lisanssız üretim kapasitesini duyurdu: yeni RES ve GES için 3.500 MW (iletim 1.500, dağıtım 2.000 MW; EPDK'nın 26 Şubat 2026 tarihli 14353 sayılı kararı). Bir şirket iletimden en çok 75, dağıtımdan 10 MW alabilecek."},
   {id:"2026-06-01-hidro",d:"2026-06-01",i:"🌊",
-    t:"Türkiye'de Nisan ve Mayıs'ta gün öncesi fiyatı (PTF) ortalaması 20,7 ve 13,0 $/MWh'e indi; bir yıl önce 64,6 ve 63,6'ydı. Aynı aylarda HES üretimi ayda ~11,7 TWh ile 2025'in %58–59 üstündeydi. Saatlerin yarısında fiyat Nisan'da 8,1, Mayıs'ta 4,2 $/MWh'in altındaydı (EPİAŞ, TEİAŞ)."},
+    t:"Türkiye'de Nisan ve Mayıs'ta gün öncesi fiyatı (PTF) ortalaması 20,7 ve 13,0 $/MWh'e indi; bir yıl önce 64,6 ve 63,6'ydı. Aynı aylarda HES üretimi ayda ~11,7 TWh ile 2025'in %58–59 üstündeydi. Saatlerin yarısında fiyat Nisan'da 8,1, Mayıs'ta 4,2 $/MWh'in altındaydı; akşam 19–21'de ise TL fiyat bir yıl öncesine yakın kaldı (Nisan'da %4, Mayıs'ta %26 düşük; EPİAŞ, TEİAŞ)."},
   {id:"2026-08-12-offshore-yeka",d:"2026-08-12",i:"🌬️",
     t:"Türkiye'nin ilk deniz üstü rüzgâr YEKA ihalesi 2027'nin ilk çeyreğine planlandı: Saros, Gökçeada, Bozcaada ve Edremit açıklarında dört saha; taslak şartnamede 1.000 MW, alım fiyatı tavanı 11, tabanı 7 ABD sent/kWh, %25 yerlilik. 2035 hedefi 5 GW."},
   {id:"2026-09-30-lisanssiz",d:"2026-09-30",i:"🔌",
