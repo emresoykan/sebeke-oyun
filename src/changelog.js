@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-09.2",t:"Rakiplerin güneşi fiyatı daha yavaş düşürüyor",items:[
+    "Türkiye'de rakipler güneş santrali kurdukça güneşin fiyat oranı artık yılda ~6–7 puan düşüyor (önce ~15). Gerçekte güneş filosu yılda ~%28 büyürken oran ~8 puan düştü (EPİAŞ, TEİAŞ 2024–2025).",
+    "Üçüncü oyun yılında güneşin piyasa satış fiyatı ilk yıla göre ~%31 düşük (önce ~%52). İlk yılın fiyatları değişmedi."]},
   {id:"2026-11-09",t:"Türkiye'de fiyat tavanı ve mevsimler",items:[
     "Türkiye'de saatlik fiyatın bir tavanı var: 100 $/MWh (azami fiyat; gerçekte Nisan 2026'dan beri 4.500 TL/MWh). Olay kartlarının fiyat etkisi de tavanı aşmaz. Sözlükte \"Azami fiyat\".",
     "Fiyatın gün içindeki şekli mevsime göre değişiyor: ilkbahar ve sonbaharda öğle fiyatı güneşle derin düşer, yazın klima talebi ve kışın zayıf güneş düşüşü sınırlar. Kış daha ucuz, Mayıs daha pahalı, yaz en pahalı (EPİAŞ 2024–2025).",

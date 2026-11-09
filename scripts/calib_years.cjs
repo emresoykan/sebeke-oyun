@@ -5,7 +5,7 @@
 // yıl (w 1; hydro.js).
 // Kullanım: npx vite --port 5182 &  sonra  node scripts/calib_years.cjs http://localhost:5182/sebeke-oyun/ [yıl=3] [koşu=3]
 //   CALIB_OUT=dosya.json ham sonucu yazar. CALIB_REG='{"mult":0.92,"cap":null,...}' REG.T alanlarını değiştirir (karşılaştırma için;
-//   null alanı siler: cap → genel üst sınır, sm/dem → yok, nz → 0,16).
+//   null alanı siler: cap → genel üst sınır, sm/dem → yok, nz → 0,16, rg → 1000).
 const { chromium } = require("playwright");
 const REGO=process.env.CALIB_REG?JSON.parse(process.env.CALIB_REG):null;
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",YEARS=+(process.argv[3]||3),RUNS=+(process.argv[4]||3),YD=120;
@@ -16,6 +16,7 @@ for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("page
   await p.goto(URL0);await p.waitForTimeout(3000);
   const r=await p.evaluate(async([YEARS,YD,REGO])=>{const st=await import("/src/state.js"),sim=await import("/src/sim.js"),rv=await import("/src/rivals.js"),cfg=await import("/src/config.js"),S=st.S;
     if(REGO)for(const [k,v] of Object.entries(REGO)){if(v===null)delete cfg.REG.T[k];else cfg.REG.T[k]=v;}
+    if(REGO&&REGO.s0!=null)S.mSolar.T=REGO.s0; // başlangıç doygunluğu yeni s0'dan
     S.money=1e10;S.won=true;S.win1=1;S.evCool=1e9;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});
     S.hyd={};for(let y=2026;y<=2026+YEARS+1;y++)S.hyd[y]={w:1,ref:0}; // normal hidrolojik yıl
     const out=[];
