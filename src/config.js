@@ -88,8 +88,11 @@ export const REG={
   // yerine): aylık ortalama fiyatın yıl ortalamasına oranı EPİAŞ 2024 ve 2025 ortalamasına göre (kış daha ucuz, Mayıs daha
   // pahalı, yaz en pahalı). nz: saatlik fiyatın rastgele oynama genişliği (±nz/2; diğer piyasalarda 0,16): günden güne şekil
   // farkı; normal yılda günlük en yüksek–en düşük farkı eski limitli 2024–2025 (47–49 $/MWh) ile yeni limitli, çok yağışlı
-  // 2026 (Ocak–Ekim 62) arasında kalsın diye (docs/kalibrasyon.md "Günlük fiyat şekli").
-  T:{n:"Türkiye",mult:0.94,s0:0.60,land:20000,cap:100,nz:0.24,sm:[0.8,0.8,1.5,1.4,1.7,1.4,1,1.1,1.2,1.4,1.4,0.6],
+  // 2026 (Ocak–Ekim 62) arasında kalsın diye (docs/kalibrasyon.md "Günlük fiyat şekli"). rg: rakiplerin GES'inin güneş
+  // doygunluğuna etkisi (MW başına 1/rg; diğer piyasalarda 1/1000). Gerçekte güneş filosu yılda ~%28 büyürken (TEİAŞ: 2024
+  // 20,2, 2025 25,9 GW) güneş fiyat oranı 0,911'den 0,834'e indi (~8 puan); 1/1000 ile oyunda yılda ~15 puan düşüyordu.
+  // s0 0,60 → 0,69: rakip etkisi azalınca ilk yılın doygunluğu aynı kalsın diye (docs/kalibrasyon.md "Çok yıllı fiyat yolu").
+  T:{n:"Türkiye",mult:0.94,s0:0.69,rg:3500,land:20000,cap:100,nz:0.24,sm:[0.8,0.8,1.5,1.4,1.7,1.4,1,1.1,1.2,1.4,1.4,0.6],
     dem:[0.954,0.951,0.995,0.916,1.025,0.979,1.132,1.141,1.052,1.012,0.999,0.951]},
   E:{n:"Avrupa",mult:1.62,s0:0.70,land:40000,sk:3.7,wk:1.7}, // mult/sk/wk: ENTSO-E 2025 (DE, ES) kalibrasyonu, rüzgâr filo endeksiyle (29.10.2026)
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},

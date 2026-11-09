@@ -56,7 +56,7 @@ export function newDay(){
     // rakiplerin işletmedeki güneşi öğle fiyatını, rüzgârı rüzgârlı saatlerin fiyatını düşürür; Türkiye'de yılın hidrolojisi
     // (hydro.js) saatlik fiyattan bir tutar düşürür ya da ekler (yağışlı yılda akşam zirvesinde az). Türkiye'de güneş etkisi
     // aya göre değişir (REG.T.sm) ve fiyat azami fiyatı (REG.T.cap) aşmaz
-    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/1000, mult=REG[k].mult, dem=REG[k].dem?REG[k].dem[CAL.date.getUTCMonth()]:demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1)*(REG[k].sm?REG[k].sm[CAL.date.getUTCMonth()]:1),hy=k==="T"?BASE.map((_,h)=>hydShift(CAL.date,h)):null;
+    const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/(REG[k].rg||1000), mult=REG[k].mult, dem=REG[k].dem?REG[k].dem[CAL.date.getUTCMonth()]:demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1)*(REG[k].sm?REG[k].sm[CAL.date.getUTCMonth()]:1),hy=k==="T"?BASE.map((_,h)=>hydShift(CAL.date,h)):null;
     const nz=REG[k].nz??0.16,price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(1-nz/2+nz*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-(hy?hy[h]:0)),0,priceCap(k)));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     // fleet ve sunP: filonun saatlik rüzgâr kapasite oranı ve piyasanın güneş üretim profili (kalibrasyon ölçümleri için)

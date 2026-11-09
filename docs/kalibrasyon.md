@@ -536,6 +536,30 @@ Değerler `calib_shape.cjs` (3 koşu) ve `calib_market.cjs` (4 koşu) ortalamala
 - **Gerçekle karşılaştırma:** Türkiye'nin güneş fiyat oranı 2024'ten 2025'e 0,91'den 0,83'e indi (yılda ~8 puan). Oyundaki hız (yılda ~15 puan) daha yüksek. Oyunun kendi davranışıdır, tahmin değildir.
 - **Avrupa:** 90,8 → 84,6 → 81,4 $/MWh (−%10).
 
+### Rakip GES'in etkisi gerçek ölçeğe çekildi (`REG.T.rg`, `s0`)
+- **Sorun:** Yılda ~15 puanlık düşüş, gerçekte ~8 puan.
+  - Gerçek veri: güneş filosu 2024'te 20,2, 2025'te 25,9 GW (TEİAŞ yıl sonu kurulu güç). Yılda ~%28 büyürken güneş fiyat oranı 0,911'den 0,834'e indi. 1 Kasım 2026'da 28,7 GW (TEİAŞ YTBS, geçici).
+  - Oyundaki neden: güneşin fiyat etkisi, piyasanın doygunluğu ile rakiplerin GES gücünün MW başına 1/1.000'inin toplamı. İlk yılın doygunluğu (~0,84) Türkiye'nin bütün filosunu (~27 GW) temsil eder. Rakiplerin 1 GW'ı ise ~32 GW gerçek filoya denk geliyordu.
+- **Değişiklik:**
+  - Türkiye'de rakip GES MW başına 1/3.500 (`rg`). Diğer piyasalar 1/1.000 kaldı.
+  - Rakip etkisi azalınca ilk yılın doygunluğu aynı kalsın diye `s0` 0,60 → 0,69 (tavanı 0,72 → 0,83).
+- **Denenenler (2'şer koşu):** `rg` 2.500 ile güneş oranı 0,83 → 0,77 → 0,67; 3.500 ile 0,82 → 0,76 → 0,69.
+- **Sonuç (`rg` 3.500; 3 yıl × 4 koşu):**
+
+| Oyun yılı | Türkiye fiyatı ($/MWh) | Güneş fiyat oranı | Güneşin piyasa satış fiyatı | Rakip kurulu gücü (GES) |
+|---|---|---|---|---|
+| 1 | 66,1 (65,7–66,7) | 0,823 | 54,4 | 0,30 GW (0,20) |
+| 2 | 59,7 (−%10) | 0,769 (−5 puan) | 45,9 | 0,94 GW (0,56) |
+| 3 | 54,2 (−%18) | 0,695 (−7 puan) | 37,7 (−%31) | 1,44 GW (0,80) |
+
+- **İlk yıl korundu** (`calib_market`, 4 koşu):
+  - Türkiye ortalaması 66,3 $/MWh.
+  - Güneş fiyat oranı 0,835 (0,826–0,842; hedef 0,834).
+  - Rüzgâr fiyat oranı 0,981.
+  - Avrupa ve Kuzey Amerika değişmedi.
+  - Vaka çalışması: 8 yeni proje koşusu Türkiye aralıklarında kaldı (GES IRR %11,1–13,6, ortalama 66,3); satırlar korundu.
+- **Sınırlama:** Rakiplerin yatırım hızı ayrıca kalibre edilmedi; düşüş hızı kurulu güç ile fiyat etkisinin birlikte sonucudur. 2026'da filo büyümesi yavaşladı (Ocak–Ekim ~%11). Gerçek düşüş 2026'da 8 puandan az olabilir; 2026 tam yıl verisiyle (Ocak 2027) yeniden bakılmalı.
+
 ## Sınırlamalar
 - **Şekil hedefi yine tek yıla (2025) dayanıyor.** Aylık fark yıldan yıla çok oynuyor; oyun 2024 ile 2025 arasında ya da yakınında kalıyor. Kış farkı 2024'ten düşük, 2025'ten yüksek.
 - **Limit dolar cinsinden sabit.** Gerçekte TL'dir ve EPDK kararıyla değişir. 4.500 TL değeri EPİAŞ verisinden çıkarıldı; EPDK kararı doğrulanamadı.

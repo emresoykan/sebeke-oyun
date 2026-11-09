@@ -45,7 +45,9 @@ Düzenli kontroller (başlık olmasa da):
   PTF dolar kuruyla). Son TEİAŞ aylık hidro verisi → `HYDRO.known` içindeki yılın tahmini.
 - **Çeyrekte bir:** tam fiyat kontrolü, `docs/kalibrasyon.md`'deki "Türkiye 2026 kontrolü" bölümünün yöntemiyle (EPİAŞ
   aylık USD ve TL, TEİAŞ hidro, TCMB reel kur). Yağışlı ya da kurak bir ilkbahardan sonra saat gruplarını da karşılaştır
-  (EPİAŞ saatlik PTF; `docs/kalibrasyon.md` "Saatlik dağılım", `calib_hydro.cjs` saat grubu tablosu). Kalibrasyon yalnızca
+  (EPİAŞ saatlik PTF; `docs/kalibrasyon.md` "Saatlik dağılım", `calib_hydro.cjs` saat grubu tablosu). Yıl kapanınca
+  güneş fiyat oranının yıllık değişimini TEİAŞ güneş kurulu gücü artışıyla birlikte `calib_years.cjs` sonucuyla karşılaştır
+  (`REG.T.rg`; 2024→2025: +%28 filo, −8 puan). Kalibrasyon yalnızca
   tipik bir yılı temsil eden kanıtla değişir.
 - **Olay oldukça:** azami fiyat (fiyat tavanı) değişikliği (EPDK kararı; EPİAŞ PTF'nin en yüksek değeri) → `REG.T.cap`
   (TL değerin o günkü kurla dolar karşılığı; normal yıl ortalamasına oranı ~1,5 korunur, `calib_shape.cjs` ile ölç),
