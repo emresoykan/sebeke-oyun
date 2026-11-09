@@ -24,22 +24,23 @@
   <p class="note"><b>Update (30 Oct 2026):</b> The results were regenerated with the current model. Calibration and project economics now rest on the first game year (120 game days, about one calendar year); the first version used the average of 365 game days (about three calendar years). The European targets now use full-year ENTSO-E 2025 data, and the Turkish solar target was widened from 7 to 12 sample days.</p>
   <p class="note"><b>Update (4 Nov 2026):</b> The game now has hydrological years: each year in Türkiye is dry, normal or wet. The results on this page are for a normal year and match the previous model. A new game's first year follows the actual 2026, which was very wet, so the first-year average price in Türkiye is about $51/MWh (about $67 in a normal year). Details: <code>docs/kalibrasyon.md</code>, "Hidrolojik yıl".</p>
   <p class="note"><b>Update (8 Nov 2026):</b> Solar capex in the game now depends on the market: in Europe it is IRENA's European average ($779/kW), 1.13 times the global average ($691/kW). The European rows in section 5 were regenerated with 8 new runs; European solar IRR fell from 12.5–15.2% to 10.7–13.3%; the same runs would give 12.4–15.3% at the old cost, so the drop comes from capex alone. The changes in the European wind rows come only from run-to-run variation. The Turkish rows are the 30 Oct 2026 runs: Turkish capex did not change, and 8 new runs with the current model stayed within the same ranges (average price $66.2/MWh, solar IRR 11.8–13.6%, wind IRR 15.7–22.4%).</p>
+  <p class="note"><b>Update (9 Nov 2026):</b> Türkiye's price model was recalibrated with EPİAŞ full-year hourly data. The Turkish solar capture rate is now measured from all 8,760 hours of 2025 rather than 12 sample days: 0.834 (the earlier ~0.84 estimate is confirmed). The game now has Türkiye's price cap ($100/MWh; in reality 4,500 TL/MWh since April 2026) and an intraday price shape that changes with the season: midday prices fall deeper in spring and autumn, winter is cheaper, summer the most expensive. The annual average price and solar capture rate are unchanged; in a normal year the average daily spread between the highest and lowest price rose from $44.7 to $51.7/MWh (actual 2024–2025: 47–49; 2026: 62). The Turkish rows in section 5 were regenerated with 8 new runs: the solar plant's average realised price fell by ~4% (IRR 10.9–12.7%). Most of the rise in wind IRR comes from a windier weather sample in these runs (capacity factor 41–56%, against 38–47% before). Details: <code>docs/kalibrasyon.md</code>, "Günlük fiyat şekli ve azami fiyat".</p>
 
   <section class="card tldr" aria-labelledby="summary">
     <h2 id="summary" style="margin-top:0">Summary</h2>
     <ul>
       <li><b>Problem:</b> The game's Turkish market pushed midday prices down to 4–9 $/MWh. Because unsold output was curtailed, the solar plant's capacity factor stayed at 8%. Wind generation was also off, in different directions by country: too low in Türkiye, more than twice the actual level in Germany. Financial metrics computed from this model were meaningless.</li>
       <li><b>Approach:</b> Targets for the average price and the capture rate were derived from EPİAŞ 2025 data (Türkiye) and ENTSO-E 2025 data (Germany, Spain), and targets for the wind fleet capacity factor from TEİAŞ, EPDK and ENTSO-E. Model parameters were then tuned against these targets using simulations of the first game year (120 game days).</li>
-      <li><b>Result:</b> In the first game year the average price in Türkiye is 66.2 $/MWh (actual: 66.4). The solar capture rate is 85% (actual: ~84%) and wind 97% (actual: 99%). The wind fleet capacity factor is 32.6% in Türkiye (actual: 32.8%) and 20.2% in Germany (actual: 20.2%). In Europe the average price is 89.5 $/MWh (target: ~88), the solar capture rate 55% (target: ~53%) and wind 88% (target: ~90%).</li>
-      <li><b>Finding:</b> If first-year prices hold, a solar plant is profitable in both markets at a 10% cost of capital: IRR is 12.1–13.3% in Türkiye and 10.7–13.3% in Europe (where capex is 13% higher). For wind, resource quality decides: the Çanakkale plant earns an IRR of 16.8–21.1%, the northern German one 7.3–13.5%.</li>
+      <li><b>Result:</b> In the first game year the average price in Türkiye is 66.6 $/MWh (actual: 66.4). The solar capture rate is 84% (actual: 83.4%) and wind 97% (actual: 98.6%). The wind fleet capacity factor is 32.6% in Türkiye (actual: 32.8%) and 20.2% in Germany (actual: 20.2%). In Europe the average price is 89.5 $/MWh (target: ~88), the solar capture rate 55% (target: ~53%) and wind 88% (target: ~90%).</li>
+      <li><b>Finding:</b> If first-year prices hold, a solar plant is profitable in both markets at a 10% cost of capital: IRR is 10.9–12.7% in Türkiye and 10.7–13.3% in Europe (where capex is 13% higher). For wind, resource quality decides: the Çanakkale plant earns an IRR of 18.8–25.3%, the northern German one 7.3–13.5%.</li>
     </ul>
   </section>
 
   <div class="kpis" role="list">
-    <div class="kpi" role="listitem"><small>Türkiye average price, first game year</small><b>$66.2</b><span>actual $66.4/MWh (EPİAŞ 2025)</span></div>
-    <div class="kpi" role="listitem"><small>Türkiye solar capture rate, game</small><b>85%</b><span>actual ~84% (12 sample days)</span></div>
+    <div class="kpi" role="listitem"><small>Türkiye average price, first game year</small><b>$66.6</b><span>actual $66.4/MWh (EPİAŞ 2025)</span></div>
+    <div class="kpi" role="listitem"><small>Türkiye solar capture rate, game</small><b>84%</b><span>actual 83.4% (EPİAŞ 2025, full year)</span></div>
     <div class="kpi" role="listitem"><small>Türkiye wind fleet capacity factor</small><b>27% → 32.6%</b><span>actual 32.8% (TEİAŞ 2025)</span></div>
-    <div class="kpi" role="listitem"><small>Solar IRR, Türkiye / Europe</small><b>12.1–13.3% / 10.7–13.3%</b><span>merchant only, pre-tax</span></div>
+    <div class="kpi" role="listitem"><small>Solar IRR, Türkiye / Europe</small><b>10.9–12.7% / 10.7–13.3%</b><span>merchant only, pre-tax</span></div>
   </div>
 
   <h2>1. Why it mattered</h2>
@@ -52,7 +53,8 @@
     <tbody>
       <tr><td>Türkiye average price</td><td class="l">EPİAŞ Transparency Platform, day-ahead market clearing price (PTF)</td><td class="l">2025, 8,760 hours</td><td class="l">USD/MWh (EPİAŞ's USD equivalent)</td></tr>
       <tr><td>Türkiye wind capture rate</td><td class="l">EPİAŞ PTF × real-time wind generation</td><td class="l">2025, full year</td><td class="l">ratio</td></tr>
-      <tr><td>Türkiye solar capture rate</td><td class="l">EPİAŞ PTF × real-time solar generation (licensed plants)</td><td class="l">12 sample days from 2025 (the 15th of each month; 1 June for June)</td><td class="l">ratio</td></tr>
+      <tr><td>Türkiye solar capture rate</td><td class="l">EPİAŞ PTF × real-time solar generation (licensed plants)</td><td class="l">2025, 8,760 hours (first version: 12 sample days)</td><td class="l">ratio</td></tr>
+      <tr><td>Türkiye daily price shape</td><td class="l">EPİAŞ PTF, hourly; monthly average, daily spread between highest and lowest price, hour groups, price cap</td><td class="l">2024 and 2025 full year; 2026 January–October</td><td class="l">USD/MWh, TL/MWh</td></tr>
       <tr><td>Türkiye wind fleet</td><td class="l">TEİAŞ monthly wind generation and year-end installed capacity; provincial distribution of 308 operating wind farms from EPDK licences</td><td class="l">2025, 12 months</td><td class="l">GWh, MW</td></tr>
       <tr><td>Germany and Spain wind fleet</td><td class="l">ENTSO-E monthly actual generation (onshore, plus German offshore) and installed capacity</td><td class="l">2025 (Germany: Jan–Oct, Dec 2024)</td><td class="l">MWh, MW</td></tr>
       <tr><td>Europe prices and ratios</td><td class="l">ENTSO-E Transparency Platform, day-ahead prices and actual generation; Germany-Luxembourg and Spain</td><td class="l">2025, full year (quarterly queries)</td><td class="l">EUR/MWh; $1.1306/€ (FRED AEXUSEU, 2025)</td></tr>
@@ -87,11 +89,11 @@ capture rate  = capture price ÷ average price</div>
 
   <h2>4. Results</h2>
   <div class="legend" aria-hidden="true"><span><i class="i-real"></i>Actual 2025</span><span><i class="i-old"></i>Game, before</span><span><i class="i-new"></i>Game, after</span></div>
-  <div class="bars" role="img" aria-label="Solar capture rate. Türkiye: actual about 84 percent, game before 60 percent, after 85 percent. Europe: target about 53 percent, before 89 percent, after 55 percent. Wind fleet capacity factor. Türkiye: actual 32.8 percent, game before 27 percent, after 32.6 percent. Germany: actual 20.2 percent, before about 45 percent, after 20.2 percent.">
+  <div class="bars" role="img" aria-label="Solar capture rate. Türkiye: actual 83.4 percent, game before 60 percent, after 84 percent. Europe: target about 53 percent, before 89 percent, after 55 percent. Wind fleet capacity factor. Türkiye: actual 32.8 percent, game before 27 percent, after 32.6 percent. Germany: actual 20.2 percent, before about 45 percent, after 20.2 percent.">
     <div class="g">Solar capture rate, Türkiye</div>
-    <div class="bar"><span>Actual (sample days)</span><span class="t"><i class="i-real" style="width:76.4%"></i></span><span class="v">~84%</span></div>
+    <div class="bar"><span>Actual (2025, full year)</span><span class="t"><i class="i-real" style="width:75.8%"></i></span><span class="v">83.4%</span></div>
     <div class="bar"><span>Game, before</span><span class="t"><i class="i-old" style="width:54.5%"></i></span><span class="v">60%</span></div>
-    <div class="bar"><span>Game, after</span><span class="t"><i class="i-new" style="width:77.3%"></i></span><span class="v">85%</span></div>
+    <div class="bar"><span>Game, after</span><span class="t"><i class="i-new" style="width:76.4%"></i></span><span class="v">84%</span></div>
     <div class="g">Solar capture rate, Europe</div>
     <div class="bar"><span>Target (DE and ES avg.)</span><span class="t"><i class="i-real" style="width:48.2%"></i></span><span class="v">~53%</span></div>
     <div class="bar"><span>Game, before</span><span class="t"><i class="i-old" style="width:80.9%"></i></span><span class="v">89%</span></div>
@@ -111,11 +113,13 @@ capture rate  = capture price ÷ average price</div>
   <div class="tw"><table>
     <thead><tr><th>Metric</th><th>Actual (2025)</th><th>Game, before</th><th>Game, after</th></tr></thead>
     <tbody>
-      <tr><td>Average price</td><td>$66.4/MWh</td><td>$43.7/MWh</td><td>$66.2/MWh (64.6–67.5)</td></tr>
-      <tr><td>Solar capture rate</td><td>~84% (12 sample days)</td><td>60%</td><td>85% (84–85)</td></tr>
-      <tr><td>Wind capture rate</td><td>99%</td><td>103%</td><td>97% (95–98)</td></tr>
-      <tr><td>Midday price (11:00–14:00 average)</td><td>~$50/MWh (12 sample days; single days 2–81)</td><td>$4–9/MWh</td><td>$51/MWh (50–53)</td></tr>
-      <tr><td>Solar capacity factor (Konya)</td><td>—</td><td>8.2%</td><td>22.4% (21.7–23.3)</td></tr>
+      <tr><td>Average price</td><td>$66.4/MWh</td><td>$43.7/MWh</td><td>$66.6/MWh (66.3–67.3)</td></tr>
+      <tr><td>Solar capture rate</td><td>83.4% (full year; 2024: 91.1%)</td><td>60%</td><td>84% (80–86)</td></tr>
+      <tr><td>Wind capture rate</td><td>98.6%</td><td>103%</td><td>97% (97–99)</td></tr>
+      <tr><td>Midday price (11:00–14:00 average)</td><td>$48.5/MWh (full year)</td><td>$4–9/MWh</td><td>$49/MWh (45–51)</td></tr>
+      <tr><td>Daily spread, highest minus lowest price*</td><td>$48.6/MWh (2024: 47.4; 2026 Jan–Oct: 62.2)</td><td>$44.7/MWh</td><td>$51.7/MWh</td></tr>
+      <tr><td>Price cap*</td><td>3,400 TL; 4,500 TL (~$100) from April 2026</td><td>$101 (general upper limit)</td><td>$100/MWh</td></tr>
+      <tr><td>Solar capacity factor (Konya)</td><td>—</td><td>8.2%</td><td>21.7% (20.0–23.3)</td></tr>
       <tr><td>Wind fleet capacity factor</td><td>32.8% (TEİAŞ; 30.7–35.3% with year-end capacity)</td><td>27%</td><td>32.6%</td></tr>
       <tr><td>Windiest / calmest month</td><td>August / October</td><td>—</td><td>August / October</td></tr>
     </tbody></table></div>
@@ -129,7 +133,7 @@ capture rate  = capture price ÷ average price</div>
       <tr><td>Wind fleet CF, onshore</td><td>20.2%</td><td>20.5%</td><td>by country</td><td>~45% (Germany)</td><td>20.2% / 21.8%</td></tr>
       <tr><td>Wind fleet CF, offshore</td><td>31.2%</td><td>—</td><td>Germany</td><td>—</td><td>31.7%</td></tr>
     </tbody></table></div>
-  <p class="note">In the "Game, after" column, prices and ratios are the average of the calibration runs, with the lowest and highest value in brackets (first game year, 4 runs). The midday price and solar capacity factor come from the project runs in section 5 (8 runs). Wind fleet values are the average of 2–3 wind-calibration runs; in a single year the fleet CF can be off by ±10%. Differences between runs come from the game's weather model and randomness. "Game, before" is the model before the first calibration.</p>
+  <p class="note">In the "Game, after" column, prices and ratios are the average of the calibration runs, with the lowest and highest value in brackets (first game year, 4 runs). The midday price and solar capacity factor come from the project runs in section 5 (8 runs). The two rows marked * were added on 9 Nov 2026; their "before" column is the model before that date, and the daily spread comes from <code>scripts/calib_shape.cjs</code> (3 runs). Wind fleet values are the average of 2–3 wind-calibration runs; in a single year the fleet CF can be off by ±10%. Differences between runs come from the game's weather model and randomness. "Game, before" is the model before the first calibration.</p>
 
   <h2>5. Project economics: the same plant in two markets</h2>
   <p>Using the calibrated model, a 5 MW solar plant and a 5 MW wind farm were run in each market through the first game year (120 game days); 8 independent runs. Generation and realised prices come from the simulation; costs come from real-world assumptions. First-year generation and realised price are held flat for 25 years.</p>
@@ -150,19 +154,19 @@ IRR  = the discount rate at which NPV is zero</div>
   <div class="tw"><table>
     <thead><tr><th>Plant</th><th>Capacity factor</th><th>Avg. realised price</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Payback</th></tr></thead>
     <tbody>
-      <tr><td>Solar, Türkiye (Konya)</td><td>21.7–23.3%</td><td>$54.4–57.1/MWh</td><td>$44.8–48.2/MWh</td><td class="pos">+$0.54m – +$0.88m</td><td>12.1–13.3%</td><td>7.1–7.7 yrs</td></tr>
+      <tr><td>Solar, Türkiye (Konya)</td><td>20.0–23.3%</td><td>$51.5–56.6/MWh</td><td>$44.7–52.1/MWh</td><td class="pos">+$0.24m – +$0.72m</td><td>10.9–12.7%</td><td>7.3–8.3 yrs</td></tr>
       <tr><td>Solar, Europe (inland Spain)</td><td>18.4–20.5%</td><td>$64.9–71.0/MWh</td><td>$56.6–62.9/MWh</td><td class="pos">+$0.21m – +$1.00m</td><td>10.7–13.3%</td><td>7.1–8.4 yrs</td></tr>
-      <tr><td>Wind, Türkiye (Çanakkale)</td><td>37.9–46.9%</td><td>$63.6–66.7/MWh</td><td>$37.7–46.5/MWh</td><td class="pos">+$2.89m – +$4.86m</td><td>16.8–21.1%</td><td>4.7–5.8 yrs</td></tr>
+      <tr><td>Wind, Türkiye (Çanakkale)</td><td>40.6–55.7%</td><td>$62.5–67.2/MWh</td><td>$31.7–43.4/MWh</td><td class="pos">+$3.78m – +$6.81m</td><td>18.8–25.3%</td><td>3.9–5.3 yrs</td></tr>
       <tr><td>Wind, Europe (northern Germany)</td><td>19.8–28.5%</td><td>$74.7–80.4/MWh</td><td>$62.0–89.1/MWh</td><td><span class="neg">−$1.04m</span> – <span class="pos">+$1.47m</span></td><td>7.3–13.5%</td><td>7.1–11.3 yrs</td></tr>
-      <tr><td>Wind, Turkish fleet average (calculated)</td><td>33% (assumption)</td><td>$65.1/MWh (assumption)</td><td>$53.5/MWh</td><td class="pos">+$1.52m</td><td>13.7%</td><td>—</td></tr>
+      <tr><td>Wind, Turkish fleet average (calculated)</td><td>33% (assumption)</td><td>$65.5/MWh (assumption)</td><td>$53.5/MWh</td><td class="pos">+$1.57m</td><td>13.8%</td><td>—</td></tr>
     </tbody></table></div>
-  <p class="note">Ranges are the lowest and highest values of 8 independent runs (first game year; rivals invest, event cards off). Türkiye and Europe are separate sets of runs (Türkiye 30 Oct 2026, Europe 8 Nov 2026). In these runs the average price was $66.2/MWh in Türkiye and $91.2/MWh in Europe. The European solar plant's capacity factor is after curtailment (8–13% curtailed). The last row is not a simulation: it uses the same assumptions with the Turkish fleet-average capacity factor and the average Çanakkale realised price. Capex (5 MW): solar $3.46m in Türkiye, $3.90m in Europe; wind $5.21m.</p>
+  <p class="note">Ranges are the lowest and highest values of 8 independent runs (first game year; rivals invest, event cards off). Türkiye and Europe are separate sets of runs (Türkiye 9 Nov 2026, Europe 8 Nov 2026). In these runs the average price was $66.1/MWh in Türkiye and $91.2/MWh in Europe. The European solar plant's capacity factor is after curtailment (8–13% curtailed). The last row is not a simulation: it uses the same assumptions with the Turkish fleet-average capacity factor and the average Çanakkale realised price. Capex (5 MW): solar $3.46m in Türkiye, $3.90m in Europe; wind $5.21m.</p>
   <h3>WACC sensitivity: solar, Türkiye</h3>
   <div class="tw"><table>
     <thead><tr><th>WACC</th><th>8%</th><th>10%</th><th>12%</th></tr></thead>
     <tbody>
-      <tr><td>LCOE ($/MWh)</td><td>39.1–42.1</td><td>44.8–48.2</td><td>50.7–54.5</td></tr>
-      <tr><td>NPV ($m)</td><td class="pos">+1.23 – +1.62</td><td class="pos">+0.54 – +0.88</td><td class="pos">+0.01 – +0.30</td></tr>
+      <tr><td>LCOE ($/MWh)</td><td>39.1–45.5</td><td>44.7–52.1</td><td>50.6–59.0</td></tr>
+      <tr><td>NPV ($m)</td><td class="pos">+0.88 – +1.43</td><td class="pos">+0.24 – +0.72</td><td><span class="neg">−0.25</span> – <span class="pos">+0.17</span></td></tr>
     </tbody></table></div>
 
   <h3>Financing structure: debt, tax and PPA</h3>
@@ -170,16 +174,16 @@ IRR  = the discount rate at which NPV is zero</div>
   <div class="tw"><table>
     <thead><tr><th>Plant, structure</th><th>Gearing</th><th>Equity IRR</th><th>Stress: equity IRR</th><th>Stress: minimum DSCR</th></tr></thead>
     <tbody>
-      <tr><td>Solar Türkiye, spot</td><td>50–54%</td><td>12.3–14.5%</td><td>7.1–8.6%</td><td>1.09–1.21</td></tr>
-      <tr><td>Solar Türkiye, PPA</td><td>58–63%</td><td>10.6–12.7%</td><td>9.0–11.2%</td><td class="neg">0.93</td></tr>
-      <tr><td>Wind Türkiye (Çanakkale), spot</td><td>68–75%</td><td>23.4–38.7%</td><td>13.7–24.2%</td><td>1.06–1.21</td></tr>
-      <tr><td>Wind Türkiye (Çanakkale), PPA</td><td>75% (cap)</td><td>21.3–31.7%</td><td>19.8–30.8%</td><td><span class="neg">0.97</span>–1.21</td></tr>
+      <tr><td>Solar Türkiye, spot</td><td>46–52%</td><td>10.5–13.5%</td><td>5.8–7.9%</td><td>1.13–1.36</td></tr>
+      <tr><td>Solar Türkiye, PPA</td><td>54–61%</td><td>8.9–11.7%</td><td>7.3–10.1%</td><td><span class="neg">0.93</span>–1.00</td></tr>
+      <tr><td>Wind Türkiye (Çanakkale), spot</td><td>75% (cap)</td><td>32.0–51.0%</td><td>18.8–33.6%</td><td>1.08–1.45</td></tr>
+      <tr><td>Wind Türkiye (Çanakkale), PPA</td><td>75% (cap)</td><td>26.1–42.5%</td><td>24.8–42.0%</td><td>1.08–1.45</td></tr>
       <tr><td>Solar Europe, spot</td><td>48–57%</td><td>10.9–15.6%</td><td>6.5–9.9%</td><td>1.41–1.48*</td></tr>
       <tr><td>Solar Europe, PPA</td><td>63–74%</td><td>10.2–14.5%</td><td>8.6–13.1%</td><td><span class="neg">0.94</span>–1.04</td></tr>
       <tr><td>Wind Europe (northern Germany), spot</td><td>49–59%</td><td>6.3–16.3%</td><td>2.1–9.5%</td><td>1.00–1.42</td></tr>
       <tr><td>Wind Europe (northern Germany), PPA</td><td>50–69%</td><td>5.1–14.8%</td><td>3.2–13.1%</td><td><span class="neg">0.91</span>–1.02</td></tr>
     </tbody></table></div>
-  <div class="note">Each row is the range of the same 8 runs as the table above. For the Çanakkale wind farm, gearing is at the 75% cap in 7 of 8 runs.<br>* For European solar (spot), the minimum DSCR under stress is above the base case's (1.40). In the base case the minimum DSCR falls in years 11 and 12, when tax depreciation ends and tax jumps (in one run from ~$14k to ~$124k a year). Under stress, tax losses build up in the first 10 years and carry forward (no time limit in Europe, see above); they wipe out the tax in years 11 and 12. Assumptions:
+  <div class="note">Each row is the range of the same 8 runs as the table above. For the Çanakkale wind farm, gearing is at the 75% cap in all 8 runs.<br>* For European solar (spot), the minimum DSCR under stress is above the base case's (1.40). In the base case the minimum DSCR falls in years 11 and 12, when tax depreciation ends and tax jumps (in one run from ~$14k to ~$124k a year). Under stress, tax losses build up in the first 10 years and carry forward (no time limit in Europe, see above); they wipe out the tax in years 11 and 12. Assumptions:
   <ul class="note">
     <li><b>Interest rate:</b> the US 10-year Treasury yield (5.10%, FRED DGS10, 15 Oct 2026) plus a margin of 3.5% for Türkiye and 1.8% for Europe; the margins are assumptions. The result is 8.6% for Türkiye and 6.9% for Europe.</li>
     <li><b>Corporate tax:</b> Türkiye 25% (secondary sources). Europe 27.5%, the average of Germany's 29.9% and Spain's 25% (Tax Foundation, OECD data).</li>
@@ -189,21 +193,21 @@ IRR  = the discount rate at which NPV is zero</div>
 
   <h3>Interpretation</h3>
   <ul>
-    <li><b>Solar earns more than a 10% WACC in both markets.</b> In Türkiye the average realised price ($54–57/MWh) is above LCOE ($45–48/MWh); IRR is 12.1–13.3%. At a 12% WACC, NPV approaches zero (+$0.01m to +$0.30m): for an unsubsidised, merchant-only solar plant, the cost of financing remains decisive.</li>
-    <li><b>The result depends on first-year prices holding.</b> In the game, prices fall over the years as rivals invest: in Türkiye ~$66/MWh in the first year, ~$52/MWh in the third (a ~21% drop). That is close to the 20% price stress in the financing table. The lower returns in the first version of this page (Turkish solar IRR 9.2–10.2%) came from the average price of 365 game days, i.e. three years including that decline.</li>
-    <li><b>In Europe part of the higher price is eroded by curtailment.</b> Europe's average price in these runs is ~38% higher than Türkiye's ($91.2 against $66.2/MWh). Prices often fall to zero in solar hours, and the plant curtails 8–13% of its output. Still, the Spanish plant sells at a higher price than the Turkish one ($65–71/MWh). But capex is also 13% higher ($779 against $691/kW): LCOE is $57–63/MWh ($45–48 in Türkiye) and IRR 10.7–13.3%. At a 12% WACC, NPV falls on both sides of zero (−$0.33m to +$0.35m).</li>
+    <li><b>Solar earns more than a 10% WACC in both markets.</b> In Türkiye the average realised price ($52–57/MWh) is above LCOE ($45–52/MWh); IRR is 10.9–12.7%. At a 12% WACC, NPV falls on both sides of zero (−$0.25m to +$0.17m): for an unsubsidised, merchant-only solar plant, the cost of financing remains decisive.</li>
+    <li><b>The result depends on first-year prices holding.</b> In the game, prices fall over the years as rivals invest: in Türkiye ~$66/MWh in the first year, ~$52/MWh in the third (a ~21% drop; measured 30 Oct 2026). That is close to the 20% price stress in the financing table. The lower returns in the first version of this page (Turkish solar IRR 9.2–10.2%) came from the average price of 365 game days, i.e. three years including that decline.</li>
+    <li><b>In Europe part of the higher price is eroded by curtailment.</b> Europe's average price in these runs is ~38% higher than Türkiye's ($91.2 against $66.1/MWh). Prices often fall to zero in solar hours, and the plant curtails 8–13% of its output. Still, the Spanish plant sells at a higher price than the Turkish one ($65–71/MWh). But capex is also 13% higher ($779 against $691/kW): LCOE is $57–63/MWh ($45–52 in Türkiye) and IRR 10.7–13.3%. At a 12% WACC, NPV falls on both sides of zero (−$0.33m to +$0.35m).</li>
     <li><b>The European solar result may be optimistic.</b> In the game, the Spanish plant's capture rate, counting curtailed output, is 63–69%, against 55.2% for the actual Spanish fleet and 55% for the game's European fleet. Europe is a single price zone, and solar's price effect is computed from the cloud cover at a representative point in central Germany (50°N 10°E), while the plant generates under its own site's weather. When Spain is sunny and Germany is cloudy, the plant sells at a high price.</li>
     <li><b>Weather-year risk.</b> Each run is a different weather year. The northern German wind farm's capacity factor ranged from 20% to 29% across runs, and its NPV fell on both sides of zero (−$1.04m to +$1.47m). This is why projects are judged on a long-term generation estimate rather than a single year; for a merchant project, a PPA or a battery reduces this risk.</li>
-    <li><b>For wind, resource quality decides.</b> The same turbine runs at a 38–47% capacity factor in Çanakkale and 20–29% in northern Germany. Although the German realised price is ~19% higher, IRR stays at 7.3–13.5%, against 16.8–21.1% in Çanakkale. Çanakkale is one of Türkiye's windiest sites; at the fleet average (33%) and the same price, IRR falls to ~13.7%.</li>
-    <li><b>A PPA is insurance.</b> In the base case the PPA's equity return is below spot, because the price is discounted by 10%. In return the bank lends more; for Turkish solar, gearing rises from 50–54% to 58–63%. The real difference shows in the bad case: when the spot price falls by 20%, the Çanakkale wind farm's equity IRR drops to 14–24% under spot but only to 20–31% under the PPA.</li>
-    <li><b>Leverage only helps when the project return exceeds the cost of debt.</b> Turkish solar's after-tax project IRR (10.3–11.3%) is slightly above the interest rate (8.6%); debt lifts the equity return to 12.3–14.5%. For the Çanakkale wind farm the project IRR is 14–18%, so the same debt lifts the equity return to 23–39%. In the northern German wind farm's weakest wind year, the project IRR (6.1%) is below the interest rate (6.9%), and debt adds nothing.</li>
+    <li><b>For wind, resource quality decides.</b> The same turbine runs at a 41–56% capacity factor in Çanakkale and 20–29% in northern Germany. Although the German realised price is ~18% higher, IRR stays at 7.3–13.5%, against 18.8–25.3% in Çanakkale. Çanakkale is one of Türkiye's windiest sites; at the fleet average (33%) and the same price, IRR falls to ~13.8%.</li>
+    <li><b>A PPA is insurance.</b> In the base case the PPA's equity return is below spot, because the price is discounted by 10%. In return the bank lends more; for Turkish solar, gearing rises from 46–52% to 54–61%. The real difference shows in the bad case: when the spot price falls by 20%, the Çanakkale wind farm's equity IRR drops to 19–34% under spot but only to 25–42% under the PPA.</li>
+    <li><b>Leverage only helps when the project return exceeds the cost of debt.</b> Turkish solar's after-tax project IRR (9.4–10.8%) is slightly above the interest rate (8.6%); debt lifts the equity return to 10.5–13.5%. For the Çanakkale wind farm the project IRR is 16–21%, so the same debt lifts the equity return to 32–51%. In the northern German wind farm's weakest wind year, the project IRR (6.1%) is below the interest rate (6.9%), and debt adds nothing.</li>
     <li><b>If the tenor outlasts the PPA, risk piles up at the end of the loan.</b> The loan runs 12 years, the PPA 10. The last two years are exposed to the market. Under price stress, the minimum DSCR of PPA-backed Turkish solar falls below 1 (0.93). This is why lenders want the tenor to match the contract term.</li>
     <li><b>The cost assumption is not country-specific.</b> Capex is IRENA's regional (European solar) or global average (Turkish solar, all wind). A given project's cost may differ; for example, the 13% capex increase for European solar lowered IRR by 1.7–2.0 points in the same runs (12.4–15.3% at $691/kW, 10.7–13.3% at $779/kW).</li>
   </ul>
 
   <h2>6. Limitations</h2>
   <ul>
-    <li><b>Small sample:</b> the Türkiye solar ratio rests on 12 days. Daily values are very volatile: single-day ratios ranged from 0.18 to 1.10. The target shows direction and magnitude, not an exact annual value.</li>
+    <li><b>Single year:</b> Türkiye's solar capture rate and intraday price shape rest on 2025. The solar capture rate was 91% in 2024 (it fell 8 points in one year); the monthly daily spread varies a lot from year to year (January: 53 in 2024, 37 $/MWh in 2025). The model has no weekend or holiday effect.</li>
     <li><b>Unlicensed solar missing:</b> solar in EPİAŞ real-time generation covers licensed plants only. The profile's shape is indicative.</li>
     <li><b>No negative prices:</b> the game's price floor is 0 and plants curtail at a zero price. Real markets have negative prices, and subsidised plants keep generating. That is why curtailment in the game's European market is high.</li>
     <li><b>Single European market:</b> the difference between Germany and Spain is lost in the average. Because solar's price effect is computed from a single representative point's weather, the Spanish solar plant's capture rate comes out above the actual Spanish fleet's (see above). Wind's price effect is computed from the region-weighted fleet; Europe's wind capture rate is close to target (88% against ~90%).</li>
@@ -214,7 +218,7 @@ IRR  = the discount rate at which NPV is zero</div>
 
   <h2>7. Next steps</h2>
   <ul>
-    <li>Re-measure Türkiye's solar capture rate with a full year of hourly solar data.</li>
+    <li>Add the price effect of weekends and holidays to the model.</li>
     <li>Add negative prices and support schemes to the model.</li>
     <li>Split Europe into separate country markets.</li>
     <li>Use pilot player feedback to measure which parts are seen as unrealistic.</li>

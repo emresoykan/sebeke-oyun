@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-09",t:"Türkiye'de fiyat tavanı ve mevsimler",items:[
+    "Türkiye'de saatlik fiyatın bir tavanı var: 100 $/MWh (azami fiyat; gerçekte Nisan 2026'dan beri 4.500 TL/MWh). Olay kartlarının fiyat etkisi de tavanı aşmaz. Sözlükte \"Azami fiyat\".",
+    "Fiyatın gün içindeki şekli mevsime göre değişiyor: ilkbahar ve sonbaharda öğle fiyatı güneşle derin düşer, yazın klima talebi ve kışın zayıf güneş düşüşü sınırlar. Kış daha ucuz, Mayıs daha pahalı, yaz en pahalı (EPİAŞ 2024–2025).",
+    "Günden güne fiyat daha değişken: normal yılda günlük en yüksek ile en düşük fiyat arasındaki fark ortalama ~52 $/MWh (önce ~45). Batarya bu farktan kazanır. Yıllık ortalama fiyat (~66 $/MWh) ve güneşin fiyat oranı (%84) aynı kaldı."]},
   {id:"2026-11-08.2",t:"Yağışlı yılda akşam fiyatları",items:[
     "Türkiye'de yağışlı yılda fiyat düşüşü artık saate göre değişiyor: öğle ve gece saatleri sıfıra yaklaşır, akşam zirvesi (19–21) yüksek kalır. Gerçek 2026'da da Nisan'da saatlerin üçte biri 5 $/MWh'in altındaydı, akşam TL fiyatı ise bir yıl öncesine yakındı (EPİAŞ).",
     "Günlük en yüksek ile en düşük fiyat arasındaki fark yağışlı ilkbaharda büyür: batarya ucuz saatte doldurup akşam satarak daha çok kazanır. Yıllık ortalama fiyat aynı kalır (çok yağışlı yılda ~51 $/MWh)."]},

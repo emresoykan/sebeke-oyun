@@ -61,7 +61,7 @@ for(const k of ["res","ges"])YEKA[k].p=Math.round(YEKA[k].ec*10*YEKA.eur/YEKA.re
 export const HYDRO={
   hist:{2015:1.14,2016:1.11,2017:0.94,2018:0.93,2019:1.37,2020:1.11,2021:0.78,2022:0.93,2023:0.88,2024:1.02,2025:0.78},
   known:{2026:1.27},depth:160,dry:0.23,
-  mon:[0.05,0.5,0.5,1,1.15,0.72,0.25,0.25,0.25,0.2,0.1,0.05],
+  mon:[0.05,0.5,0.5,1,1.45,0.72,0.25,0.25,0.25,0.2,0.1,0.05],
   hr:[1,1,1,1,1,1,1,1,1,1.25,1.25,1.25,1.25,1.25,1.25,1.25,1.25,0.85,0.75,0.4,0.2,0.35,0.6,0.85]
 };
 // Fiyat modeli kalibrasyonu (Türkiye: EPİAŞ 2025 PTF ve güneş/rüzgâr üretimiyle karşılaştırıldı; ayrıntı README):
@@ -76,8 +76,21 @@ export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
 export const FLEET_CF={E:0.211};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
+// Bir piyasanın saatlik fiyat tavanı ($/MWh): azami fiyatı olan piyasada o (Türkiye), diğerlerinde oyunun genel üst sınırı
+export const priceCap=k=>REG[k].cap!=null?REG[k].cap:110*REG[k].mult;
 export const REG={
-  T:{n:"Türkiye",mult:0.92,s0:0.60,land:20000}, // mult: ilk oyun yılı (120 gün) EPİAŞ 2025 ortalamasına (66,4 $/MWh) eşit (docs/kalibrasyon.md)
+  // mult: ilk oyun yılı (120 gün) EPİAŞ 2025 ortalamasına (66,4 $/MWh) eşit (docs/kalibrasyon.md).
+  // cap: azami fiyat ($/MWh). EPİAŞ'ta en yüksek PTF 2025'te 3.400 TL (Ocak–Mart 3.000), Nisan 2026'dan beri 4.500 TL (~100 $;
+  // EPDK kararı bu ortamdan doğrulanamadı, değer EPİAŞ verisinden). Oyun 2026'da başladığı için güncel limit; normal yıl
+  // ortalamasının ~1,5 katı. sm: güneşin öğle fiyatını düşürme etkisinin aylık çarpanı (Ocak…Aralık). İlkbahar ve sonbaharda
+  // ılık hava (düşük talep) ve kar erimesi öğleyi derin düşürür; yazın klima talebi ve kışın zayıf güneş düşüşü sınırlar; EPİAŞ
+  // 2025 saatlik fiyat ve lisanslı güneş üretimiyle aylık güneş fiyat oranına göre. dem: aylık talep düzeyi (genel DEMAND
+  // yerine): aylık ortalama fiyatın yıl ortalamasına oranı EPİAŞ 2024 ve 2025 ortalamasına göre (kış daha ucuz, Mayıs daha
+  // pahalı, yaz en pahalı). nz: saatlik fiyatın rastgele oynama genişliği (±nz/2; diğer piyasalarda 0,16): günden güne şekil
+  // farkı; normal yılda günlük en yüksek–en düşük farkı eski limitli 2024–2025 (47–49 $/MWh) ile yeni limitli, çok yağışlı
+  // 2026 (Ocak–Ekim 62) arasında kalsın diye (docs/kalibrasyon.md "Günlük fiyat şekli").
+  T:{n:"Türkiye",mult:0.94,s0:0.60,land:20000,cap:100,nz:0.24,sm:[0.8,0.8,1.5,1.4,1.7,1.4,1,1.1,1.2,1.4,1.4,0.6],
+    dem:[0.954,0.951,0.995,0.916,1.025,0.979,1.132,1.141,1.052,1.012,0.999,0.951]},
   E:{n:"Avrupa",mult:1.62,s0:0.70,land:40000,sk:3.7,wk:1.7}, // mult/sk/wk: ENTSO-E 2025 (DE, ES) kalibrasyonu, rüzgâr filo endeksiyle (29.10.2026)
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},

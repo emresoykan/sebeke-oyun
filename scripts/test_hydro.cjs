@@ -36,7 +36,7 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   const wx0=JSON.stringify(S.wx),mR=Math.random,run=(W)=>{S.wx=JSON.parse(wx0);S.hyd[2026]={w:W,ref:0};hes.wet=0.35;let i=0;Math.random=()=>((i++*0.6180339887)%1);
     sim.newDay();Math.random=mR;return {T:[...D().T.price],E:[...D().E.price],hes:hes.plan.reduce((a,x)=>a+x,0)};};
   const a=run(1),b=run(1.27),mult=cfg.REG.T.mult,sh=C.depth*C.mon[3]*0.27*mult;
-  const kept=a.T.map((x,h)=>[x,b.T[h],h]).filter(([x,y])=>y>0.01&&x<110*mult-0.01),diffs=kept.map(([x,y])=>x-y);
+  const top=cfg.priceCap("T")-0.01,kept=a.T.map((x,h)=>[x,b.T[h],h]).filter(([x,y])=>y>0.01&&x<top&&y<top),diffs=kept.map(([x,y])=>x-y);
   out.day={sh,n:diffs.length,min:Math.min(...diffs),max:Math.max(...diffs),zeroA:a.T.filter(x=>x<0.01).length,zeroB:b.T.filter(x=>x<0.01).length,
     sameE:a.E.every((x,h)=>near(x,b.E[h],1e-9)),hesA:a.hes,hesB:b.hes,hesCap:hes.mw*24};
   out.dayOk=diffs.length>0&&kept.every(([x,y,h])=>near(x-y,sh*C.hr[h],1e-6))&&out.day.sameE;

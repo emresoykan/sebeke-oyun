@@ -5,7 +5,7 @@
 //   bonus: üretime ek destek ($/MWh)   capex: kurulum maliyeti çarpanı   risk: arıza olasılığı çarpanı
 // Etkiler gün başında fiyatlara, saatlik tick'te üretim ve gelire uygulanır; her gün sonunda süreleri bir azalır.
 import { S, D } from "./state.js";
-import { EFF } from "./config.js";
+import { EFF, REG } from "./config.js";
 import { shape } from "./utils.js";
 
 const hit=(x,m,k,h)=>!(x.w>0)&&(!x.m||x.m===m)&&(!x.k||!k||x.k.includes(k))&&(!x.h||h==null||(h>=x.h[0]&&h<=x.h[1]));
@@ -26,7 +26,8 @@ export function salePrice(m,k,h,pr){const f=mods("fix",m,k,h)[0];return (f?f.v:p
 
 // Yeni günün fiyatlarına etkin fiyat etkilerini uygula, günlük ortalamayı ve batarya planını kur
 export function priceMods(k,M){
-  for(let h=0;h<24;h++)M.price[h]*=factor("price",k,null,h);
+  const cap=REG[k].cap; // azami fiyatı olan piyasada (Türkiye) olay etkisi de tavanı aşmaz
+  for(let h=0;h<24;h++){M.price[h]*=factor("price",k,null,h);if(cap!=null&&M.price[h]>cap)M.price[h]=cap;}
   M.avg=M.price.reduce((a,b)=>a+b,0)/24;M.plan=battPlan(M.price);
 }
 // Batarya: en ucuz iki saatte şarj, en pahalı iki saatte deşarj (kâr verimi karşılıyorsa). Eşit fiyatta (ör. yağışlı
