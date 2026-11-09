@@ -233,7 +233,7 @@ Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün �
 ## Sınırlamalar
 - Sonraki yıllardaki düşüş oyunun kendi davranışıdır (rakip yatırımı, güneş doygunluğu); gerçek piyasa için tahmin değildir. Gerçekte fiyatı gaz fiyatı, kur ve talep de belirler.
 - Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı. 2026'nın ilk on ayıyla karşılaştırma: aşağıdaki "Türkiye 2026 kontrolü" bölümü.
-- Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük.
+- Güneş hedefi 12 güne dayanır; günler arasındaki fark büyük. (09.11.2026: tam yıl ölçüldü, 0,834; aşağıda "Günlük fiyat şekli".)
 - Vaka çalışması sayfaları (`public/vaka/`, `public/case-study/`) 18.10.2026 model sürümüyle ve 365 gün üzerinden üretilmişti. 30.10.2026'da güncel modelle ve ilk oyun yılı üzerinden yeniden üretildi: piyasa karşılaştırması bu bölümdeki ve bölgesel rüzgâr bölümündeki kalibrasyon koşularından, proje ekonomisi `scripts/sim_year.cjs` ile (120 gün × 8 koşu, piyasa başına; olay kartları kapalı).
 - 08.11.2026: GES yatırım maliyeti piyasaya bağlandı (Avrupa 779 $/kW, `config.js` `CAPEX_M`). Vaka çalışmasının Avrupa proje satırları 8 yeni koşuyla yenilendi: Avrupa GES IRR'ı %10,7–13,3 (önce %12,5–15,2). Aynı koşular 691 $/kW ile %12,4–15,3 verir; düşüşün tamamı maliyettendir (koşu başına 1,7–2,0 puan). Türkiye'de 8 yeni koşu eski aralıklarda kaldı (ortalama fiyat 66,2 $/MWh; GES IRR %11,8–13,6, RES %15,7–22,4); Türkiye satırları korundu.
 
@@ -365,6 +365,7 @@ Yıllık PTF ortalaması (EPİAŞ, $/MWh): 2023 96,6; 2024 68,1; 2025 66,4. TCMB
 - Hedef tek bir yıl çiftine (2025 kurak, 2026 çok yağışlı) dayanır. Ara değerler (normal, yağışlı) modelin doğrusal olmayan yapısından gelir; gerçek veriyle ayrıca sınanmadı.
 - ~~Etki bütün saatlerde aynı tutardır.~~ 08.11.2026'da giderildi: aşağıda "Saatlik dağılım".
 - Su endeksi yıllıktır; gerçekte yağış ve kar erimesi yıl içinde değişir (2026 Ocak'ı kuraktı, Şubat'tan sonra çok yağışlıydı).
+- 09.11.2026'da taban fiyat şekli değişti (aşağıda "Günlük fiyat şekli ve azami fiyat"); Mayıs ağırlığı 1,15'ten 1,45'e çıktı. Yukarıdaki tablolar önceki ölçümdür; güncel sayılar o bölümde.
 - 2026 değeri tahmindir; TEİAŞ yıllık verisi yayımlanınca güncellenecek.
 - Kalibrasyon koşuları (`calib_market.cjs`) ve vaka çalışması (`sim_year.cjs`) bütün yıllar için w = 1 (normal yıl) kullanır: taban düzey ve proje ekonomisi önceki modelle aynıdır.
 
@@ -409,7 +410,119 @@ EPİAŞ PTF, saatlik, TL; 2025 (kurak, w 0,78) ve 2026 (çok yağışlı, w ~1,2
 - **Günlük fark dolar olarak gerçeğe yakın:** w 1,27'de Mart–Haziran 61–77 $/MWh (gerçek 2026: 57–79); ortalamanın 1,39–4,53 katı (gerçek 1,55–4,88).
 
 ## Sınırlamalar
-- **Günlük farkın artışı gerçekte olduğundan büyük** (Nisan 1,65'e karşı 1,42). Neden: oyunun kurak ve normal yıldaki günlük farkı gerçekten dar (ortalama fiyatın 0,64–0,76 katı; gerçek 2025'te 0,88–1,17). Bu fark yukarıdaki taban kalibrasyonundan (güneş fiyat oranı) geliyor; burada değiştirilmedi. Sonuç: yağışlı yılda bataryanın kazancındaki artış biraz abartılı olabilir.
+- **Günlük farkın artışı gerçekte olduğundan büyük** (Nisan 1,65'e karşı 1,42). Neden: oyunun Mart–Haziran'daki günlük farkı gerçekten dar (ortalama fiyatın 0,64–0,76 katı; gerçek 2025'te 0,88–1,17). 09.11.2026'da giderildi: Nisan'da oran 1,44. Aşağıdaki "Günlük fiyat şekli" bölümüne bakın; yıl genelinde fark düzeyi zaten yakındı, dağılım yanlıştı.
 - **Mart ve Haziran'da sıfır saat az** (%1 ve %5; gerçek %14 ve %26). Oyunda bu aylarda öğle fiyatı tabana inmeden kalıyor. Öğle ağırlığını artırmak Nisan–Mayıs'ı aşırı düşürür; aylık öğle ağırlığı ayrı ayarlanmadı.
 - **Mayıs akşamı az düşüyor** (0,69'a karşı 0,64). Saatlik ağırlık bütün aylarda aynı.
 - Hedef yine tek yıl çiftine dayanır; yağışlı (w 1,1–1,25) yılların saatlik dağılımı gerçek veriyle sınanmadı. Kurak yılın saatlik etkisi ölçülmedi.
+
+# Günlük fiyat şekli ve azami fiyat (09.11.2026)
+
+## Neden
+"Saatlik dağılım" bölümünde oyunun normal yıldaki günlük farkının dar olduğu yazılmıştı (ortalama fiyatın 0,64–0,76 katı; gerçekte 0,88–1,17). Bu karşılaştırma yalnızca Mart–Haziran'a dayanıyordu. Tam yıl ölçümü tabloyu değiştirdi: yıllık ortalama günlük en yüksek–en düşük farkı oyunda 44,7, EPİAŞ 2025'te 48,6 $/MWh (−%8). Sorun düzey değil, mevsimsel dağılımdı: oyunda her ay 41–49 $/MWh; gerçekte ilkbahar ve sonbaharda 51–66, yaz ve kışta 31–40. Ayrıca Türkiye'nin güneş fiyat oranı hedefi yalnızca 12 örnek güne dayanıyordu.
+
+## Veri
+- **EPİAŞ PTF, saatlik, USD ve TL:** 2024 (8.784 saat), 2025 (8.760 saat). 2026 Ocak–Ekim için günlük fark istatistiği (BESS aracı, aynı EPİAŞ serisi).
+- **EPİAŞ gerçek zamanlı üretim, saatlik:** 2024 ve 2025, lisanslı güneş ve rüzgâr (2025'te güneş 7,73 TWh).
+
+| | 2024 | 2025 | 2026 Ocak–Ekim |
+|---|---|---|---|
+| Ortalama fiyat ($/MWh) | 68,1 | 66,4 | 44,7 |
+| Günlük en yüksek–en düşük farkı ($/MWh) | 47,4 | 48,7 | 62,2 |
+| Güneş fiyat oranı (lisanslı, tam yıl) | 0,911 | 0,834 | — |
+| Rüzgâr fiyat oranı | 0,969 | 0,986 | — |
+| En yüksek PTF (TL/MWh) | 2.700, sonra 3.000 | 3.000, Nisan'dan 3.400 | 3.400, Nisan'dan 4.500 |
+| En yüksek fiyattaki saat payı | %13,3 | %17,7 | Nisan–Haziran %0,3–2,9 |
+
+- **Güneş hedefi doğrulandı:** 2025 tam yılı 0,834. 12 örnek günden çıkan ~0,84 bununla tutarlı. 2024'te 0,911'di; tek yılda 8 puanlık düşüş, güneş kurulu gücünün hızlı artışıyla tutarlı (yorum; ayrıca ölçülmedi). Oyunun ilk yılı için 2025 hedef alındı.
+- **Aylık fark yıldan yıla çok değişiyor:** Ocak 2024'te 53, 2025'te 36,6; Mayıs 48,8 ve 65,2 $/MWh. İki yılda da tekrar eden özellikler: yaz düşük (38–42), Nisan ve Ekim yüksek (57–62), ilkbahar ve sonbahar yaz ve kıştan yüksek.
+- **Azami fiyat:** EPİAŞ verisinde en yüksek PTF yuvarlak değerlerde duruyor ve saatlerin %13–18'i bu değerde. Bu bir fiyat limitidir (EPDK kararları bu ortamdan açılamadı; değerler EPİAŞ verisinden). Nisan 2026'da 4.500 TL'ye (~100 $) çıktı; o zamandan beri nadiren bağlıyor. 2026 yazında günlük fark 61–73 $/MWh (2025: 38–40). 2025'in dar yaz farkını eski limit belirliyordu.
+
+2025 aylık şekil (USD; oranlar aylık ortalamaya göre):
+
+| Ay | Ortalama | Günlük fark | Gece 0–6 | Öğle 10–15 | Akşam 18–22 | Limitte | Güneş fiyat oranı |
+|---|---|---|---|---|---|---|---|
+| Ocak | 70,8 | 36,6 | 0,91 | 0,91 | 1,11 | %16 | 0,928 |
+| Şubat | 68,7 | 34,8 | 0,93 | 0,90 | 1,11 | %6 | 0,926 |
+| Mart | 59,1 | 53,3 | 1,08 | 0,65 | 1,26 | %5 | 0,743 |
+| Nisan | 64,6 | 57,0 | 1,04 | 0,68 | 1,32 | %15 | 0,793 |
+| Mayıs | 63,6 | 65,2 | 1,13 | 0,62 | 1,34 | %17 | 0,751 |
+| Haziran | 56,0 | 65,5 | 1,16 | 0,58 | 1,41 | %8 | 0,788 |
+| Temmuz | 74,0 | 37,6 | 1,05 | 0,84 | 1,13 | %27 | 0,899 |
+| Ağustos | 72,2 | 40,2 | 1,07 | 0,80 | 1,14 | %21 | 0,868 |
+| Eylül | 66,2 | 53,3 | 1,07 | 0,70 | 1,22 | %12 | 0,827 |
+| Ekim | 65,7 | 57,7 | 1,02 | 0,70 | 1,21 | %26 | 0,801 |
+| Kasım | 66,1 | 51,0 | 0,95 | 0,79 | 1,17 | %29 | 0,827 |
+| Aralık | 69,8 | 31,5 | 0,89 | 0,97 | 1,08 | %29 | 0,963 |
+
+## Model (`config.js` `REG.T`, `sim.js`, `mods.js`)
+- **`cap` 100 $/MWh:** Türkiye'de saatlik fiyat bunu aşmaz (`priceCap`). 4.500 TL'nin 2026 kuruyla karşılığı; normal yıl ortalamasının ~1,5 katı. Olay kartlarının fiyat etkisi de tavanda durur. Diğer piyasalarda oyunun genel üst sınırı (110 × piyasa çarpanı) değişmedi.
+- **`sm`: güneşin öğle fiyatını düşürme etkisinin aylık çarpanı.** Ocak…Aralık: 0,8; 0,8; 1,5; 1,4; 1,7; 1,4; 1; 1,1; 1,2; 1,4; 1,4; 0,6. İlkbahar ve sonbaharda ılık hava (düşük talep) ve kar erimesi öğleyi derin düşürür. Yazın klima talebi, kışın zayıf güneş düşüşü sınırlar. Aylık güneş fiyat oranına göre ayarlandı.
+- **`dem`: aylık talep düzeyi** (genel `DEMAND` yerine). Hedef, aylık ortalamanın yıl ortalamasına oranının 2024 ve 2025 ortalaması. Önceki eğride kış fazla pahalı (Ocak 1,16), Mayıs fazla ucuzdu (0,79). Gerçekte bu oranlar 1,01 ve 0,94.
+- **`nz` 0,24:** saatlik rastgele oynama ±%12 (diğer piyasalarda ±%8). Gerçek günler ortalama profilden çok daha fazla açılıyor: Ocak'ta ortalama profilin farkı ~18, tek tek günlerinki ~37 $/MWh.
+- **`mult` 0,92 → 0,94:** yıl ortalaması 66,4'te kalsın diye.
+- **Hidroloji `mon` Mayıs 1,15 → 1,45:** Mayıs'ın talep düzeyi yükseldiği için yağışlı yıl oranı hedefe dönsün diye.
+- **Ölçüm:** `scripts/calib_shape.cjs` (yeni). Aylık ortalama, günlük fark, saat grupları, limitteki saat payı ve güneş fiyat oranı, EPİAŞ 2025 ile yan yana. Koda dokunmadan ayar denemesi için 6.–10. bağımsız değişkenler.
+
+## Ayar süreci
+| Deneme | Ortalama | Günlük fark | Güneş fiyat oranı | Not |
+|---|---|---|---|---|
+| Önceki model | 65,7 | 44,7 | 0,85 | her ay 41–49 |
+| Yalnızca limit (84 $, 2025) | 65,1 | 36,6 | 0,86 | kış ve yaz farkı çöktü |
+| 2025 limiti + `sm`, `dem`, `nz` 0,36 | 66,0–66,3 | 46,2 | 0,82 | 2025'e oturuyor: aylık fark 12 ayın 10'unda ±6 $/MWh içinde (Ekim, Kasım −10) |
+| Güncel limit (100 $), aynı ayar | 66,4 | 59–61 | 0,79–0,81 | limit akşamı kesmeyince fark büyüdü, güneş oranı düştü |
+| **Seçilen:** 100 $, `sm` ×0,89, `nz` 0,24 | 66,6 | 51,7 | 0,837 | |
+
+Değerler `calib_shape.cjs` (3 koşu) ve `calib_market.cjs` (4 koşu) ortalamaları; güneş fiyat oranı `calib_market`'ten.
+
+## Sonuç (seçilen ayar, normal yıl)
+| Ay | Ortalama ($/MWh) | Günlük fark: oyun / 2024 / 2025 | Öğle oranı: oyun / 2025 | Akşam oranı: oyun / 2025 | Güneş fiyat oranı: oyun / 2025 |
+|---|---|---|---|---|---|
+| Ocak | 67,1 | 43,0 / 53,0 / 36,6 | 0,89 / 0,91 | 1,21 / 1,11 | 0,91 / 0,93 |
+| Şubat | 66,8 | 43,7 / 48,8 / 34,8 | 0,85 / 0,90 | 1,24 / 1,11 | 0,87 / 0,93 |
+| Mart | 62,3 | 58,2 / 43,8 / 53,3 | 0,72 / 0,65 | 1,34 / 1,26 | 0,78 / 0,74 |
+| Nisan | 59,1 | 54,8 / 62,0 / 57,0 | 0,72 / 0,68 | 1,36 / 1,32 | 0,81 / 0,79 |
+| Mayıs | 62,6 | 64,9 / 48,8 / 65,2 | 0,66 / 0,62 | 1,41 / 1,34 | 0,78 / 0,75 |
+| Haziran | 59,3 | 60,5 / 49,5 / 65,5 | 0,67 / 0,58 | 1,38 / 1,41 | 0,80 / 0,79 |
+| Temmuz | 75,5 | 46,5 / 41,9 / 37,6 | 0,81 / 0,84 | 1,26 / 1,13 | 0,90 / 0,90 |
+| Ağustos | 75,1 | 49,2 / 37,5 / 40,2 | 0,79 / 0,80 | 1,27 / 1,14 | 0,88 / 0,87 |
+| Eylül | 70,3 | 56,5 / 44,4 / 53,3 | 0,74 / 0,70 | 1,33 / 1,22 | 0,82 / 0,83 |
+| Ekim | 68,9 | 53,9 / 57,7 / 57,7 | 0,77 / 0,70 | 1,30 / 1,21 | 0,81 / 0,80 |
+| Kasım | 69,1 | 49,0 / 41,7 / 51,0 | 0,82 / 0,79 | 1,23 / 1,17 | 0,84 / 0,83 |
+| Aralık | 67,8 | 40,4 / 40,0 / 31,5 | 0,93 / 0,97 | 1,18 / 1,08 | 0,94 / 0,96 |
+
+- **Yıl:**
+  - Ortalama 66,6 $/MWh (66,3–67,3; hedef 66,4).
+  - Güneş fiyat oranı 0,837 (0,80–0,86; hedef 0,834).
+  - Rüzgâr fiyat oranı 0,974 (hedef 0,986).
+  - Rüzgâr filosu kapasite faktörü 0,319.
+  - Günlük fark 51,7 $/MWh: eski limitli 2024–2025 (47–49) ile yeni limitli, çok yağışlı 2026 (62) arasında.
+  - Aylık düzeyin hedeften ortalama sapması 0,016.
+- **Avrupa ve Kuzey Amerika değişmedi:** Avrupa 91,4 $/MWh, güneş fiyat oranı 0,55, rüzgâr fiyat oranı 0,91.
+- **Akşam oranı** artık 2025'ten yüksek (yazın 1,26–1,27'ye karşı 1,13–1,14). Bu bilinçli bir sonuç: 2025'te akşamı 3.400 TL limiti kesiyordu, güncel limit (4.500 TL) kesmiyor.
+
+## Hidroloji ve proje etkileri
+`calib_hydro.cjs` (120 gün × 2 koşu, her su endeksi için; normal yıl Mayıs ağırlığı değişmeden önceki koşudan, w 1'de etkisi yok). Parantezde "Saatlik dağılım" bölümündeki önceki ölçüm (08.11.2026).
+
+| | Kurak (w 0,78) | Normal (w 1) | Çok yağışlı (w 1,27) |
+|---|---|---|---|
+| Yıl ortalaması ($/MWh) | 68,5 (önce 70,2) | 66,4 (66,6) | 50,9 (51,1) |
+| Konya GES ortalama satış fiyatı | 57,5 (60,5) | 55,1 (55,4) | 42,5 (40,8) |
+| Çanakkale RES ortalama satış fiyatı | 67,9 (68,2) | 65,1 (65,2) | 48,7 (49,1) |
+
+- **Yağışlı yıl hedefleri korundu.** Oranlar w 1,27 ÷ w 0,78; parantezde EPİAŞ 2026 ÷ 2025 ÷ 1,15.
+  - Aylık oran: Nisan 0,35 (0,33), Mayıs 0,23 (0,21), Haziran 0,49 (0,49), Mart 0,67 (0,65).
+  - 5 $/MWh altındaki saatler: Nisan %31 (%32), Mayıs %55 (%58), Haziran %17 (%26), Mart %2 (%14).
+  - Nisan'ın akşam oranı 0,82 (0,83).
+  - Nisan'ın günlük fark oranı 1,47 (1,42); önceki modelde 1,65'ti.
+- **Yağışlı yılın günlük farkı 2026'ya yakın.** Oyunda w 1,27 iken Temmuz–Ekim 61–65 $/MWh; EPİAŞ 2026 Temmuz–Ekim 61–73.
+- **YEKDEM kararı (59,2 $/MWh) değişmedi.**
+  - Konya GES: YEKDEM normal ve kurak yılda biraz önde (kurak yılda artık 57,5'e karşı; önce başa baştı), çok yağışlı yılda açık ara önde.
+  - Çanakkale RES: normal ve kurak yılda piyasa önde.
+- **Vaka çalışması:** Türkiye proje satırları 8 yeni koşuyla yenilendi. Konya GES'in ortalama satış fiyatı 51,5–56,6 $/MWh (önce 54,6–58,0). IRR %10,9–12,7 (önce %11,8–13,6).
+
+## Sınırlamalar
+- **Şekil hedefi yine tek yıla (2025) dayanıyor.** Aylık fark yıldan yıla çok oynuyor; oyun 2024 ile 2025 arasında ya da yakınında kalıyor. Kış farkı 2024'ten düşük, 2025'ten yüksek.
+- **Limit dolar cinsinden sabit.** Gerçekte TL'dir ve EPDK kararıyla değişir. 4.500 TL değeri EPİAŞ verisinden çıkarıldı; EPDK kararı doğrulanamadı.
+- **Hafta sonu ve tatil etkisi yok.** Günden güne fark rastgele oynamayla (`nz`) temsil ediliyor; gerçekte hafta sonu öğle fiyatı daha derin düşer.
+- **Güneş üretimi yalnızca lisanslı santrallerden** (gerçek zamanlı veri). Lisanssız güneşin profili benzer varsayıldı.
+- **Normal yıl hedefi karma:** güneş fiyat oranı 2025'ten (kurak yıl), aylık düzey 2024–2025 ortalamasından, limit 2026'dan.

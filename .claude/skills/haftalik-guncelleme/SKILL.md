@@ -47,7 +47,9 @@ Düzenli kontroller (başlık olmasa da):
   aylık USD ve TL, TEİAŞ hidro, TCMB reel kur). Yağışlı ya da kurak bir ilkbahardan sonra saat gruplarını da karşılaştır
   (EPİAŞ saatlik PTF; `docs/kalibrasyon.md` "Saatlik dağılım", `calib_hydro.cjs` saat grubu tablosu). Kalibrasyon yalnızca
   tipik bir yılı temsil eden kanıtla değişir.
-- **Olay oldukça:** YEKA turları (yeni il, fiyat, katkı payı), deniz üstü YEKA, lisanssız kapasite duyuruları, offshore
+- **Olay oldukça:** azami fiyat (fiyat tavanı) değişikliği (EPDK kararı; EPİAŞ PTF'nin en yüksek değeri) → `REG.T.cap`
+  (TL değerin o günkü kurla dolar karşılığı; normal yıl ortalamasına oranı ~1,5 korunur, `calib_shape.cjs` ile ölç),
+  YEKA turları (yeni il, fiyat, katkı payı), deniz üstü YEKA, lisanssız kapasite duyuruları, offshore
   fark sözleşmesi turları, IRENA yıllık maliyet raporu (Temmuz).
 
 ## 3. Ayırma

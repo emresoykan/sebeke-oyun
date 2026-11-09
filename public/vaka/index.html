@@ -24,22 +24,23 @@
   <p class="note"><b>Güncelleme (30.10.2026):</b> Sonuçlar güncel modelle yeniden üretildi. Kalibrasyon ve proje ekonomisi artık oyunun ilk yılına (120 oyun günü, yaklaşık bir takvim yılı) dayanıyor; ilk sürüm 365 oyun gününün (yaklaşık üç takvim yılı) ortalamasını kullanıyordu. Avrupa hedefleri ENTSO-E 2025 tam yıl verisine geçti, Türkiye güneş hedefi 7 örnek günden 12'ye genişletildi.</p>
   <p class="note"><b>Güncelleme (04.11.2026):</b> Oyuna hidrolojik yıl eklendi: Türkiye'de her yıl kurak, normal ya da yağışlı geçer. Bu sayfadaki sonuçlar normal yıl içindir ve önceki modelle aynıdır. Yeni oyunun ilk yılı gerçek 2026'yı yaşar; 2026 çok yağışlı geçtiği için ilk yılın Türkiye ortalaması ~51 $/MWh olur (normal yılda ~67). Ayrıntı: <code>docs/kalibrasyon.md</code>, "Hidrolojik yıl".</p>
   <p class="note"><b>Güncelleme (08.11.2026):</b> Oyunda GES yatırım maliyeti artık piyasaya göre: Avrupa'da IRENA'nın Avrupa ortalaması (779 $/kW), küresel ortalamanın (691 $/kW) 1,13 katı. 5. bölümün Avrupa satırları yeni 8 koşuyla yeniden üretildi; Avrupa GES'inin IRR'ı %12,5–15,2'den %10,7–13,3'e indi; aynı koşular eski maliyetle %12,4–15,3 verirdi, yani düşüş yalnızca maliyettendir. Avrupa RES satırlarındaki farklar yalnızca koşudan koşuya değişimdendir. Türkiye satırları 30.10.2026 koşularıdır: Türkiye'de maliyet değişmedi ve güncel modelle yapılan 8 yeni koşu aynı aralıklarda kaldı (ortalama fiyat 66,2 $/MWh, GES IRR'ı %11,8–13,6, RES IRR'ı %15,7–22,4).</p>
+  <p class="note"><b>Güncelleme (09.11.2026):</b> Türkiye'nin fiyat modeli EPİAŞ'ın tam yıl saatlik verisiyle yeniden ayarlandı. Türkiye güneş fiyat oranı artık 12 örnek günden değil, 2025'in 8.760 saatinden ölçülüyor: 0,834 (eski tahmin ~0,84 doğrulandı). Oyuna Türkiye'nin azami fiyatı (100 $/MWh; gerçekte Nisan 2026'dan beri 4.500 TL/MWh) ve mevsime göre değişen gün içi fiyat şekli eklendi: ilkbahar ve sonbaharda öğle fiyatı daha derin düşer, kış daha ucuz, yaz en pahalı. Yıllık ortalama fiyat ve güneş fiyat oranı aynı kaldı; normal yılda günlük en yüksek–en düşük fiyat farkı 44,7'den 51,7 $/MWh'e çıktı (gerçek 2024–2025: 47–49, 2026: 62). 5. bölümün Türkiye satırları 8 yeni koşuyla yeniden üretildi: GES'in ortalama satış fiyatı ~%4 düştü (IRR %10,9–12,7). RES IRR'ındaki artış büyük ölçüde bu koşuların daha rüzgârlı hava örneğinden geliyor (kapasite faktörü %41–56; önceki koşularda %38–47). Ayrıntı: <code>docs/kalibrasyon.md</code>, "Günlük fiyat şekli ve azami fiyat".</p>
 
   <section class="card tldr" aria-labelledby="ozet">
     <h2 id="ozet" style="margin-top:0">Özet</h2>
     <ul>
       <li><b>Sorun:</b> Oyunun Türkiye piyasası öğle fiyatını 4–9 $/MWh'ye düşürüyordu. Satılamayan üretim kısıldığı için güneş santralinin (GES) kapasite faktörü %8'de kalıyordu. Rüzgâr üretimi de ülkeye göre farklı yönde sapıyordu: Türkiye'de gerçeğin altında, Almanya'da iki katından fazla. Bu modelden hesaplanan finansal göstergeler anlamsızdı.</li>
       <li><b>Yaklaşım:</b> EPİAŞ 2025 ve ENTSO-E 2025 (Almanya, İspanya) verisinden ortalama fiyat ve fiyat oranı (capture rate) hedefleri, TEİAŞ, EPDK ve ENTSO-E verisinden rüzgâr filosunun kapasite faktörü hedefleri çıkarıldı. Model parametreleri, oyunun ilk yılını (120 oyun günü) simüle eden koşularla bu hedeflere göre ayarlandı.</li>
-      <li><b>Sonuç:</b> Oyunun ilk yılında Türkiye'de ortalama fiyat 66,2 $/MWh (gerçek: 66,4). Güneş fiyat oranı %85 (gerçek: ~%84), rüzgâr %97 (gerçek: %99). Rüzgâr filosunun kapasite faktörü Türkiye'de %32,6 (gerçek: %32,8), Almanya'da %20,2 (gerçek: %20,2). Avrupa'da ortalama fiyat 89,5 $/MWh (hedef: ~88), güneş oranı %55 (hedef: ~%53), rüzgâr %88 (hedef: ~%90).</li>
-      <li><b>Bulgu:</b> İlk yılın fiyatı sürerse bir GES %10 sermaye maliyetinde iki piyasada da kârlı: IRR Türkiye'de %12,1–13,3, Avrupa'da %10,7–13,3 (Avrupa'da yatırım maliyeti %13 yüksek). Rüzgârda belirleyici olan kaynak kalitesi: Çanakkale'deki santralin IRR'ı %16,8–21,1, Kuzey Almanya'dakinin %7,3–13,5.</li>
+      <li><b>Sonuç:</b> Oyunun ilk yılında Türkiye'de ortalama fiyat 66,6 $/MWh (gerçek: 66,4). Güneş fiyat oranı %84 (gerçek: %83,4), rüzgâr %97 (gerçek: %98,6). Rüzgâr filosunun kapasite faktörü Türkiye'de %32,6 (gerçek: %32,8), Almanya'da %20,2 (gerçek: %20,2). Avrupa'da ortalama fiyat 89,5 $/MWh (hedef: ~88), güneş oranı %55 (hedef: ~%53), rüzgâr %88 (hedef: ~%90).</li>
+      <li><b>Bulgu:</b> İlk yılın fiyatı sürerse bir GES %10 sermaye maliyetinde iki piyasada da kârlı: IRR Türkiye'de %10,9–12,7, Avrupa'da %10,7–13,3 (Avrupa'da yatırım maliyeti %13 yüksek). Rüzgârda belirleyici olan kaynak kalitesi: Çanakkale'deki santralin IRR'ı %18,8–25,3, Kuzey Almanya'dakinin %7,3–13,5.</li>
     </ul>
   </section>
 
   <div class="kpis" role="list">
-    <div class="kpi" role="listitem"><small>Türkiye ortalama fiyat, oyunun ilk yılı</small><b>66,2 $</b><span>gerçek 66,4 $/MWh (EPİAŞ 2025)</span></div>
-    <div class="kpi" role="listitem"><small>Türkiye güneş fiyat oranı, oyun</small><b>%85</b><span>gerçek ~%84 (12 örnek gün)</span></div>
+    <div class="kpi" role="listitem"><small>Türkiye ortalama fiyat, oyunun ilk yılı</small><b>66,6 $</b><span>gerçek 66,4 $/MWh (EPİAŞ 2025)</span></div>
+    <div class="kpi" role="listitem"><small>Türkiye güneş fiyat oranı, oyun</small><b>%84</b><span>gerçek %83,4 (EPİAŞ 2025, tam yıl)</span></div>
     <div class="kpi" role="listitem"><small>Türkiye rüzgâr filosu kapasite faktörü</small><b>%27 → %32,6</b><span>gerçek %32,8 (TEİAŞ 2025)</span></div>
-    <div class="kpi" role="listitem"><small>GES IRR, Türkiye / Avrupa</small><b>%12,1–13,3 / %10,7–13,3</b><span>yalnızca spot satış, vergisiz</span></div>
+    <div class="kpi" role="listitem"><small>GES IRR, Türkiye / Avrupa</small><b>%10,9–12,7 / %10,7–13,3</b><span>yalnızca spot satış, vergisiz</span></div>
   </div>
 
   <h2>1. Neden önemliydi?</h2>
@@ -52,7 +53,8 @@
     <tbody>
       <tr><td>Türkiye ortalama fiyat</td><td class="l">EPİAŞ Şeffaflık Platformu, gün öncesi piyasa takas fiyatı (PTF)</td><td class="l">2025, 8.760 saat</td><td class="l">USD/MWh (EPİAŞ'ın USD karşılığı)</td></tr>
       <tr><td>Türkiye rüzgâr fiyat oranı</td><td class="l">EPİAŞ PTF × gerçek zamanlı rüzgâr üretimi</td><td class="l">2025, tam yıl</td><td class="l">oran</td></tr>
-      <tr><td>Türkiye güneş fiyat oranı</td><td class="l">EPİAŞ PTF × gerçek zamanlı güneş üretimi (lisanslı santraller)</td><td class="l">2025'ten 12 örnek gün (her ayın 15'i; Haziran için 1 Haziran)</td><td class="l">oran</td></tr>
+      <tr><td>Türkiye güneş fiyat oranı</td><td class="l">EPİAŞ PTF × gerçek zamanlı güneş üretimi (lisanslı santraller)</td><td class="l">2025, 8.760 saat (ilk sürümde 12 örnek gün)</td><td class="l">oran</td></tr>
+      <tr><td>Türkiye günlük fiyat şekli</td><td class="l">EPİAŞ PTF, saatlik; aylık ortalama, günlük en yüksek–en düşük farkı, saat grupları, azami fiyat</td><td class="l">2024 ve 2025 tam yıl; 2026 Ocak–Ekim</td><td class="l">USD/MWh, TL/MWh</td></tr>
       <tr><td>Türkiye rüzgâr filosu</td><td class="l">TEİAŞ aylık rüzgâr üretimi ve yıl sonu kurulu güç; EPDK lisanslarından işletmedeki 308 RES'in il dağılımı</td><td class="l">2025, 12 ay</td><td class="l">GWh, MW</td></tr>
       <tr><td>Almanya ve İspanya rüzgâr filosu</td><td class="l">ENTSO-E aylık gerçekleşen üretim (kara ve Almanya deniz üstü) ve kurulu güç</td><td class="l">2025 (Almanya: Ocak–Ekim, Aralık 2024)</td><td class="l">MWh, MW</td></tr>
       <tr><td>Avrupa fiyat ve oranlar</td><td class="l">ENTSO-E Şeffaflık Platformu, gün öncesi fiyat ve gerçekleşen üretim; Almanya-Lüksemburg ve İspanya</td><td class="l">2025, tam yıl (çeyreklik sorgular)</td><td class="l">EUR/MWh; 1,1306 $/€ (FRED AEXUSEU, 2025)</td></tr>
@@ -87,11 +89,11 @@ capture oranı = capture fiyatı ÷ ortalama fiyat</div>
 
   <h2>4. Sonuçlar</h2>
   <div class="legend" aria-hidden="true"><span><i class="i-real"></i>Gerçek 2025</span><span><i class="i-old"></i>Oyun, önce</span><span><i class="i-new"></i>Oyun, sonra</span></div>
-  <div class="bars" role="img" aria-label="Güneş fiyat oranı. Türkiye: gerçek yaklaşık yüzde 84, oyun önce yüzde 60, sonra yüzde 85. Avrupa: hedef yaklaşık yüzde 53, önce yüzde 89, sonra yüzde 55. Rüzgâr filosu kapasite faktörü. Türkiye: gerçek yüzde 32,8, oyun önce yüzde 27, sonra yüzde 32,6. Almanya: gerçek yüzde 20,2, önce yaklaşık yüzde 45, sonra yüzde 20,2.">
+  <div class="bars" role="img" aria-label="Güneş fiyat oranı. Türkiye: gerçek yüzde 83,4, oyun önce yüzde 60, sonra yüzde 84. Avrupa: hedef yaklaşık yüzde 53, önce yüzde 89, sonra yüzde 55. Rüzgâr filosu kapasite faktörü. Türkiye: gerçek yüzde 32,8, oyun önce yüzde 27, sonra yüzde 32,6. Almanya: gerçek yüzde 20,2, önce yaklaşık yüzde 45, sonra yüzde 20,2.">
     <div class="g">Güneş fiyat oranı, Türkiye</div>
-    <div class="bar"><span>Gerçek (örnek günler)</span><span class="t"><i class="i-real" style="width:76.4%"></i></span><span class="v">~%84</span></div>
+    <div class="bar"><span>Gerçek (2025, tam yıl)</span><span class="t"><i class="i-real" style="width:75.8%"></i></span><span class="v">%83,4</span></div>
     <div class="bar"><span>Oyun, önce</span><span class="t"><i class="i-old" style="width:54.5%"></i></span><span class="v">%60</span></div>
-    <div class="bar"><span>Oyun, sonra</span><span class="t"><i class="i-new" style="width:77.3%"></i></span><span class="v">%85</span></div>
+    <div class="bar"><span>Oyun, sonra</span><span class="t"><i class="i-new" style="width:76.4%"></i></span><span class="v">%84</span></div>
     <div class="g">Güneş fiyat oranı, Avrupa</div>
     <div class="bar"><span>Hedef (DE ve ES ort.)</span><span class="t"><i class="i-real" style="width:48.2%"></i></span><span class="v">~%53</span></div>
     <div class="bar"><span>Oyun, önce</span><span class="t"><i class="i-old" style="width:80.9%"></i></span><span class="v">%89</span></div>
@@ -111,11 +113,13 @@ capture oranı = capture fiyatı ÷ ortalama fiyat</div>
   <div class="tw"><table>
     <thead><tr><th>Gösterge</th><th>Gerçek (2025)</th><th>Oyun, önce</th><th>Oyun, sonra</th></tr></thead>
     <tbody>
-      <tr><td>Ortalama fiyat</td><td>66,4 $/MWh</td><td>43,7 $/MWh</td><td>66,2 $/MWh (64,6–67,5)</td></tr>
-      <tr><td>Güneş fiyat oranı</td><td>~%84 (12 örnek gün)</td><td>%60</td><td>%85 (84–85)</td></tr>
-      <tr><td>Rüzgâr fiyat oranı</td><td>%99</td><td>%103</td><td>%97 (95–98)</td></tr>
-      <tr><td>Öğle fiyatı (11–14 ortalaması)</td><td>~50 $/MWh (12 örnek gün; tek gün 2–81)</td><td>4–9 $/MWh</td><td>51 $/MWh (50–53)</td></tr>
-      <tr><td>GES kapasite faktörü (Konya)</td><td>—</td><td>%8,2</td><td>%22,4 (21,7–23,3)</td></tr>
+      <tr><td>Ortalama fiyat</td><td>66,4 $/MWh</td><td>43,7 $/MWh</td><td>66,6 $/MWh (66,3–67,3)</td></tr>
+      <tr><td>Güneş fiyat oranı</td><td>%83,4 (tam yıl; 2024: %91,1)</td><td>%60</td><td>%84 (80–86)</td></tr>
+      <tr><td>Rüzgâr fiyat oranı</td><td>%98,6</td><td>%103</td><td>%97 (97–99)</td></tr>
+      <tr><td>Öğle fiyatı (11–14 ortalaması)</td><td>48,5 $/MWh (tam yıl)</td><td>4–9 $/MWh</td><td>49 $/MWh (45–51)</td></tr>
+      <tr><td>Günlük en yüksek–en düşük farkı*</td><td>48,6 $/MWh (2024: 47,4; 2026 Ocak–Ekim: 62,2)</td><td>44,7 $/MWh</td><td>51,7 $/MWh</td></tr>
+      <tr><td>Azami fiyat*</td><td>3.400 TL; Nisan 2026'dan 4.500 TL (~100 $)</td><td>101 $ (genel üst sınır)</td><td>100 $/MWh</td></tr>
+      <tr><td>GES kapasite faktörü (Konya)</td><td>—</td><td>%8,2</td><td>%21,7 (20,0–23,3)</td></tr>
       <tr><td>Rüzgâr filosu kapasite faktörü</td><td>%32,8 (TEİAŞ; yıl sonu güçle %30,7–35,3)</td><td>%27</td><td>%32,6</td></tr>
       <tr><td>En rüzgârlı / en sakin ay</td><td>Ağustos / Ekim</td><td>—</td><td>Ağustos / Ekim</td></tr>
     </tbody></table></div>
@@ -129,7 +133,7 @@ capture oranı = capture fiyatı ÷ ortalama fiyat</div>
       <tr><td>Rüzgâr filosu KF, kara</td><td>%20,2</td><td>%20,5</td><td>ülke bazında</td><td>~%45 (Almanya)</td><td>%20,2 / %21,8</td></tr>
       <tr><td>Rüzgâr filosu KF, deniz</td><td>%31,2</td><td>—</td><td>Almanya</td><td>—</td><td>%31,7</td></tr>
     </tbody></table></div>
-  <p class="note">"Oyun, sonra" sütununda fiyat ve oranlar kalibrasyon koşularının ortalamasıdır; parantezde en düşük ve en yüksek değer (oyunun ilk yılı, 4 koşu). Öğle fiyatı ve GES kapasite faktörü 5. bölümdeki proje koşularından (8 koşu) alındı. Rüzgâr filosu değerleri rüzgâr kalibrasyonunun 2–3 koşusunun ortalamasıdır; tek bir yılda filo KF'si ±%10 sapabilir. Koşular arasındaki fark oyunun hava modelinden ve rastgelelikten gelir. "Oyun, önce" ilk kalibrasyondan önceki modeldir.</p>
+  <p class="note">"Oyun, sonra" sütununda fiyat ve oranlar kalibrasyon koşularının ortalamasıdır; parantezde en düşük ve en yüksek değer (oyunun ilk yılı, 4 koşu). Öğle fiyatı ve GES kapasite faktörü 5. bölümdeki proje koşularından (8 koşu) alındı. * işaretli iki satır 09.11.2026'da eklendi; "önce" sütunu o tarihten önceki modeldir, günlük fark <code>scripts/calib_shape.cjs</code> ile (3 koşu). Rüzgâr filosu değerleri rüzgâr kalibrasyonunun 2–3 koşusunun ortalamasıdır; tek bir yılda filo KF'si ±%10 sapabilir. Koşular arasındaki fark oyunun hava modelinden ve rastgelelikten gelir. "Oyun, önce" ilk kalibrasyondan önceki modeldir.</p>
 
   <h2>5. Proje ekonomisi: aynı santral iki piyasada</h2>
   <p>Kalibre edilmiş modelle 5 MW'lık bir GES ve 5 MW'lık bir RES her piyasada oyunun ilk yılı (120 oyun günü) boyunca çalıştırıldı; 8 bağımsız koşu. Üretim ve satış fiyatı simülasyondan, maliyetler gerçek dünya varsayımlarından gelir. İlk yılın üretimi ve satış fiyatı 25 yıl boyunca sabit varsayılır.</p>
@@ -150,19 +154,19 @@ IRR  = NPV'yi sıfır yapan iskonto oranı</div>
   <div class="tw"><table>
     <thead><tr><th>Santral</th><th>Kapasite faktörü</th><th>Ort. satış fiyatı</th><th>LCOE</th><th>NPV</th><th>IRR</th><th>Geri ödeme</th></tr></thead>
     <tbody>
-      <tr><td>GES, Türkiye (Konya)</td><td>%21,7–23,3</td><td>54,4–57,1 $/MWh</td><td>44,8–48,2 $/MWh</td><td class="pos">+0,54 – +0,88 M$</td><td>%12,1–13,3</td><td>7,1–7,7 yıl</td></tr>
+      <tr><td>GES, Türkiye (Konya)</td><td>%20,0–23,3</td><td>51,5–56,6 $/MWh</td><td>44,7–52,1 $/MWh</td><td class="pos">+0,24 – +0,72 M$</td><td>%10,9–12,7</td><td>7,3–8,3 yıl</td></tr>
       <tr><td>GES, Avrupa (İspanya iç kesim)</td><td>%18,4–20,5</td><td>64,9–71,0 $/MWh</td><td>56,6–62,9 $/MWh</td><td class="pos">+0,21 – +1,00 M$</td><td>%10,7–13,3</td><td>7,1–8,4 yıl</td></tr>
-      <tr><td>RES, Türkiye (Çanakkale)</td><td>%37,9–46,9</td><td>63,6–66,7 $/MWh</td><td>37,7–46,5 $/MWh</td><td class="pos">+2,89 – +4,86 M$</td><td>%16,8–21,1</td><td>4,7–5,8 yıl</td></tr>
+      <tr><td>RES, Türkiye (Çanakkale)</td><td>%40,6–55,7</td><td>62,5–67,2 $/MWh</td><td>31,7–43,4 $/MWh</td><td class="pos">+3,78 – +6,81 M$</td><td>%18,8–25,3</td><td>3,9–5,3 yıl</td></tr>
       <tr><td>RES, Avrupa (Kuzey Almanya)</td><td>%19,8–28,5</td><td>74,7–80,4 $/MWh</td><td>62,0–89,1 $/MWh</td><td><span class="neg">−1,04</span> – <span class="pos">+1,47</span> M$</td><td>%7,3–13,5</td><td>7,1–11,3 yıl</td></tr>
-      <tr><td>RES, Türkiye filo ortalaması (hesap)</td><td>%33 (varsayım)</td><td>65,1 $/MWh (varsayım)</td><td>53,5 $/MWh</td><td class="pos">+1,52 M$</td><td>%13,7</td><td>—</td></tr>
+      <tr><td>RES, Türkiye filo ortalaması (hesap)</td><td>%33 (varsayım)</td><td>65,5 $/MWh (varsayım)</td><td>53,5 $/MWh</td><td class="pos">+1,57 M$</td><td>%13,8</td><td>—</td></tr>
     </tbody></table></div>
-  <p class="note">Aralıklar 8 bağımsız koşunun en düşük ve en yüksek değeridir (oyunun ilk yılı; rakipler yatırım yapar, olay kartları kapalı). Türkiye ve Avrupa ayrı koşu gruplarıdır (Türkiye 30.10.2026, Avrupa 08.11.2026). Bu koşularda ortalama fiyat Türkiye'de 66,2, Avrupa'da 91,2 $/MWh. Avrupa GES'inin kapasite faktörü kısılan üretim düşüldükten sonradır (kısıntı %8–13). Son satır simülasyon değildir: aynı varsayımlarla, Türkiye filo ortalaması kapasite faktörü ve Çanakkale'deki ortalama satış fiyatıyla hesaplandı. Yatırım (5 MW): GES Türkiye 3,46 M$, Avrupa 3,90 M$; RES 5,21 M$.</p>
+  <p class="note">Aralıklar 8 bağımsız koşunun en düşük ve en yüksek değeridir (oyunun ilk yılı; rakipler yatırım yapar, olay kartları kapalı). Türkiye ve Avrupa ayrı koşu gruplarıdır (Türkiye 09.11.2026, Avrupa 08.11.2026). Bu koşularda ortalama fiyat Türkiye'de 66,1, Avrupa'da 91,2 $/MWh. Avrupa GES'inin kapasite faktörü kısılan üretim düşüldükten sonradır (kısıntı %8–13). Son satır simülasyon değildir: aynı varsayımlarla, Türkiye filo ortalaması kapasite faktörü ve Çanakkale'deki ortalama satış fiyatıyla hesaplandı. Yatırım (5 MW): GES Türkiye 3,46 M$, Avrupa 3,90 M$; RES 5,21 M$.</p>
   <h3>WACC duyarlılığı: GES, Türkiye</h3>
   <div class="tw"><table>
     <thead><tr><th>WACC</th><th>%8</th><th>%10</th><th>%12</th></tr></thead>
     <tbody>
-      <tr><td>LCOE ($/MWh)</td><td>39,1–42,1</td><td>44,8–48,2</td><td>50,7–54,5</td></tr>
-      <tr><td>NPV (M$)</td><td class="pos">+1,23 – +1,62</td><td class="pos">+0,54 – +0,88</td><td class="pos">+0,01 – +0,30</td></tr>
+      <tr><td>LCOE ($/MWh)</td><td>39,1–45,5</td><td>44,7–52,1</td><td>50,6–59,0</td></tr>
+      <tr><td>NPV (M$)</td><td class="pos">+0,88 – +1,43</td><td class="pos">+0,24 – +0,72</td><td><span class="neg">−0,25</span> – <span class="pos">+0,17</span></td></tr>
     </tbody></table></div>
 
   <h3>Finansman yapısı: borç, vergi ve PPA</h3>
@@ -170,16 +174,16 @@ IRR  = NPV'yi sıfır yapan iskonto oranı</div>
   <div class="tw"><table>
     <thead><tr><th>Santral, yapı</th><th>Borç oranı</th><th>Özsermaye IRR</th><th>Stres: özsermaye IRR</th><th>Stres: en düşük DSCR</th></tr></thead>
     <tbody>
-      <tr><td>GES Türkiye, spot</td><td>%50–54</td><td>%12,3–14,5</td><td>%7,1–8,6</td><td>1,09–1,21</td></tr>
-      <tr><td>GES Türkiye, PPA</td><td>%58–63</td><td>%10,6–12,7</td><td>%9,0–11,2</td><td class="neg">0,93</td></tr>
-      <tr><td>RES Türkiye (Çanakkale), spot</td><td>%68–75</td><td>%23,4–38,7</td><td>%13,7–24,2</td><td>1,06–1,21</td></tr>
-      <tr><td>RES Türkiye (Çanakkale), PPA</td><td>%75 (üst sınır)</td><td>%21,3–31,7</td><td>%19,8–30,8</td><td><span class="neg">0,97</span>–1,21</td></tr>
+      <tr><td>GES Türkiye, spot</td><td>%46–52</td><td>%10,5–13,5</td><td>%5,8–7,9</td><td>1,13–1,36</td></tr>
+      <tr><td>GES Türkiye, PPA</td><td>%54–61</td><td>%8,9–11,7</td><td>%7,3–10,1</td><td><span class="neg">0,93</span>–1,00</td></tr>
+      <tr><td>RES Türkiye (Çanakkale), spot</td><td>%75 (üst sınır)</td><td>%32,0–51,0</td><td>%18,8–33,6</td><td>1,08–1,45</td></tr>
+      <tr><td>RES Türkiye (Çanakkale), PPA</td><td>%75 (üst sınır)</td><td>%26,1–42,5</td><td>%24,8–42,0</td><td>1,08–1,45</td></tr>
       <tr><td>GES Avrupa, spot</td><td>%48–57</td><td>%10,9–15,6</td><td>%6,5–9,9</td><td>1,41–1,48*</td></tr>
       <tr><td>GES Avrupa, PPA</td><td>%63–74</td><td>%10,2–14,5</td><td>%8,6–13,1</td><td><span class="neg">0,94</span>–1,04</td></tr>
       <tr><td>RES Avrupa (Kuzey Almanya), spot</td><td>%49–59</td><td>%6,3–16,3</td><td>%2,1–9,5</td><td>1,00–1,42</td></tr>
       <tr><td>RES Avrupa (Kuzey Almanya), PPA</td><td>%50–69</td><td>%5,1–14,8</td><td>%3,2–13,1</td><td><span class="neg">0,91</span>–1,02</td></tr>
     </tbody></table></div>
-  <div class="note">Her satır, yukarıdaki tabloyla aynı 8 koşunun aralığıdır. Çanakkale RES'inde borç oranı 8 koşunun 7'sinde %75 üst sınırında.<br>* Avrupa GES'inde (spot) stres altındaki en düşük DSCR bazınkinden (1,40) yüksek çıkıyor. Bazda en düşük DSCR, vergi amortismanının bittiği 11. ve 12. yıllardadır: vergi o yıllarda sıçrar (bir koşuda yılda ~14 bin $'dan ~124 bin $'a). Stres senaryosunda ilk 10 yıl vergi zararı oluşur ve devreder (Avrupa'da süre sınırı yok, yukarıda); 11. ve 12. yılların vergisi bu zararla silinir. Varsayımlar:
+  <div class="note">Her satır, yukarıdaki tabloyla aynı 8 koşunun aralığıdır. Çanakkale RES'inde borç oranı 8 koşunun hepsinde %75 üst sınırında.<br>* Avrupa GES'inde (spot) stres altındaki en düşük DSCR bazınkinden (1,40) yüksek çıkıyor. Bazda en düşük DSCR, vergi amortismanının bittiği 11. ve 12. yıllardadır: vergi o yıllarda sıçrar (bir koşuda yılda ~14 bin $'dan ~124 bin $'a). Stres senaryosunda ilk 10 yıl vergi zararı oluşur ve devreder (Avrupa'da süre sınırı yok, yukarıda); 11. ve 12. yılların vergisi bu zararla silinir. Varsayımlar:
   <ul class="note">
     <li><b>Kredi faizi:</b> ABD 10 yıllık hazine faizi (%5,10, FRED DGS10, 15.10.2026) üzerine marj. Türkiye'de %3,5, Avrupa'da %1,8; marjlar varsayımdır. Sonuç Türkiye'de %8,6, Avrupa'da %6,9.</li>
     <li><b>Kurumlar vergisi:</b> Türkiye %25 (ikincil kaynaklar). Avrupa %27,5; Almanya'nın %29,9'u ile İspanya'nın %25'inin ortalaması (Tax Foundation, OECD verisi).</li>
@@ -189,21 +193,21 @@ IRR  = NPV'yi sıfır yapan iskonto oranı</div>
 
   <h3>Yorum</h3>
   <ul>
-    <li><b>GES iki piyasada da %10 WACC'ın üstünde getiri sağlıyor.</b> Türkiye'de ortalama satış fiyatı (54–57 $/MWh) LCOE'nin (45–48 $/MWh) üstünde; IRR %12,1–13,3. WACC %12'ye çıkınca NPV sıfıra yaklaşıyor (+0,01 – +0,30 M$): desteksiz, yalnızca spot satış yapan GES'te finansman maliyeti belirleyici olmaya devam ediyor.</li>
-    <li><b>Sonuç ilk yılın fiyatının sürmesine bağlı.</b> Oyunda fiyat rakip yatırımlarıyla yıllar içinde düşer: Türkiye'de ilk yıl ~66, üçüncü yıl ~52 $/MWh (~%21 düşüş). Bu, finansman tablosundaki %20 fiyat stresine denk düşer. Bu sayfanın ilk sürümündeki daha düşük getiriler (Türkiye GES IRR'ı %9,2–10,2) 365 oyun gününün, yani bu düşüşü içeren üç yılın ortalama fiyatından hesaplanmıştı.</li>
-    <li><b>Avrupa'da yüksek fiyatın bir kısmı kısıntıyla eriyor.</b> Avrupa'nın ortalama fiyatı bu koşularda Türkiye'den ~%38 yüksek (91,2'ye karşı 66,2 $/MWh). Güneş saatlerinde fiyat sık sık sıfıra iniyor ve santral üretiminin %8–13'ünü kısıyor. İspanya'daki santral yine de Türkiye'dekinden yüksek fiyata satıyor (65–71 $/MWh). Ancak yatırım maliyeti de %13 yüksek (779'a karşı 691 $/kW): LCOE 57–63 $/MWh (Türkiye'de 45–48), IRR %10,7–13,3. WACC %12'de NPV sıfırın iki yanına düşüyor (−0,33 ile +0,35 M$).</li>
+    <li><b>GES iki piyasada da %10 WACC'ın üstünde getiri sağlıyor.</b> Türkiye'de ortalama satış fiyatı (52–57 $/MWh) LCOE'nin (45–52 $/MWh) üstünde; IRR %10,9–12,7. WACC %12'de NPV sıfırın iki yanına düşüyor (−0,25 ile +0,17 M$): desteksiz, yalnızca spot satış yapan GES'te finansman maliyeti belirleyici olmaya devam ediyor.</li>
+    <li><b>Sonuç ilk yılın fiyatının sürmesine bağlı.</b> Oyunda fiyat rakip yatırımlarıyla yıllar içinde düşer: Türkiye'de ilk yıl ~66, üçüncü yıl ~52 $/MWh (~%21 düşüş; 30.10.2026 ölçümü). Bu, finansman tablosundaki %20 fiyat stresine denk düşer. Bu sayfanın ilk sürümündeki daha düşük getiriler (Türkiye GES IRR'ı %9,2–10,2) 365 oyun gününün, yani bu düşüşü içeren üç yılın ortalama fiyatından hesaplanmıştı.</li>
+    <li><b>Avrupa'da yüksek fiyatın bir kısmı kısıntıyla eriyor.</b> Avrupa'nın ortalama fiyatı bu koşularda Türkiye'den ~%38 yüksek (91,2'ye karşı 66,1 $/MWh). Güneş saatlerinde fiyat sık sık sıfıra iniyor ve santral üretiminin %8–13'ünü kısıyor. İspanya'daki santral yine de Türkiye'dekinden yüksek fiyata satıyor (65–71 $/MWh). Ancak yatırım maliyeti de %13 yüksek (779'a karşı 691 $/kW): LCOE 57–63 $/MWh (Türkiye'de 45–52), IRR %10,7–13,3. WACC %12'de NPV sıfırın iki yanına düşüyor (−0,33 ile +0,35 M$).</li>
     <li><b>Avrupa GES sonucu iyimser olabilir.</b> Oyunda İspanya'daki santralin fiyat oranı, kısılan üretim dahil %63–69; gerçek İspanya filosununki %55,2, oyundaki Avrupa filosununki %55. Avrupa tek fiyat bölgesidir ve fiyattaki güneş etkisi Orta Almanya'daki temsilî noktanın (50°K 10°D) bulutluluğundan hesaplanır; santral ise kendi sahasının havasıyla üretir. İspanya güneşliyken Almanya bulutluysa santral yüksek fiyattan satar.</li>
     <li><b>Hava yılı riski.</b> Her koşu farklı bir hava yılıdır. Kuzey Almanya RES'inin kapasite faktörü koşudan koşuya %20 ile %29 arasında değişti; NPV'si sıfırın iki yanına düştü (−1,04 ile +1,47 M$). Bu yüzden projeler tek bir yılın üretimiyle değil, uzun dönem üretim tahminiyle değerlendirilir; yalnızca spot satış yapan projede PPA veya batarya bu riski azaltır.</li>
-    <li><b>Rüzgârda belirleyici olan kaynak kalitesi.</b> Aynı türbin Çanakkale'de %38–47, Kuzey Almanya'da %20–29 kapasite faktörüyle çalışıyor. Almanya'daki satış fiyatı ~%19 yüksek olsa da IRR %7,3–13,5'te kalıyor; Çanakkale'de %16,8–21,1. Çanakkale Türkiye'nin en rüzgârlı sahalarından biri. Filo ortalaması (%33) aynı fiyatla IRR'ı ~%13,7'ye indiriyor.</li>
-    <li><b>PPA bir sigortadır.</b> Baz senaryoda PPA'nın özsermaye getirisi spottan düşüktür, çünkü fiyat %10 indirimlidir. Karşılığında banka daha çok borç verir; Türkiye GES'inde borç oranı %50–54'ten %58–63'e çıkıyor. Asıl fark kötü senaryoda görünür: spot fiyat %20 düşünce Çanakkale RES'inin özsermaye IRR'ı spotta %14–24'e, PPA'da yalnızca %20–31'e iniyor.</li>
-    <li><b>Kaldıraç ancak proje getirisi borç maliyetini aşınca işe yarar.</b> Türkiye GES'inin vergi sonrası proje IRR'ı (%10,3–11,3) kredi faizinin (%8,6) biraz üstünde; borç özsermaye getirisini %12,3–14,5'e taşıyor. Çanakkale RES'inde proje IRR'ı %14–18 olduğu için aynı borç özsermaye getirisini %23–39'a çıkarıyor. Kuzey Almanya RES'inin en zayıf rüzgâr yılında ise proje IRR'ı (%6,1) kredi faizinin (%6,9) altında; borç getiriyi artırmıyor.</li>
+    <li><b>Rüzgârda belirleyici olan kaynak kalitesi.</b> Aynı türbin Çanakkale'de %41–56, Kuzey Almanya'da %20–29 kapasite faktörüyle çalışıyor. Almanya'daki satış fiyatı ~%18 yüksek olsa da IRR %7,3–13,5'te kalıyor; Çanakkale'de %18,8–25,3. Çanakkale Türkiye'nin en rüzgârlı sahalarından biri. Filo ortalaması (%33) aynı fiyatla IRR'ı ~%13,8'e indiriyor.</li>
+    <li><b>PPA bir sigortadır.</b> Baz senaryoda PPA'nın özsermaye getirisi spottan düşüktür, çünkü fiyat %10 indirimlidir. Karşılığında banka daha çok borç verir; Türkiye GES'inde borç oranı %46–52'den %54–61'e çıkıyor. Asıl fark kötü senaryoda görünür: spot fiyat %20 düşünce Çanakkale RES'inin özsermaye IRR'ı spotta %19–34'e, PPA'da yalnızca %25–42'ye iniyor.</li>
+    <li><b>Kaldıraç ancak proje getirisi borç maliyetini aşınca işe yarar.</b> Türkiye GES'inin vergi sonrası proje IRR'ı (%9,4–10,8) kredi faizinin (%8,6) biraz üstünde; borç özsermaye getirisini %10,5–13,5'e taşıyor. Çanakkale RES'inde proje IRR'ı %16–21 olduğu için aynı borç özsermaye getirisini %32–51'e çıkarıyor. Kuzey Almanya RES'inin en zayıf rüzgâr yılında ise proje IRR'ı (%6,1) kredi faizinin (%6,9) altında; borç getiriyi artırmıyor.</li>
     <li><b>Vade PPA'dan uzunsa risk kredinin sonunda birikir.</b> Kredi 12 yıl, PPA 10 yıl. Son iki yıl piyasaya açık kalıyor. Fiyat stresi altında PPA'lı Türkiye GES'inin en düşük DSCR'ı 1'in altına iniyor (0,93). Bankalar bu yüzden vadeyi sözleşme süresiyle uyumlu ister.</li>
     <li><b>Maliyet varsayımı ülkeye özgü değil.</b> Yatırım IRENA'nın bölge (Avrupa GES) ya da küresel ortalamasıdır (Türkiye GES'i, bütün RES'ler). Belirli bir projenin maliyeti bundan farklı olabilir; örneğin Avrupa GES'inde maliyetin %13 artması aynı koşularda IRR'ı 1,7–2,0 puan düşürdü (691 $/kW ile %12,4–15,3, 779 $/kW ile %10,7–13,3).</li>
   </ul>
 
   <h2>6. Sınırlamalar</h2>
   <ul>
-    <li><b>Küçük örnek:</b> Türkiye güneş oranı 12 güne dayanır. Günlük değerler çok oynak: tek günün oranı 0,18 ile 1,10 arasında değişti. Hedef yön ve büyüklük gösterir, kesin yıllık değer değildir.</li>
+    <li><b>Tek yıl:</b> Türkiye'nin güneş fiyat oranı ve gün içi fiyat şekli 2025'e dayanır. Güneş oranı 2024'te %91'di (bir yılda 8 puan düştü); aylık günlük fark yıldan yıla çok değişiyor (Ocak 2024'te 53, 2025'te 37 $/MWh). Hafta sonu ve tatil etkisi modelde yok.</li>
     <li><b>Lisanssız güneş eksik:</b> EPİAŞ gerçek zamanlı üretimindeki güneş yalnızca lisanslı santralleri kapsar. Profilin şekli temsilîdir.</li>
     <li><b>Negatif fiyat yok:</b> Oyunda fiyat tabanı 0'dır ve santral sıfır fiyatta üretimi kısar. Gerçek piyasada negatif fiyat vardır ve destekli santraller üretmeye devam eder. Bu yüzden Avrupa'da oyundaki kısıntı yüksektir.</li>
     <li><b>Tek Avrupa piyasası:</b> Almanya ile İspanya arasındaki fark ortalamada kaybolur. Fiyattaki güneş etkisi tek temsilî noktanın havasından hesaplandığı için İspanya'daki GES'in fiyat oranı gerçek İspanya filosununkinden yüksek çıkıyor (yukarıda). Rüzgârın fiyat etkisi ise bölge ağırlıklı filodan hesaplanıyor; Avrupa rüzgâr oranı hedefe yakın (%88'e karşı ~%90).</li>
@@ -214,7 +218,7 @@ IRR  = NPV'yi sıfır yapan iskonto oranı</div>
 
   <h2>7. Sonraki adımlar</h2>
   <ul>
-    <li>Tam yıl saatlik güneş verisiyle Türkiye güneş oranını yeniden ölçmek.</li>
+    <li>Hafta sonu ve tatil günlerinin fiyat etkisini modele eklemek.</li>
     <li>Negatif fiyatları ve destek mekanizmalarını modele eklemek.</li>
     <li>Avrupa'yı ülke bazında ayrı piyasalara bölmek.</li>
     <li>Pilot oyuncu geri bildirimiyle hangi bölümün gerçekçi bulunmadığını ölçmek.</li>

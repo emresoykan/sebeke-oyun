@@ -1,6 +1,6 @@
 // --- Grafik ve göstergeler ---
 import { wp } from "../perfmark.js";
-import { GOAL, WIN1, REG, MARKETS, BANKRUPT_DAYS, H2 } from "../config.js";
+import { GOAL, WIN1, REG, MARKETS, BANKRUPT_DAYS, H2, priceCap } from "../config.js";
 import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth, dayNet } from "../sim.js";
@@ -18,7 +18,7 @@ function selMarket(){return selSite().mreg||"T";}
 export function drawChart(){
   const cv=document.getElementById("chart"),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext("2d");x.scale(dpr,dpr);
-  const k=selMarket(),M=D[k],CAP=110*REG[k].mult,padT=34,padB=20,padL=8,padR=8,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
+  const k=selMarket(),M=D[k],CAP=priceCap(k),padT=34,padB=20,padL=8,padR=8,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
   const mw=Math.max(5,S.plants.filter(p=>S.sites[p.t].mreg===k).reduce((a,p)=>a+p.mw,0)),sc=(ph*0.55)/mw;
   for(let h=0;h<S.hour;h++){const g=M.gen[h],bx=padL+h*cw+cw*.15,bw=cw*.7;let y=bot;
     [["s","--solar"],["c","--csp"],["w","--wind"],["h","--hydro"],["j","--geo"],["o","--bio"],["m","--marine"]].forEach(([q,c])=>{const v=(g[q]||0)*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});

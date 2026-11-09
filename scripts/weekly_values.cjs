@@ -10,6 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
   const rows = [
     ["YEKDEM (Türkiye)", `${tr(c.YEKDEM.p)} $/MWh, depolamalı ${tr(c.YEKDEM.store)} $/MWh (${c.YEKDEM.asOf})`, "EPİAŞ YEKDEM tablosu her ay; başvuru 30 Kasım", "src/config.js YEKDEM"],
     ["Türkiye fiyat düzeyi", `REG.T.mult ${c.REG.T.mult} (hedef EPİAŞ 2025 ortalaması 66,4 $/MWh)`, "çeyreklik: EPİAŞ PTF, docs/kalibrasyon.md", "src/config.js REG"],
+    ["Türkiye azami fiyat", `${c.REG.T.cap} $/MWh (4.500 TL, 2026 kuruyla)`, "EPİAŞ PTF'de en yüksek değer; EPDK azami fiyat kararı değişince", "src/config.js REG.T.cap"],
     ["Hidrolojik yıl", Object.entries(c.HYDRO.known).map(([y, w]) => `${y}: w ${w}`).join(", ") + " (tahmin)", "TEİAŞ aylık hidro; yıllık veri çıkınca kesinleştir", "src/config.js HYDRO"],
     ["YEKA", `RES ${tr(c.YEKA.res.ec, 2)} / GES ${tr(c.YEKA.ges.ec, 2)} €c/kWh → ${tr(c.YEKA.res.p)} / ${tr(c.YEKA.ges.p)} $/MWh (ref PTF ${tr(c.YEKA.ref, 2)}, €/$ ${c.YEKA.eur})`, "Bakanlık YEKA duyuruları; yeni tur ya da deniz üstü YEKA", "src/config.js YEKA"],
     ["Bağlantı kapasitesi", `${c.GRID.quota} MW/yıl, kapanış ${c.GRID.close[1]}.${c.GRID.close[0] + 1}`, "TEİAŞ lisanssız kapasite duyuruları, EPDK kararları", "src/config.js GRID"],
