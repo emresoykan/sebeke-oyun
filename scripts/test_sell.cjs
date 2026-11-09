@@ -67,11 +67,15 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   ok(/satıldı/.test(after.toast+after.log),"bildirim ve kayıt");
   // santralsiz arazi teklifi ve nakit yetmezse düğme kapalı
   const raw=await p.evaluate(async()=>{const st=await import("/src/state.js"),ac=await import("/src/actions.js"),sa=await import("/src/sale.js"),ru=await import("/src/rules.js"),S=st.S;
-    S.sel={id:null,lat:37.3,lon:33.3};ac.buyLand();const id=S.sel.id,o=S.sites[id],f=sa.saleOffer(id);
+    // 7 günlük işletmede rakipler yeni saha kurar; biri bu noktanın yakınına düşerse arazi alınamaz (rastgele başarısızlık)
+    for(const r in S.rivals||{})S.rivals[r].sites=S.rivals[r].sites.filter(x=>Math.hypot(x.lat-37.3,x.lon-33.3)>1);
+    S.sel={id:null,lat:37.3,lon:33.3};ac.buyLand();const id=S.sel.id;if(!id)return {err:`arazi alınamadı (nakit ${Math.round(S.money)})`};
+    const o=S.sites[id],f=sa.saleOffer(id);
     const r1={price:f.price,exp:Math.round(ru.landCost(o)*sa.SALE.raw*(1-sa.SALE.fee)/100)*100};
     o.permit="ok";const f2=sa.saleOffer(id);r1.rtb=f2.price;r1.rtbExp=Math.round(ru.landCost(o)*sa.SALE.rtb*(1-sa.SALE.fee)/100)*100;
     ac.build(id,"ges","std",true);const L=S.loans.find(x=>x.t===id);L.bal=1e7;S.money=1000;(await import("/src/ui/panel.js")).renderPanel();
     const btn=document.querySelector('#panel [data-a="sell"]');r1.dis=btn&&btn.disabled;r1.msg=/yetmiyor/.test(document.querySelector("#panel details.sell").textContent);return r1;});
+  ok(!raw.err,"santralsiz test arazisi alındı"+(raw.err?": "+raw.err:""));
   ok(raw.price===raw.exp,`izinsiz arazi: arazi bedelinin %85'i − masraf (${raw.price})`);
   ok(raw.rtb===raw.rtbExp,`izinli, inşaata hazır arazi: 1,2 katı − masraf (${raw.rtb})`);
   ok(raw.dis&&raw.msg,"nakit krediyi kapatmaya yetmiyorsa düğme kapalı ve açıklama var");
