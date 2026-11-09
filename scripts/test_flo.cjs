@@ -35,14 +35,15 @@ const r2=await p.evaluate(async id=>{const st=await import("/src/state.js"),sim=
   S.plants=S.plants.filter(q=>q.t===id);let down=0;
   for(let i=0;i<60;i++){const o=storm.opts("T")[1];o.run();if(S.plants.some(q=>q.down)){down++;S.plants.forEach(q=>q.down=0);}}
   out.down=down;S.mods=[];
-  // bir gün işlet: üretim, durum metni, rapor satırı
-  for(let h=0;h<24;h++)sim.tick();document.querySelectorAll("dialog[open]").forEach(d=>d.close());
-  out.E=S.last&&S.last.E.flo;out.txt=ps.statusText(ps.plantStatus(id));
+  // gün gün işlet: üretim, durum metni, rapor satırı. Hava rastgele; çok sakin bir günde yüzer RES hiç üretmeyebilir (ilk günün
+  // üretimi denemelerde 0,2 ile 240 MWh arasında). Bu yüzden 1 MWh'ı aşan ilk güne kadar, en çok 15 gün işletilir.
+  let days=0;do{for(let h=0;h<24;h++)sim.tick();document.querySelectorAll("dialog[open]").forEach(d=>d.close());days++;}while(days<15&&!(S.last&&S.last.E.flo>1));
+  out.days=days;out.E=S.last&&S.last.E.flo;out.txt=ps.statusText(ps.plantStatus(id));
   (await import("/src/ui/hud.js")).renderReport();out.row=/RES yüzer/.test(document.getElementById("report").textContent);
   return out;},r.id);
 ok(r2.stormOk,"fırtına kartı yüzer RES sahibine de gelir");
 ok(r2.down===0,`fırtınada "çalışmaya devam" 60 denemede yüzer RES'e hiç arıza vermedi (${r2.down})`);
-ok(r2.E>0,`bir günde üretim ${Math.round(r2.E||0)} MWh`);
+ok(r2.E>1,`bir günde üretim ${Math.round(r2.E||0)} MWh (${r2.days}. gün)`);
 ok(/Yüzer RES/.test(r2.txt),`durum metni: "${r2.txt}"`);
 ok(r2.row,"gün sonu raporunda RES yüzer satırı");
 // harita görüntüsü: her platformda iki rotor (göbek), yakın görünüm
