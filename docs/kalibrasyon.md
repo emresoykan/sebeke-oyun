@@ -230,6 +230,8 @@ Oyun yıllarına göre ortalama fiyat ($/MWh): iki ölçüm grubunun (360 gün �
 | 2 | 66,3 | ~60 | 0,6–1,0 GW |
 | 3 | 56,8 | ~52 | 1,3–1,4 GW |
 
+09.11.2026'da yeniden ölçüldü; güncel değerler "Günlük fiyat şekli ve azami fiyat" bölümünde, "Çok yıllı fiyat yolu".
+
 ## Sınırlamalar
 - Sonraki yıllardaki düşüş oyunun kendi davranışıdır (rakip yatırımı, güneş doygunluğu); gerçek piyasa için tahmin değildir. Gerçekte fiyatı gaz fiyatı, kur ve talep de belirler.
 - Hedef tek yıla (2025) dayanır; 2026 ortalaması kullanılmadı. 2026'nın ilk on ayıyla karşılaştırma: aşağıdaki "Türkiye 2026 kontrolü" bölümü.
@@ -519,6 +521,20 @@ Değerler `calib_shape.cjs` (3 koşu) ve `calib_market.cjs` (4 koşu) ortalamala
   - Konya GES: YEKDEM normal ve kurak yılda biraz önde (kurak yılda artık 57,5'e karşı; önce başa baştı), çok yağışlı yılda açık ara önde.
   - Çanakkale RES: normal ve kurak yılda piyasa önde.
 - **Vaka çalışması:** Türkiye proje satırları 8 yeni koşuyla yenilendi. Konya GES'in ortalama satış fiyatı 51,5–56,6 $/MWh (önce 54,6–58,0). IRR %10,9–12,7 (önce %11,8–13,6).
+
+## Çok yıllı fiyat yolu
+Ölçüm `scripts/calib_years.cjs` ile (yeni): 3 oyun yılı (360 gün) × 4 koşu. Normal hidrolojik yıl, olay kartları kapalı, oyuncunun santrali yok. Karşılaştırma için aynı kod, eski Türkiye parametreleriyle de koşturuldu: `CALIB_REG`, `mult` 0,92, tavan, `sm`, `dem` ve `nz` olmadan.
+
+| Oyun yılı | Türkiye fiyatı ($/MWh) | 1. yıla göre | Güneş fiyat oranı | Güneşin piyasa satış fiyatı ($/MWh) | Rakiplerin Türkiye'deki kurulu gücü (GES) | Eski parametrelerle: fiyat / güneş oranı |
+|---|---|---|---|---|---|---|
+| 1 | 66,4 (65,4–67,8) | — | 0,83 | ~55 | 0,16–0,33 GW (0,15) | 65,5 / 0,84 |
+| 2 | 58,1 (57,3–59,2) | −%12 | 0,68 | ~40 | 0,78–0,91 GW (0,51) | 57,9 / 0,71 |
+| 3 | 49,8 (48,8–50,7) | −%25 | 0,53 | ~26 | 1,37–1,53 GW (0,82) | 50,4 / 0,57 |
+
+- **Düşüş bu değişiklikten gelmiyor.** Eski parametrelerle de üçüncü yılda −%23 ve güneş oranı 0,57. 30.10.2026'daki ~66 → ~60 → ~52 tahmini ölçeklenmiş eski ölçümlerdi.
+- **Güneşin satış fiyatı ortalamadan çok daha hızlı düşüyor:** üç yılda −%52, ortalama fiyatta −%25. Vaka çalışmasındaki %20 fiyat stresi GES için bu riski göstermez; sayfada belirtildi.
+- **Gerçekle karşılaştırma:** Türkiye'nin güneş fiyat oranı 2024'ten 2025'e 0,91'den 0,83'e indi (yılda ~8 puan). Oyundaki hız (yılda ~15 puan) daha yüksek. Oyunun kendi davranışıdır, tahmin değildir.
+- **Avrupa:** 90,8 → 84,6 → 81,4 $/MWh (−%10).
 
 ## Sınırlamalar
 - **Şekil hedefi yine tek yıla (2025) dayanıyor.** Aylık fark yıldan yıla çok oynuyor; oyun 2024 ile 2025 arasında ya da yakınında kalıyor. Kış farkı 2024'ten düşük, 2025'ten yüksek.
