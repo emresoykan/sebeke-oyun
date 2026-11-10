@@ -28,6 +28,7 @@ import { leagueDay } from "./league.js";
 import { capDay, DERATE, h2Rate, cfdRate, cfdMigrate } from "./support.js";
 import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
 import { hydDay, hydShift, hydVol } from "./hydro.js";
+import { dayFactor, dayNews } from "./daytype.js";
 import { yekaOn, yekaSettle, yekaDay } from "./yeka.js";
 import { gridDay } from "./grid.js";
 
@@ -40,7 +41,7 @@ export function newDay(){
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
   S.plants.forEach(p=>{if(!p.m&&S.sites[p.t])p.m=S.sites[p.t].mreg;}); // eski kayıt: santralin piyasası (proje ekonomisi)
-  yekDay();hydDay();gridDay();cfdMigrate();realNews(); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
+  yekDay();hydDay();gridDay();cfdMigrate();realNews();dayNews(CAL.date,S,news); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));
@@ -57,7 +58,8 @@ export function newDay(){
     // (hydro.js) saatlik fiyattan bir tutar düşürür ya da ekler (yağışlı yılda akşam zirvesinde az). Türkiye'de güneş etkisi
     // aya göre değişir (REG.T.sm) ve fiyat azami fiyatı (REG.T.cap) aşmaz
     const rc=rivalCap(k),mS=Math.min(S.mSolar[k],solarCap(k))+solarMW/200+rc.ges/(REG[k].rg||1000), mult=REG[k].mult, dem=REG[k].dem?REG[k].dem[CAL.date.getUTCMonth()]:demandOf(CAL.date,la), amp=noonAmp(la,CAL.decl), wk=PRICE.wind*(REG[k].wk||1)*(1+rc.res/400),sk=PRICE.solar*(REG[k].sk||1)*(REG[k].sm?REG[k].sm[CAL.date.getUTCMonth()]:1),hy=k==="T"?BASE.map((_,h)=>hydShift(CAL.date,h)):null;
-    const nz=REG[k].nz??0.16,price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(1-nz/2+nz*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-(hy?hy[h]:0)),0,priceCap(k)));
+    const nz=REG[k].nz??0.16,dtf=REG[k].dt?dayFactor(CAL.date,REG[k].dt):null; // hafta sonu ve tatilde gündüz talebi düşük (daytype.js)
+    const price=BASE.map((b,h)=>clamp(mult*(PRICE.lvl*b*dem*(dtf?dtf[h]:1)*(1-nz/2+nz*rnd())*(h>=17&&h<=22?1+PRICE.heat*ws[h].heat:1)-sk*mS*shape(h)*amp*sunH[h]-wk*windH[h]-(hy?hy[h]:0)),0,priceCap(k)));
     const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
     // fleet ve sunP: filonun saatlik rüzgâr kapasite oranı ve piyasanın güneş üretim profili (kalibrasyon ölçümleri için)
     D[k]={sun:avg(sunH.filter((_,h)=>shape(h)>0)),windDay:avg(windH),fleet:fw,sunP:sunH.map((s,h)=>shape(h)*amp*s),price,gen:Array.from({length:24},()=>({s:0,w:0,h:0,b:0,j:0,o:0,m:0,c:0}))};
