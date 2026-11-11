@@ -78,7 +78,7 @@ export function applyDesk(from=0){
     if(!p.fc)p.fc=Array(24).fill(0),p.cm=Array(24).fill(0);
     const t=S.sites[p.t],M=D[t.mreg];
     for(let h=from;h<24;h++){const e=production(p,h).e,f=clamp(e*(1+k*p.sg[h]*p.fz[h]),0,p.mw);p.fc[h]=f;
-      p.cm[h]=PV.includes(p.k)&&salePrice(t.mreg,p.k,h,M.price[h])<=0?0:f*d.ratio;}
+      const sp=salePrice(t.mreg,p.k,h,M.price[h]);p.cm[h]=sp<0||(PV.includes(p.k)&&sp<=0)?0:f*d.ratio;}
   });
 }
 // Masada gösterilecek özet: toplam tahmin, taahhüt, fiyat (seçili piyasa), beklenen GÖP geliri, belirsizlik
@@ -99,7 +99,8 @@ export function settle(m,dev,pr,batts,st){
   if(S.desk&&S.desk.batt==="bal")for(const b of batts){const cap=b.mw*2,r=eqOf(b).rte||0.88;b.soc=b.soc||0;
     if(x<0){const e=Math.min(b.mw,b.soc*r,-x);b.soc-=e/r;x+=e;st.bBal+=e;}
     else if(x>0){const e=Math.min(b.mw,cap-b.soc,x);b.soc+=e;x-=e;st.bBal+=e;}}
-  const cash=x>0?x*pr*(1-K_SURP):x*pr*(1+K_SHORT);
+  // fazla PTF'nin K_SURP altından satılır, eksik K_SHORT üstünden alınır; negatif fiyatta da sapma sapanın aleyhine işler
+  const cash=x>0?x*(pr-K_SURP*Math.abs(pr)):x*(pr+K_SHORT*Math.abs(pr));
   if(x>0)st.surp+=x;else st.short-=x;
   return cash;
 }

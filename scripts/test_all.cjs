@@ -11,7 +11,7 @@
 const { spawn, spawnSync } = require("child_process");
 const net = require("net"), fs = require("fs"), path = require("path"), http = require("http");
 const ROOT = path.resolve(__dirname, "..");
-const CORE = ["coast","grid","yeka","hydro","shape","yekdem","cfd","capex","support","onboarding","newtech","help","sell","spv","flo","lose","rotors"];
+const CORE = ["coast","grid","yeka","hydro","shape","neg","yekdem","cfd","capex","support","onboarding","newtech","help","sell","spv","flo","lose","rotors"];
 const MORE = ["tap","closeview","wxfx","dark","sitemodel"];
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 let list = arg("--only") ? arg("--only").split(",") : process.argv.includes("--more") ? [...CORE, ...MORE] : CORE;

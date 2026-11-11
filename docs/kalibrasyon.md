@@ -74,7 +74,7 @@ Oyun değerleri: Avrupa piyasasında bir GES (İspanya iç kesim) ve bir RES (Ku
 
 ## Sınırlamalar
 - 12 örnek gün; tek günlük değerler çok oynak (Almanya'da baz fiyat 8,8 ile 222 €/MWh arasında, güneş oranı −%57 ile %137 arasında). Sonuçlar yön ve büyüklük göstergesidir, yıllık kesin değer değildir.
-- Oyunda fiyat tabanı 0'dır ve santral sıfır fiyatta üretimi kısar; gerçek piyasada negatif fiyat vardır ve destekli santraller üretmeye devam eder. Bu yüzden oyunda Avrupa GES kısıntısı yüksektir (yıllık üretimin ~%20–25'i, kapasite faktörü ~%17).
+- Oyunda fiyat tabanı 0'dır ve santral sıfır fiyatta üretimi kısar; gerçek piyasada negatif fiyat vardır ve destekli santraller üretmeye devam eder. Bu yüzden oyunda Avrupa GES kısıntısı yüksektir (yıllık üretimin ~%20–25'i, kapasite faktörü ~%17). (11.11.2026: Avrupa ve İberya'da negatif fiyat eklendi; "Negatif fiyat" bölümü.)
 - Avrupa tek piyasa olarak modellenir; ülkeler arası fark (Almanya'da yüksek fiyat ve güçlü rüzgâr etkisi, İspanya'da düşük fiyat ve güçlü güneş etkisi) ortalamada kaybolur. (11.11.2026: İspanya ve Portekiz ayrı piyasa oldu; "Avrupa ikiye ayrıldı" bölümü.)
 - Kur dönüşümü yaklaşıktır.
 - Koşudan koşuya oynaklık: aynı ayarla yapılan 365 günlük simülasyonlar oyunun hava modeli ve rastgelelik nedeniyle farklı sonuç verir. Avrupa'da dört koşuda ortalama fiyat 77,9–90,7 $/MWh, piyasa güneş oranı %50–57, rüzgâr oranı %85–90 çıktı; Türkiye'de dört koşuda 65,8–66,8 $/MWh, güneş %73–74, rüzgâr %95–99. Ölçüm script'i: `scripts/sim_year.cjs`.
@@ -740,3 +740,103 @@ ENTSO-E 2025 tam yıl; "Avrupa rüzgârının fiyat etkisi" bölümündeki aynı
 - **İberya GES'inin yatırımı IRENA Avrupa ortalaması** (779 $/kW). İspanya'nın ülke maliyeti farklı olabilir; doğrulanmadı.
 - **Kurumlar vergisi ortalama alındı.** Vergi Avrupa ve İberya'da aynı (%27,5; Almanya ve İspanya ortalaması). Gerçekte İspanya %25.
 - **Tek temsilî nokta ve tek yıl.** Güneş etkisi tek temsilî noktanın bulutluluğundan hesaplanıyor; hedefler tek yıla (2025) dayanıyor.
+
+# Negatif fiyat (11.11.2026)
+
+## Neden
+- **Oyunda fiyat tabanı 0'dı.** Gerçekte Avrupa'nın gün öncesi piyasalarında fiyat sıfırın altına iner: üreten para öder, tüketen para alır.
+- **Etkisi en çok güneşte.** Negatif saatler güneşin bol olduğu bahar öğlelerinde yoğunlaşır. Desteksiz (yalnızca spot satan) bir santral bu saatlerde üretmez; batarya ve elektrolizör şebekeden elektrik alırken para kazanır.
+- **Türkiye'de taban 0 kalır.** PTF sıfırın altına inemez.
+
+## Veri
+ENTSO-E gün öncesi fiyatlar, 2025, MCP `day_ahead_prices` ile aylık sorgular. Ekim–Aralık 15 dakikalık; dönem sayısı 4'e bölünerek saate çevrildi.
+
+| | Almanya (DE_LU) | İspanya (ES) |
+|---|---|---|
+| Negatif saat | ~575 (%6,6) | ~552 (%6,3) |
+| En yoğun aylar | Haziran %19,6, Mayıs %17,3, Nisan %10,4 | Mayıs %32,1, Nisan %16,3, Haziran %7,6 |
+| Negatif saat olmayan aylar | Şubat, Kasım, Aralık | Ocak, Şubat, Aralık |
+| En düşük fiyat | −250,32 €/MWh (11 Mayıs, 13:00) | −15 €/MWh (Mayıs) |
+| Örnek günlerde negatif saatler | 103 saat: ortanca −5,05 €, ortalama −23,3 €; %32'si −1 € ve üstü | 40 saat: ortanca −3 €, ortalama −4,6 € |
+
+- **Örnekler derine yanlı.** Örnek günler negatifin yoğun olduğu, gün ortalaması düşük günlerden seçildi (Almanya 6, İspanya 3 pencere; saatlik 2–3 gün). Ortalama derinlik yıl geneli için büyük olasılıkla fazladır; ortanca ve en düşük değer daha güvenilir.
+- **Kur:** 1,1306 $/€ (FRED AEXUSEU, 2025).
+- **Aylık dağılım** (negatif saat payı, Ocak…Aralık):
+  - Almanya: 1,9 / 0 / 4,0 / 10,4 / 17,3 / 19,6 / 1,6 / 8,6 / 8,3 / 6,7 / 0 / 0.
+  - İspanya: 0 / 0 / 6,5 / 16,3 / 32,1 / 7,6 / 1,7 / 4,2 / 4,4 / 1,6 / 0,6 / 0.
+- **Hesap:** `scripts/neg_stats.cjs`. Aylık sayılar MCP çıktısının `negative_hours` alanından, örnek saatler saatlik çıktıdan aktarıldı.
+
+## Model (`config.js` `priceFloor`, `REG.E.neg`, `REG.I.neg`)
+- **Ham fiyat** (`sim.js` `D[k].raw`): sıfırda kesilmeden önceki model fiyatı.
+- **Eşleme:**
+  - Ham fiyat `z`'nin üstündeyse aynen kalır.
+  - `t` ile `z` arasındaysa 0–`z` aralığına gerilir; eşleme sürekli ve tekdüzedir.
+  - `t`'nin altındaysa negatif olur: −a × (t − ham)^p. Çoğu saat sığ, az sayıda saat derin (ağır kuyruk). Fiyat `f` tabanında durur.
+- **Neden eşik var:** Oyunun ham fiyatı gerçeğe göre daha az saatte sıfırın altına iniyordu: Avrupa %3,4, İberya %1,1. Gerçekte destekli ve esnek olmayan üretim, düşük fiyatlı saatlerde de sıfırın altında teklif verir. Eşik bunu temsil eder.
+- **Parametreler:**
+
+| | `t` ($) | `z` ($) | `a` | `p` | `f` ($) |
+|---|---|---|---|---|---|
+| Avrupa | 31 | 43 | 0,0026 | 2,4 | −283 (−250 €) |
+| İberya | 31 | 43 | 0,14 | 1,64 | −17 (−15 €) |
+
+- **Telafi:** Negatif saatler güneşin değerini düşürdüğü için güneş etkisi azaltıldı: `sk` Avrupa 4,0 → 3,45, İberya 2,6 → 2,15. `mult` Avrupa 1,69 → 1,70.
+- **Oyuncu tarafı:**
+  - Negatif fiyatlı saatte GES, RES ve JES üretmez. GES sıfır fiyatta da üretmez (önceden de öyleydi).
+  - HES negatif saatte suyunu saklar.
+  - Batarya, pompaj HES ve elektrolizör şebekeden alırken para kazanır. Elektrolizörün maliyeti önceden sıfırda kesiliyordu.
+  - GÖP taahhüdü negatif saatte sıfır.
+  - Dengesizlik negatif fiyatta da sapanın aleyhine: fazla `fiyat − K·|fiyat|`, eksik `fiyat + K·|fiyat|`.
+  - Olay kartının fiyat çarpanı negatif fiyata uygulanmaz.
+  - Fiyat grafiği sıfırın altını gösterir.
+  - Piyasada ilk negatif fiyatta bir kez haber çıkar.
+  - Sözlükte "Negatif fiyat" terimi var.
+- **Fark sözleşmesi:** Britanya'nın offshore CfD'si AR4'ten bu yana negatif fiyatlı saatte fark ödemesi yapmaz (ikincil kaynaklar: Modo Energy, LCP, Current News; birincil metin bu oturumdan doğrulanamadı). Oyunda santral negatif saatte üretmediği için fark ödemesi de doğmaz; kural kendiliğinden uyar.
+
+## Ayar süreci
+- **Turlar:** Dört tur, her turda üç ayar 2'şer koşuyla (`calib_market` ve yeni `calib_neg`; `CALIB_REGS` ile koda dokunmadan).
+- **Güneş etkisi ile negatif saat payı birlikte değişiyor.** Güneş etkisi azalınca negatif saat payı düşüyor, artınca güneş oranı hedefin altına iniyor. Eşik `t` iki hedefi birlikte tutturmayı sağladı.
+- **`z`'nin genişliği güneş oranını etkiliyor.** Geniş `z` (2t) düşük pozitif fiyatları da aşağı çekip güneş oranını 0,03–0,05 düşürüyordu; dar `z` (t + 12) seçildi.
+- **Derinlik (`a`) de güneş oranını düşürüyor.** Avrupa'da `a` 0,0035 iken güneş oranı 0,46'ya iniyordu. Öncelik güneş oranında olduğu için derinlik örnek ortancasının biraz altında bırakıldı.
+
+## Sonuç
+`calib_market` 120 gün × 4 koşu (oyuncunun 5 MW'lık santralleriyle) ve `calib_neg` 120 gün × 3 koşu. Ortalama, iki ölçümün 7 koşusunun ortalamasıdır.
+
+| | Gerçek 2025 | Avrupa (oyun) | | İberya (oyun) | |
+|---|---|---|---|---|---|
+| | | `calib_market` | `calib_neg` | `calib_market` | `calib_neg` |
+| Ortalama fiyat | DE ~101, ES ~74 $/MWh | 102,1 (95,6–106,6) | 105,5 | 74,7 (73,6–75,7) | 76,2 |
+| Güneş oranı | DE 0,516, ES 0,552 | 0,48 (0,41–0,52) | 0,556 | 0,535 (0,50–0,56) | 0,572 |
+| Rüzgâr oranı | DE 0,866, ES 0,965 | 0,89 | – | 0,965 | – |
+| Negatif saat | DE %6,6, ES %6,3 | %6,5 (5,3–8,7) | %4,75 | %6,6 (5,9–7,4) | %5,35 |
+| Negatif fiyat ortancası | DE −5,7 $, ES −3,4 $ (örnek) | ~−5,3 $ | −4,1 $ | ~−4,4 $ | −3,9 $ |
+| En düşük | DE −283 $, ES −17 $ | −81 ile −170 $ | −121 $ | −17 $ | −17 $ |
+
+- **7 koşunun ortalaması:**
+  - Avrupa: fiyat 103,6 $/MWh, güneş oranı 0,514, negatif saat %5,8.
+  - İberya: fiyat 75,3 $/MWh, güneş oranı 0,551, negatif saat %6,1.
+- **Aylık negatif saat payı** (`calib_neg`, Ocak…Aralık):
+  - Avrupa: 0 / 0 / 2,4 / 4,7 / 15,9 / 14,6 / 9,6 / 5,1 / 1,4 / 1,9 / 0 / 0.
+  - İberya: 0 / 0 / 1,7 / 11,7 / 20,7 / 17,1 / 5,6 / 1,8 / 3,2 / 0,6 / 0 / 0.
+  - Gerçekteki gibi bahar–yaz başı zirvesi var. Oyunda İspanya'nın Mayıs zirvesi daha basık, Haziran'ı daha yüksek; Almanya'nın Temmuz'u yüksek, Eylül–Ekim'i düşük.
+- **Türkiye ve Kuzey Amerika değişmedi:** Türkiye 66,0–67,1 $/MWh, Kuzey Amerika ~64.
+
+## Proje ekonomisi (vaka çalışması, `sim_year` 8 koşu, %10 WACC)
+| Santral | Kapasite faktörü | Kısıntı | Ort. satış fiyatı ($/MWh) | LCOE ($/MWh) | NPV (M$) | IRR |
+|---|---|---|---|---|---|---|
+| GES, İberya (İspanya iç kesim) | %16,3–17,7 (önce %19,2–21,3) | %22–29 (önce %3–9) | 54,6–55,7 (önce 41,2–43,5) | 65,4–70,9 | −1,02 ile −0,65 | %6,3–7,7 (önce %4,8–6,7) |
+| RES, Avrupa (Kuzey Almanya) | %20,0–28,0 | – | 86,7–94,0 | 63,0–88,4 | +0,45 ile +2,63 | %11,1–16,2 (önce %8,0–16,9) |
+
+- **İspanya GES'i negatif ve sıfır fiyatlı saatlerde üretmiyor.**
+  - Bu saatler bahar öğleleri ve üretiminin %22–29'u. Kalan üretim daha yüksek fiyattan satılıyor.
+  - Kısılan üretim dahil fiyat oranı 0,52–0,56 (gerçek İspanya filosu 0,552).
+  - Kontrol: gerçek yakalama fiyatı ~41 $; sıfır ve altı saatlerdeki ~%20 üretim gelir getirmediği için kalan üretim ~51 $'dan satar. Oyun 55 $ veriyor.
+- **Sonuç yine %10 WACC'ın altında.** NPV WACC %8'de de negatif (−0,53 ile −0,10 M$).
+- **Bu koşularda piyasa ortalamaları:** İberya 75,0 (73,4–76,6), Avrupa 102,4 (97,4–105,6) $/MWh.
+
+## Sınırlamalar
+- **Derinlik hedefi yanlı örneklere dayanıyor.** Negatif fiyatın ortalama derinliği yıl geneli için ölçülmedi; örnekler negatifin yoğun olduğu günlerden.
+- **Gerçekte sıfır civarında yoğun bir kütle var.** İspanya'da çok saat 0,00–0,01 €'da kapanır. Oyunda bu kütle eşleme ile sığ negatiflere dağılır; sıfır fiyatlı saat kalmaz.
+- **Destekli santral yok.** Gerçekte bazı destekli santraller negatif fiyatta da üretmeye devam eder; oyunda modellenmedi. Oyuncunun santrali hep desteksiz gibi davranır.
+- **Dengeleme piyasasının negatif fiyatı ayrı modellenmedi.** Dengesizlik gün öncesi fiyatına bağlı kalır.
+- **Kuzey Amerika'da taban 0 kaldı.** ABD piyasalarının verisi bu çalışmada kullanılmadı.

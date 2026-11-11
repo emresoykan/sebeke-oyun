@@ -19,6 +19,7 @@ for(const vp of [{width:1366,height:768},{width:390,height:844}]){
   // eğitim bitti; aynı sahada izinli, iki GES bloğu (biri kredili), 7 gün işletme
   const setup=await p.evaluate(async()=>{const st=await import("/src/state.js"),ac=await import("/src/actions.js"),sim=await import("/src/sim.js"),S=st.S;
     S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});S.desk={ratio:1,fc:"std",batt:"arb",auto:true};
+    S.hyd={};for(let y=2026;y<=2027;y++)S.hyd[y]={w:1,ref:0}; // normal hidrolojik yıl: çok yağışlı 2026 baharında GES geliri gelir yöntemi sınırına yakın kalıyordu
     const id=S.sel.id;S.sites[id].permit="ok";ac.build(id,"ges","std");ac.build(id,"ges","std",true);
     for(let d=0;d<7;d++){for(let h=0;h<24;h++)sim.tick();document.querySelectorAll("dialog[open]").forEach(x=>x.close());}
     S.sel={id,lat:S.sites[id].lat,lon:S.sites[id].lon};return {id,loans:S.loans.filter(L=>L.t===id).length};});

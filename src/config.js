@@ -79,6 +79,13 @@ export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2
 
 // Bir piyasanın saatlik fiyat tavanı ($/MWh): azami fiyatı olan piyasada o (Türkiye), diğerlerinde oyunun genel üst sınırı
 export const priceCap=k=>REG[k].cap!=null?REG[k].cap:110*REG[k].mult;
+// Negatif fiyat (REG[k].neg = {t, z, a, p, f}; yalnızca Avrupa ve İberya). Gerçekte destekli ve esnek olmayan üretim düşük
+// fiyatlı saatlerde sıfırın altında teklif verir: ham fiyat t'nin altına inince fiyat negatif olur, −a × (t − ham)^p
+// (çoğu saat sığ, az sayıda saat derin; ağır kuyruk), f'de durur. t ile z arasındaki düşük pozitif fiyatlar 0–z aralığına
+// gerilir (süreklilik). Diğer piyasalarda taban 0: Türkiye'de PTF sıfırın altına inemez; Kuzey Amerika ve diğerleri kalibre
+// edilmedi (docs/kalibrasyon.md "Negatif fiyat")
+export function priceFloor(k,x){const n=REG[k].neg;if(!n)return Math.max(0,x);if(x>=n.z)return x;
+  if(x>=n.t)return n.z*(x-n.t)/(n.z-n.t);return Math.max(n.f,-n.a*Math.pow(n.t-x,n.p));}
 export const REG={
   // mult: ilk oyun yılı (120 gün) EPİAŞ 2025 ortalamasına (66,4 $/MWh) eşit (docs/kalibrasyon.md).
   // cap: azami fiyat ($/MWh). EPİAŞ'ta en yüksek PTF 2025'te 3.400 TL (Ocak–Mart 3.000), Nisan 2026'dan beri 4.500 TL (~100 $;
@@ -106,8 +113,11 @@ export const REG={
   // ülkeler). mult/sk/wk ENTSO-E 2025 tam yıl hedeflerine göre, rüzgâr filo endeksiyle: Avrupa = Almanya (DE_LU: 89,3 €/MWh
   // ≈ 101 $, rüzgâr oranı 0,866, güneş 0,516), İberya = İspanya (65,5 €/MWh ≈ 74 $, rüzgâr 0,965, güneş 0,552). Önce tek
   // piyasaydı ve İspanya'daki güneş Almanya'nın bulutuna göre satıyordu (docs/kalibrasyon.md "Avrupa ikiye ayrıldı")
-  E:{n:"Avrupa",mult:1.69,s0:0.70,land:40000,sk:4.0,wk:1.45},
-  I:{n:"İberya",mult:1.19,s0:0.70,land:40000,sk:2.6,wk:0.97},
+  // neg (11.11.2026): negatif fiyat (priceFloor). ENTSO-E 2025: Almanya'da ~575 saat (%6,6), en düşük −250 €/MWh (≈ −283 $);
+  // İspanya'da ~552 saat (%6,3), sığ: en düşük −15 €/MWh (≈ −17 $). Negatif fiyat güneş saatlerinin değerini düşürdüğü için
+  // güneş etkisi (sk) azaltıldı: Avrupa 4,0 → 3,45, İberya 2,6 → 2,15 (docs/kalibrasyon.md "Negatif fiyat")
+  E:{n:"Avrupa",mult:1.70,s0:0.70,land:40000,sk:3.45,wk:1.45,neg:{t:31,z:43,a:0.0026,p:2.4,f:-283}},
+  I:{n:"İberya",mult:1.19,s0:0.70,land:40000,sk:2.15,wk:0.97,neg:{t:31,z:43,a:0.14,p:1.64,f:-17}},
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},
   F:{n:"Afrika",mult:1.05,s0:0.20,land:8000},
