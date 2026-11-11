@@ -33,9 +33,12 @@ const r=await p.evaluate(async([u,DAYS])=>{const imp=n=>import(u.find(x=>new URL
   out.panelN=pt.includes("Fark sözleşmesi:")&&pt.includes("122,0 $/MWh");
   S.sel={id:"M",lat:S.sites.M.lat,lon:S.sites.M.lon};pn.renderPanel();out.panelM=document.getElementById("panel").innerText.includes("deniz üstü RES'e destek yok");
   // bir gün: her saat gelir artışı = üretim × sözleşme fiyatı; fark = üretim × (sözleşme − satış)
-  S.hour=0;sim.newDay();close();let bad=0,sumX=0,pos=0,neg=0;
+  // santral arızalıysa onarılır; üretimsiz (durgun) günde en çok 3 gün denenir (negatif fiyatlı saatte de üretmez)
+  let bad=0,sumX=0,pos=0,neg=0;
+  for(let tr=0;tr<3;tr++){S.hour=0;sim.newDay();close();off.down=false;bad=0;sumX=0;pos=0;neg=0;const e00=off.ac?off.ac.e:0;
   for(let h=0;h<24;h++){const e0=off.ac?off.ac.e:0,r0=off.ac?off.ac.r:0,c0=off.ac?(off.ac.cf||0):0,pr=st.D.E.price[h];sim.tick();close();
     const de=off.ac.e-e0,dr=off.ac.r-r0,dc=(off.ac.cf||0)-c0;if(de>0){if(!near(dr,de*122,1e-9))bad++;if(!near(dc,de*(122-pr),1e-6))bad++;if(pr>122)neg++;else pos++;}sumX+=dc;}
+  if(off.ac.e>e00)break;}
   out.day={bad,cfd:S.last.cfd,sumX,pos,neg,e:off.ac.e};out.dayOk=bad===0&&near(S.last.cfd,sumX,1e-9)&&off.ac.e>0;
   out.report=((document.getElementById("report")||{}).innerText||"").includes("Fark sözleşmesi");
   // N gün işlet: desteksiz (piyasa) ve destekli IRR (%10 ve %7,5)

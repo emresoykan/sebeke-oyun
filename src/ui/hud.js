@@ -25,10 +25,13 @@ export function drawChart(){
     [["s","--solar"],["c","--csp"],["w","--wind"],["h","--hydro"],["j","--geo"],["o","--bio"],["m","--marine"]].forEach(([q,c])=>{const v=(g[q]||0)*sc;x.fillStyle=cssv(c);x.fillRect(bx,y-v,bw,v);y-=v;});
     if(g.b>0){const v=g.b*sc;x.fillStyle=cssv("--batt");x.fillRect(bx,y-v,bw,v);}
     if(g.b<0){const v=-g.b*sc;x.strokeStyle=cssv("--batt");x.lineWidth=2;x.strokeRect(bx+1,bot-v+1,bw-2,Math.max(0,v-2));}}
+  // fiyat çizgisi: negatif fiyat varsa (Avrupa, İberya) ölçek sıfırın altına uzar ve sıfır çizgisi gösterilir
+  const LO=Math.min(0,...M.price),yP=p=>bot-((p-LO)/(CAP-LO))*ph;
+  if(LO<0){x.strokeStyle="rgba(255,255,255,.45)";x.lineWidth=1;x.setLineDash([3,3]);x.beginPath();x.moveTo(padL,yP(0));x.lineTo(W-padR,yP(0));x.stroke();x.setLineDash([]);}
   x.strokeStyle="rgba(255,255,255,.95)";x.lineWidth=2.5;x.beginPath();
-  M.price.forEach((p,h)=>{const px=padL+h*cw+cw/2,py=bot-(p/CAP)*ph;h?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();
+  M.price.forEach((p,h)=>{const px=padL+h*cw+cw/2,py=yP(p);h?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();
   if(S.hour<24){x.fillStyle="rgba(0,0,0,.18)";x.fillRect(padL+S.hour*cw,padT-10,W-padR-(padL+S.hour*cw),ph+10);}
-  const hc=Math.min(S.hour,23);x.fillStyle="#fff";x.beginPath();x.arc(padL+hc*cw+cw/2,bot-(M.price[hc]/CAP)*ph,5,0,Math.PI*2);x.fill();
+  const hc=Math.min(S.hour,23);x.fillStyle="#fff";x.beginPath();x.arc(padL+hc*cw+cw/2,yP(M.price[hc]),5,0,Math.PI*2);x.fill();
   x.fillStyle="rgba(255,255,255,.85)";x.font="11px 'Bricolage Grotesque',system-ui,sans-serif";x.textAlign="center";
   [0,6,12,18,23].forEach(h=>x.fillText(String(h).padStart(2,"0"),padL+h*cw+cw/2,H-5));
 }

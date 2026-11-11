@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-11.2",t:"Negatif fiyat",items:[
+    "Avrupa ve İberya'da fiyat sıfırın altına inebiliyor: üreten para öder, tüketen para alır. Bahar öğlelerinde güneş ve rüzgâr talebi aşınca olur; saatlerin ~%6'sı (ENTSO-E 2025: Almanya ~575, İspanya ~552 saat). Avrupa'da derin olabilir (gerçekte en düşük −250 €/MWh), İberya'da sığdır (en düşük −15 €). Türkiye'de fiyat sıfırın altına inmez.",
+    "Negatif fiyatlı saatte GES, RES ve JES üretmez, HES suyunu saklar; batarya, pompaj HES ve elektrolizör şebekeden alırken para kazanır. Fiyat grafiği sıfırın altını gösterir; piyasada ilk negatif fiyatta haber çıkar. Sözlükte \"Negatif fiyat\".",
+    "İspanya'daki güneş santrali artık bu saatlerde üretmediği için üretiminin ~%25'ini kısıyor ama kalanını daha yüksek fiyattan satıyor; güneşin piyasa genelindeki fiyat oranı gerçekteki gibi (~%55)."]},
   {id:"2026-11-11",t:"İberya ayrı piyasa",items:[
     "İspanya ve Portekiz artık ayrı bir piyasa: İberya (gerçekte de iki ülke ortak fiyat bölgesidir, MIBEL). Fiyat ENTSO-E 2025 İspanya verisine göre: ortalama ~74 $/MWh, güneşin fiyat oranı ~%53–55, rüzgârın ~%97. İspanya'daki güneş santrali önceden Almanya'nın bulutuna göre fiyat alıyor ve gerçekte olduğundan çok kazanıyordu.",
     "Avrupa piyasası artık Almanya'ya göre ayarlı: ortalama ~100 $/MWh, rüzgârın fiyat oranı ~%88, güneşin ~%52 (önce iki ülkenin ortalaması, ~90 $/MWh).",

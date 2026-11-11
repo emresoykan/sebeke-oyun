@@ -15,7 +15,7 @@ export const factor=(t,m,k,h)=>mods(t,m,k,h).reduce((a,x)=>a*x.v,1);
 export function addMod(o){
   if(!S.mods)S.mods=[];const x={m:null,k:null,h:null,w:0,...o};S.mods.push(x);
   if(x.t==="price"&&!x.w)Object.keys(D).forEach(k=>{const M=D[k];if(!M||!M.price)return;
-    let ch=false;for(let h=S.hour;h<24;h++)if(hit(x,k,null,h)){M.price[h]*=x.v;ch=true;}
+    let ch=false;for(let h=S.hour;h<24;h++)if(hit(x,k,null,h)&&M.price[h]>0){M.price[h]*=x.v;ch=true;} // negatif fiyat çarpılmaz
     if(ch){M.avg=M.price.reduce((a,b)=>a+b,0)/24;M.plan=battPlan(M.price);}});
 }
 // Gün sonu: bekleyen etkiler bir gün yaklaşır, etkin olanların süresi bir azalır
@@ -27,7 +27,7 @@ export function salePrice(m,k,h,pr){const f=mods("fix",m,k,h)[0];return (f?f.v:p
 // Yeni günün fiyatlarına etkin fiyat etkilerini uygula, günlük ortalamayı ve batarya planını kur
 export function priceMods(k,M){
   const cap=REG[k].cap; // azami fiyatı olan piyasada (Türkiye) olay etkisi de tavanı aşmaz
-  for(let h=0;h<24;h++){M.price[h]*=factor("price",k,null,h);if(cap!=null&&M.price[h]>cap)M.price[h]=cap;}
+  for(let h=0;h<24;h++){if(M.price[h]>0)M.price[h]*=factor("price",k,null,h);if(cap!=null&&M.price[h]>cap)M.price[h]=cap;} // negatif fiyat çarpılmaz
   M.avg=M.price.reduce((a,b)=>a+b,0)/24;M.plan=battPlan(M.price);
 }
 // Batarya: en ucuz iki saatte şarj, en pahalı iki saatte deşarj (kâr verimi karşılıyorsa). Eşit fiyatta (ör. yağışlı

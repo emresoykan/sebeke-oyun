@@ -86,8 +86,8 @@ function paint(from){
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;
   const x=cv.getContext("2d");x.scale(dpr,dpr);
   const padT=10,padB=18,padL=6,padR=6,cw=(W-padL-padR)/24,bot=H-padB,ph=bot-padT;
-  const top=Math.max(1,...s.fc.map((v,h)=>v+s.band[h]),...s.cm),pmax=Math.max(10,...s.price)*1.1;
-  const yE=v=>bot-v/top*ph,yP=v=>bot-v/pmax*ph;
+  const top=Math.max(1,...s.fc.map((v,h)=>v+s.band[h]),...s.cm),pmax=Math.max(10,...s.price)*1.1,pmin=Math.min(0,...s.price)*1.1;
+  const yE=v=>bot-v/top*ph,yP=v=>bot-(v-pmin)/(pmax-pmin)*ph; // negatif fiyatta ölçek sıfırın altına uzar
   for(let h=0;h<24;h++){const bx=padL+h*cw+cw*.15,bw=cw*.7;
     x.globalAlpha=h<from?0.3:1;
     x.fillStyle="rgba(140,190,255,.28)";const lo=Math.max(0,s.fc[h]-s.band[h]),hi=s.fc[h]+s.band[h];x.fillRect(bx-1,yE(hi),bw+2,yE(lo)-yE(hi));
