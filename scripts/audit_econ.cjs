@@ -42,11 +42,11 @@ for(const [bn,list] of Object.entries(BATCH))for(let run=0;run<RUNS;run++){
       if(!S.sites[id])S.sites[id]={...w.describe(c[0],c[1]),permit:"ok"};
       const before=S.plants.length;for(let i=0;i<n;i++)ac.build(id,k,"std");if(S.plants.length===before)built.push("KURULAMADI "+id+":"+k);}
     if(!RIV)for(const k in S.rivals||{}){S.rivals[k].sites=[];S.rivals[k].cash=-1e15;}
-    sim.newDay();const sum={T:0,E:0,N:0};let n=0;
+    sim.newDay();const sum={T:0,E:0,I:0,N:0};let n=0; // İspanya'daki sahalar (E listesinde) İberya (I) piyasasındadır
     for(let d=0;d<DAYS;d++){for(const mk in sum)sum[mk]+=st.D[mk].price.reduce((a,x)=>a+x,0);n+=24;
       for(let h=0;h<24;h++)sim.tick();document.querySelectorAll("dialog[open]").forEach(x=>x.close());
       if(!RIV)for(const k in S.rivals||{})S.rivals[k].cash=-1e15;}
-    const avg={T:sum.T/n,E:sum.E/n,N:sum.N/n};
+    const avg=Object.fromEntries(Object.entries(sum).map(([k,v])=>[k,v/n]));
     const out=[];
     const pick=S.plants.filter(q=>!measure||measure.includes(q.k));
     const seen=new Set();
@@ -61,7 +61,7 @@ for(const [bn,list] of Object.entries(BATCH))for(let run=0;run<RUNS;run++){
     const riv=Object.values(S.rivals||{}).reduce((a,o)=>a+o.sites.reduce((b,s)=>b+s.mw,0),0);
     return {out,built,avg,riv};},[SITES,list,DAYS,MEASURE[bn],RIV]);
   rows.out.forEach(r=>all.push({batch:bn,run,...r}));
-  console.log(`${bn} koşu ${run+1}/${RUNS}: ${rows.out.length} santral, ortalama fiyat T ${rows.avg.T.toFixed(1)} E ${rows.avg.E.toFixed(1)} N ${rows.avg.N.toFixed(1)} $/MWh${RIV?`, rakip kurulu güç ${rows.riv} MW`:""}${rows.built.length?" • "+rows.built.join(", "):""}${errs.length?" • HATA: "+errs.join(" | "):""} (${((Date.now()-t0)/60000).toFixed(1)} dk)`);
+  console.log(`${bn} koşu ${run+1}/${RUNS}: ${rows.out.length} santral, ortalama fiyat T ${rows.avg.T.toFixed(1)} E ${rows.avg.E.toFixed(1)} I ${rows.avg.I.toFixed(1)} N ${rows.avg.N.toFixed(1)} $/MWh${RIV?`, rakip kurulu güç ${rows.riv} MW`:""}${rows.built.length?" • "+rows.built.join(", "):""}${errs.length?" • HATA: "+errs.join(" | "):""} (${((Date.now()-t0)/60000).toFixed(1)} dk)`);
   await p.close();}
 await b.close();
 // özet: teknoloji × piyasa, koşuların ortalaması ve aralığı

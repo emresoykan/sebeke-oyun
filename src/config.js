@@ -26,7 +26,7 @@ export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:3
 // pazarı Çin'le (en büyük pazar; Hindistan 525), Kuzey Amerika ABD'yle temsil edildi. Türkiye, Güney Amerika, Orta Doğu ve
 // Okyanusya için değer bulunamadı: küresel ortalama. Rüzgâr ve diğer teknolojilerde ülke değeri bulunamadı (Çin'de karada rüzgâr
 // 1.000 $/kW'ın altında, kesin değer yok). Rakiplerin yatırımı değişmedi (fiyat kalibrasyonu korunur).
-export const CAPEX_M={ges:{E:779/691,N:1058/691,A:591/691,F:1093/691}};
+export const CAPEX_M={ges:{E:779/691,I:779/691,N:1058/691,A:591/691,F:1093/691}};
 const SOLAR_FAM=["ges","fpv","spv"];
 export const capexMul=(k,m)=>{const t=CAPEX_M[SOLAR_FAM.includes(k)?"ges":k];return (t&&t[m])||1;};
 // Şebeke bağlantı kapasitesi (Türkiye; grid.js, docs/guncellemeler.md). quota: oyuncunun her takvim yılı kontenjan dışı
@@ -68,12 +68,13 @@ export const HYDRO={
 // lvl: baz fiyat düzeyi çarpanı; solar: güneşin öğle fiyatını düşürme derinliği ($/MWh, doygunluk 1'de);
 // grow/capK: piyasanın güneş doygunluğu her gün grow kadar artar, başlangıç değerinin capK katında durur; wind: rüzgârın fiyat etkisi;
 // heat: sıcak havada akşam (17–22) talebinin fiyatı artırma payı. Piyasa bazında REG[k].sk ve REG[k].wk güneş ve rüzgâr
-// etkisini çarpar (Avrupa: ENTSO-E 2025 Almanya ve İspanya örnek günleriyle; docs/kalibrasyon.md)
+// etkisini çarpar (Avrupa: ENTSO-E 2025 Almanya, İberya: İspanya, tam yıl; docs/kalibrasyon.md)
 export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
 // Rüzgâr filosunun uzun dönem ortalama kapasite oranı (güç eğrisi, arıza payı düşülmeden; src/windfleet.js noktaları):
 // fiyattaki rüzgâr endeksi bununla bölünür (ortalaması ~1). Yalnızca burada değeri olan piyasalarda filo endeksi kullanılır;
-// diğerleri tek temsilî noktanın rüzgârıyla kalır. Ölçüm: scripts/calib_market.cjs (120 gün × 4 koşu: 0,21–0,23)
-export const FLEET_CF={E:0.211};
+// diğerleri tek temsilî noktanın rüzgârıyla kalır. Ölçüm: scripts/calib_market.cjs (120 gün × 20 koşu, 11.11.2026: Avrupa
+// (Almanya filosu) 0,23, İberya (İspanya filosu) 0,22; koşudan koşuya 0,15–0,29)
+export const FLEET_CF={E:0.23,I:0.22};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 // Bir piyasanın saatlik fiyat tavanı ($/MWh): azami fiyatı olan piyasada o (Türkiye), diğerlerinde oyunun genel üst sınırı
@@ -101,7 +102,12 @@ export const REG={
     // öğle düşüşü (sm) hafta sonu eklenince ~%35 sığlaştı.
     dt:{w:[0,0,0,0,0,0,0,0.3,0.8,0.9,0.9,0.9,0.9,0.85,0.85,0.8,0.6,0.3,0,0,0,0,0,0],
       sat:{d:0.22},sun:{d:0.48},hol:{d:0.3},bay:{a:0.8,d:0.6}}},
-  E:{n:"Avrupa",mult:1.62,s0:0.70,land:40000,sk:3.7,wk:1.7}, // mult/sk/wk: ENTSO-E 2025 (DE, ES) kalibrasyonu, rüzgâr filo endeksiyle (29.10.2026)
+  // Avrupa iki piyasadır (11.11.2026): İberya (İspanya ve Portekiz; gerçekte de ortak fiyat bölgesi, MIBEL) ve Avrupa (diğer
+  // ülkeler). mult/sk/wk ENTSO-E 2025 tam yıl hedeflerine göre, rüzgâr filo endeksiyle: Avrupa = Almanya (DE_LU: 89,3 €/MWh
+  // ≈ 101 $, rüzgâr oranı 0,866, güneş 0,516), İberya = İspanya (65,5 €/MWh ≈ 74 $, rüzgâr 0,965, güneş 0,552). Önce tek
+  // piyasaydı ve İspanya'daki güneş Almanya'nın bulutuna göre satıyordu (docs/kalibrasyon.md "Avrupa ikiye ayrıldı")
+  E:{n:"Avrupa",mult:1.69,s0:0.70,land:40000,sk:4.0,wk:1.45},
+  I:{n:"İberya",mult:1.19,s0:0.70,land:40000,sk:2.6,wk:0.97},
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},
   F:{n:"Afrika",mult:1.05,s0:0.20,land:8000},
@@ -110,7 +116,9 @@ export const REG={
   O:{n:"Okyanusya",mult:1.00,s0:0.80,land:20000},
   G:{n:"Grönland"}, X:{n:"Antarktika"}
 };
-export const MARKETS=["T","E","N","S","F","M","A","O"];
+export const MARKETS=["T","E","I","N","S","F","M","A","O"];
+// Avrupa kuralları (kredi faizi, vergi, izin süresi) iki Avrupa piyasasında da geçerli: Avrupa ve İberya
+export const EU=new Set(["E","I"]);
 export const TECH={
   ges:{n:"GES",long:"Güneş (GES)",capex:55000,opex:100,c:"--solar"},
   // RES: IRENA 2024 1.041 $/kW × 5 MW = 5,21 M$, GES ile aynı ölçek (1/63) → 83 b$ (önceden 140 b$, ölçek 1/37: rüzgâr

@@ -94,7 +94,7 @@ async function run(b, seed) {
     }
     const mw = S.plants.reduce((a, q) => a + q.mw, 0);
     return { ms, days: S.dayNo, nw: Math.round(sim.netWorth()), cash: Math.round(S.money), mw, sites: Object.keys(S.sites).length, mi: S.mi, extraFit: Math.round(extraFit),
-      eu: Object.values(S.sites).filter(o => o.mreg === "E").length, gameFit: Math.round(S.stats.fit || 0), sold, gain: Math.round(gain), hist: hist.filter((_, i) => i % 10 === 0) };
+      eu: Object.values(S.sites).filter(o => o.mreg === "E" || o.mreg === "I").length, gameFit: Math.round(S.stats.fit || 0), sold, gain: Math.round(gain), hist: hist.filter((_, i) => i % 10 === 0) };
   }, [SCN, DAYS, LOAN, CAND, !!A.dbg, SELL]);
   await p.close(); return r;
 }

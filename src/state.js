@@ -12,7 +12,7 @@ export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,coastV:1,loans:[],mv:3,ob:{}};}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{mktV:1,money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,coastV:1,loans:[],mv:3,ob:{}};}
 export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
 // Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
 // (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
@@ -42,6 +42,16 @@ function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.topup1){o.mo
       if(l&&coastKmTR(s.lon,s.lat,SHORE_KM+1)>=SHORE_KM)return;const n=nearestValid(s.lon,s.lat,false);if(n){s.lat=n.lat;s.lon=n.lon;}}));
     if(moved.length)o.log=[`Gün ${o.dayNo}: Türkiye kıyıları ayrıntılı kıyı verisine geçti; yanlış tarafta ya da kıyı şeridinde kalan sahaların taşındı: ${moved.join(", ")}.`,...(o.log||[])].slice(0,8);
     o.coastV=1;}
+  // piyasa v1 (11.11.2026): İspanya ve Portekiz Avrupa'dan ayrılıp İberya piyasası (I) oldu (gerçekte de ortak fiyat bölgesi,
+  // MIBEL). Bu ülkelerdeki ve kıyılarındaki sahalar, santraller ve rakip sahaları bir kez taşınır; yeni piyasanın güneş
+  // doygunluğu başlangıç değerinden başlar
+  if(o.mSolar)MARKETS.forEach(k=>{if(o.mSolar[k]==null)o.mSolar[k]=REG[k].s0;});
+  if((o.mktV||0)<1){const isI=(lat,lon)=>{const d=describe(lat,lon);return !!d&&d.mreg==="I";};let n=0;
+    Object.values(o.sites).forEach(t=>{if(t.mreg==="E"&&isI(t.lat,t.lon)){t.mreg="I";if(t.reg==="E")t.reg="I";n++;}});
+    o.plants.forEach(p=>{const t=o.sites[p.t];if(t&&t.mreg==="I"&&p.m==="E")p.m="I";});
+    if(o.rivals)Object.values(o.rivals).forEach(r=>(r.sites||[]).forEach(s=>{if(s.mreg==="E"&&isI(s.lat,s.lon))s.mreg="I";}));
+    if(n)o.log=[`Gün ${o.dayNo}: İspanya ve Portekiz ayrı bir piyasa oldu (İberya); bu ülkelerdeki ${n} sahan artık İberya fiyatından satar.`,...(o.log||[])].slice(0,8);
+    o.mktV=1;}
   o.resV=3;return o;}
 let frozen=false;
 // Kayıt dosyası yüklenirken sayfa yenilenene kadar mevcut durum kaydın üzerine yazılmaz

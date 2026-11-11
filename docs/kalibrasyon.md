@@ -75,7 +75,7 @@ Oyun değerleri: Avrupa piyasasında bir GES (İspanya iç kesim) ve bir RES (Ku
 ## Sınırlamalar
 - 12 örnek gün; tek günlük değerler çok oynak (Almanya'da baz fiyat 8,8 ile 222 €/MWh arasında, güneş oranı −%57 ile %137 arasında). Sonuçlar yön ve büyüklük göstergesidir, yıllık kesin değer değildir.
 - Oyunda fiyat tabanı 0'dır ve santral sıfır fiyatta üretimi kısar; gerçek piyasada negatif fiyat vardır ve destekli santraller üretmeye devam eder. Bu yüzden oyunda Avrupa GES kısıntısı yüksektir (yıllık üretimin ~%20–25'i, kapasite faktörü ~%17).
-- Avrupa tek piyasa olarak modellenir; ülkeler arası fark (Almanya'da yüksek fiyat ve güçlü rüzgâr etkisi, İspanya'da düşük fiyat ve güçlü güneş etkisi) ortalamada kaybolur.
+- Avrupa tek piyasa olarak modellenir; ülkeler arası fark (Almanya'da yüksek fiyat ve güçlü rüzgâr etkisi, İspanya'da düşük fiyat ve güçlü güneş etkisi) ortalamada kaybolur. (11.11.2026: İspanya ve Portekiz ayrı piyasa oldu; "Avrupa ikiye ayrıldı" bölümü.)
 - Kur dönüşümü yaklaşıktır.
 - Koşudan koşuya oynaklık: aynı ayarla yapılan 365 günlük simülasyonlar oyunun hava modeli ve rastgelelik nedeniyle farklı sonuç verir. Avrupa'da dört koşuda ortalama fiyat 77,9–90,7 $/MWh, piyasa güneş oranı %50–57, rüzgâr oranı %85–90 çıktı; Türkiye'de dört koşuda 65,8–66,8 $/MWh, güneş %73–74, rüzgâr %95–99. Ölçüm script'i: `scripts/sim_year.cjs`.
 
@@ -187,7 +187,7 @@ Hedefler (Avrupa tek piyasa): fiyat ~88 $/MWh (iki ülkenin ortalaması), rüzg�
 Aynı koşularda Türkiye: fiyat 72,1 $/MWh (70,6–73,2), rüzgâr oranı 0,96, güneş oranı 0,85, filo KF 0,33. Kuzey Amerika: 64,5 $/MWh, rüzgâr 0,98, güneş 0,90, filo KF 0,38. Bu iki piyasa değişmedi.
 
 ## Sınırlamalar
-- Avrupa tek piyasa: Almanya ve İspanya'nın ayrı fiyat bölgeleri bir arada. Filo ağırlıkları Almanya ağırlıklı olduğu için İspanya'daki bir santralin oyundaki oranı gerçekteki %96,5'ten düşük çıkabilir.
+- Avrupa tek piyasa: Almanya ve İspanya'nın ayrı fiyat bölgeleri bir arada. Filo ağırlıkları Almanya ağırlıklı olduğu için İspanya'daki bir santralin oyundaki oranı gerçekteki %96,5'ten düşük çıkabilir. (11.11.2026: giderildi; "Avrupa ikiye ayrıldı" bölümü.)
 - Filo ağırlıkları yaklaşık (Almanya, İspanya); Kuzey Amerika'nınkiler doğrulanmadı.
 - Hedefler tek yıla (2025) dayanır.
 - **Düzeltme (30.10.2026):** Bu maddenin ilk sürümünde Türkiye'nin oyundaki fiyatı (72 $/MWh) ile ilk kalibrasyon (65,8) arasında "~%8'lik kayma" olduğu yazıyordu. Kayma yoktu: ilk kalibrasyon 365 oyun gününün (üç takvim yılı) ortalamasıydı, buradaki ölçüm ise ilk 120 günün. Türkiye de ilk oyun yılına göre yeniden ayarlandı (aşağıdaki bölüm).
@@ -652,3 +652,91 @@ Parantezde EPİAŞ 2024–2025. Takvim her koşuda aynı olduğu için gün say�
 - **Bayram tarihleri 2027'den sonra ±1 gün sapabilir** (tablolu hicri takvim). Gerçek tarihler Diyanet takviminden eklenebilir.
 - **Köprü günleri ve yarım günler yok.** Bayramın hafta sonuna bitişik günleri, idari izinler ve 28 Ekim gibi yarım günler ayrıca modellenmedi; 28 Ekim veride de etkisiz.
 - **Gün tipi yalnızca Türkiye'de.** Avrupa ve Kuzey Amerika'da hafta sonu etkisi rastgele oynamanın içinde kaldı.
+
+# Avrupa ikiye ayrıldı: İberya ve Avrupa (11.11.2026)
+
+## Neden
+- **Avrupa tek piyasaydı.** Hedef, Almanya ile İspanya'nın ortalamasıydı (~88 $/MWh).
+- **Güneş etkisi yanlış yerin havasından geliyordu.** Fiyattaki güneş etkisi Orta Almanya'daki temsilî noktanın (50°K 10°D) bulutluluğundan hesaplanıyordu. İspanya'daki santral ise kendi sahasının havasıyla üretiyordu. İspanya güneşliyken Almanya bulutluysa santral yüksek fiyattan satıyordu.
+- **Sonuç gerçeğin çok üstündeydi.** Vaka çalışmasındaki İspanya GES'i 65–71 $/MWh'den satıyordu. Fiyat oranı, kısılan üretim dahil, %63–69'du.
+  - Gerçekte İspanya filosunun 2025 güneş oranı %55,2, ortalama fiyat 65,5 €/MWh (~74 $). Yakalanan fiyat ~41 $/MWh (hesap: 74 × 0,552).
+
+## Veri
+ENTSO-E 2025 tam yıl; "Avrupa rüzgârının fiyat etkisi" bölümündeki aynı ölçüm. Kur 1,1306 $/€ (FRED AEXUSEU, 2025).
+
+| Gösterge | Almanya (DE_LU) | İspanya (ES) |
+|---|---|---|
+| Baz yük fiyatı | 89,3 €/MWh (~101 $) | 65,5 €/MWh (~74 $) |
+| Rüzgâr yakalama oranı | %86,6 | %96,5 |
+| Güneş yakalama oranı | %51,6 | %55,2 |
+
+İspanya ve Portekiz ortak gün öncesi piyasasında (MIBEL) çoğu saat aynı fiyatı paylaşır. Portekiz İspanya'yla aynı piyasaya alındı; Portekiz'in ayrı verisi kullanılmadı.
+
+## Model
+- **Yeni piyasa `I` (İberya):** İspanya ve Portekiz, kıyılarındaki deniz sahaları dahil. Ülke eşlemesi `src/data/countries.json` içinde.
+- **Avrupa (`E`):** diğer ülkeler. Hedef artık Almanya; temsilî nokta ve rüzgâr filosu zaten Almanya'daydı.
+- **Rüzgâr filosu ikiye bölündü** (`src/windfleet.js`, `scripts/gen_windfleet.cjs`):
+  - Avrupa: Almanya kara ve deniz üstü, 13 nokta.
+  - İberya: İspanya'nın 11 bölgesi.
+  - `FLEET_CF` Avrupa 0,23, İberya 0,22. Değerler bu çalışmanın 20 koşusunun ortalamasıdır; koşudan koşuya 0,15–0,29.
+- **İberya'nın temsilî noktası** 40°K 4°B (İspanya iç kesimi). Güneş etkisi bu noktanın bulutluluğundan hesaplanır.
+- **Rüzgâr kaynağı değişmedi.** Portekiz İspanya'nın aylık desenini (`WIND_MONTH.ESP`) kullanır. Saha hız katsayıları aynı kaldı: Portekiz 0,83, İspanya 0,925, denizler 0,725.
+- **Kurallar ve destekler:**
+  - Avrupa'nın kredi faizi, kurumlar vergisi, izin olasılığı ve süresi İberya'da da geçerli (`config.js` `EU`).
+  - Avrupa Hidrojen Bankası desteği İberya'da da var.
+  - Britanya kapasite piyasası ve offshore fark sözleşmesi (AR7) yalnızca Avrupa'da kaldı. Önceden İspanya'daki batarya ve offshore santral de bunları alıyordu; bu bir hataydı.
+  - GES yatırım katsayısı İberya'da da IRENA Avrupa ortalaması (779 $/kW).
+- **Eski kayıtlar:** İspanya ve Portekiz'deki sahalar, santraller ve rakip sahaları bir kez İberya'ya taşınır (`state.js`, `mktV`).
+
+| Parametre | Önce (tek Avrupa) | Avrupa | İberya |
+|---|---|---|---|
+| `mult` | 1,62 | 1,69 | 1,19 |
+| `sk` | 3,7 | 4,0 | 2,6 |
+| `wk` | 1,7 | 1,45 | 0,97 |
+| `FLEET_CF` | 0,211 | 0,23 | 0,22 |
+
+## Ayar süreci
+- **Turlar:** Her turda üç ayar 2'şer koşuyla denendi. Ölçüm `calib_market.cjs` ile; yeni `CALIB_REGS` ve `CALIB_FCF` ortam değişkenleri koda dokunmadan deneme sağlar.
+- **İkinci turun tahmini:** İlk turun ölçümlerine basit bir doğrusal model oturtuldu. Varsayım: fiyat, güneş ve rüzgâr oranı `sk·mult` ve `wk·mult`'a doğrusal bağlıdır.
+- **İberya'da güneş oranı doğrusal değil.** Öğle fiyatı sıfıra indikçe güneş etkisini artırmak oranı daha az düşürüyor.
+- **İberya'nın rüzgâr oranı güneşe de bağlı.** Güneş öğle fiyatını düşürdükçe rüzgâr görece pahalı saatlerde üretiyor.
+- **Avrupa'nın güneş oranı koşudan koşuya ±0,04 oynuyor.** Neden tek temsilî noktanın bulutluluğu. Son ayar bu yüzden 8 koşunun ortalamasına göre seçildi.
+
+## Sonuç (`calib_market`, 120 gün × 4 koşu, son ayar)
+| | Gerçek 2025 | Oyun, önce (tek Avrupa) | Oyun, sonra |
+|---|---|---|---|
+| Avrupa (Almanya): ortalama fiyat | ~101 $/MWh | 89,5 (86,1–95,7) | 99,6 (97,9–101,9) |
+| Avrupa: rüzgâr oranı | 0,866 | 0,88 | 0,88 (0,85–0,91) |
+| Avrupa: güneş oranı | 0,516 | 0,55 | 0,52 (0,49–0,55) |
+| İberya (İspanya): ortalama fiyat | ~74 $/MWh | — | 73,8 (72,7–75,0) |
+| İberya: rüzgâr oranı | 0,965 | — | 0,97 (0,93–0,99) |
+| İberya: güneş oranı | 0,552 | — | 0,53 (0,48–0,56) |
+
+- **"Önce" sütunu tek Avrupa piyasasının ölçümüdür.** Hedefi iki ülkenin ortalamasıydı (~88 $/MWh, güneş ~0,53, rüzgâr ~0,90).
+- **Türkiye ve Kuzey Amerika değişmedi:** Türkiye 66,8 (66,0–67,8) $/MWh, Kuzey Amerika ~64 $/MWh.
+- **İspanya'daki GES** (`sim_year`, 8 koşu): ortalama satış fiyatı 41,2–43,5 $/MWh (önce 64,9–71,0).
+  - Kendi fiyat oranı 0,56–0,59.
+  - Kısılan üretim dahil oran 0,51–0,56 (önce 0,63–0,69). Gerçek İspanya filosu: 0,552.
+  - Kısıntı %3–9 (önce %8–13).
+
+## Proje ekonomisi (vaka çalışması, `sim_year` 8 koşu, %10 WACC)
+`sim_year` artık GES ve RES'i ayrı piyasalarda ölçebiliyor: her biri kendi piyasasının ortalamasına ve finansman varsayımına göre.
+
+| Santral | Kapasite faktörü | Ort. satış fiyatı ($/MWh) | LCOE ($/MWh) | NPV (M$) | IRR |
+|---|---|---|---|---|---|
+| GES, İberya (İspanya iç kesim) | %19,2–21,3 | 41,2–43,5 (önce 64,9–71,0) | 54,3–60,3 | −1,40 ile −0,93 (önce +0,21 ile +1,00) | %4,8–6,7 (önce %10,7–13,3) |
+| RES, Avrupa (Kuzey Almanya) | %18,8–29,6 | 83,3–93,0 (önce 74,7–80,4) | 59,6–94,0 | −0,80 ile +2,94 (önce −1,04 ile +1,47) | %8,0–16,9 (önce %7,3–13,5) |
+
+- **İberya GES'i desteksiz spot satışla %10 WACC'ın altında kalıyor.**
+  - IRR %4,8–6,7. WACC %8'de bile NPV negatif (−0,98 ile −0,42 M$).
+  - Borç oranı spotta %39–47, özsermaye IRR'ı %3,4–5,5.
+  - Bu, İspanya'nın 2025 güneş yakalama fiyatıyla (~41 $/MWh) tutarlı. Oyunun proje ekonomisi destek ve ikili anlaşmayı (PPA'nın %10 indirimli sabit fiyatı dışında) içermez.
+- **Kuzey Almanya RES'i daha iyi.** Avrupa'nın fiyatı yükseldi (önce ~91, şimdi ~100 $/MWh); IRR %8,0–16,9.
+- **Bu koşularda piyasa ortalamaları:** İberya 74,2 (73,4–75,7), Avrupa 99,8 (96,3–102,0) $/MWh.
+
+## Sınırlamalar
+- **Avrupa'nın geri kalanı Almanya'ya göre ayarlı.** Fransa, İtalya, İskandinavya, Britanya ve Doğu Avrupa'nın fiyat düzeyi ve oranları farklı. Bu ülkelerin verisi bu çalışmada kullanılmadı.
+- **Portekiz İspanya'yla aynı.** Gerçekte MIBEL'de iki ülkenin fiyatı bazı saatlerde ayrışır; oyunda ayrışmaz.
+- **İberya GES'inin yatırımı IRENA Avrupa ortalaması** (779 $/kW). İspanya'nın ülke maliyeti farklı olabilir; doğrulanmadı.
+- **Kurumlar vergisi ortalama alındı.** Vergi Avrupa ve İberya'da aynı (%27,5; Almanya ve İspanya ortalaması). Gerçekte İspanya %25.
+- **Tek temsilî nokta ve tek yıl.** Güneş etkisi tek temsilî noktanın bulutluluğundan hesaplanıyor; hedefler tek yıla (2025) dayanıyor.

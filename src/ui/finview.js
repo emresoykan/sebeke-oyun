@@ -60,9 +60,9 @@ function pfRows(){
   }).join("");
 }
 // varsayım girişleri: [anahtar, etiket, birim, adım, en az, en çok]
-const PF_IN=[["rateT","Kredi faizi, Türkiye ve diğer piyasalar","%",0.1,0,30],["rateE","Kredi faizi, Avrupa","%",0.1,0,30],["tenor","Kredi vadesi","yıl",1,1,25],
+const PF_IN=[["rateT","Kredi faizi, Türkiye ve diğer piyasalar","%",0.1,0,30],["rateE","Kredi faizi, Avrupa ve İberya","%",0.1,0,30],["tenor","Kredi vadesi","yıl",1,1,25],
   ["gear","Borç oranı üst sınırı","% yatırım",1,0,90],["dscrM","Hedef DSCR, spot satış","×",0.05,1,3],["dscrP","Hedef DSCR, PPA","×",0.05,1,3],
-  ["taxT","Kurumlar vergisi, Türkiye ve diğer","%",0.5,0,50],["taxE","Kurumlar vergisi, Avrupa","%",0.5,0,50],["dep","Vergi amortismanı (doğrusal)","yıl",1,1,40],
+  ["taxT","Kurumlar vergisi, Türkiye ve diğer","%",0.5,0,50],["taxE","Kurumlar vergisi, Avrupa ve İberya","%",0.5,0,50],["dep","Vergi amortismanı (doğrusal)","yıl",1,1,40],
   ["ppaYears","PPA süresi","yıl",1,0,25],["ppaDisc","PPA fiyatı, beklenen spot satış fiyatının altında","%",1,0,50]];
 function pfInputs(){
   return `<div class="pfin">${PF_IN.map(([k,l,u,st,mn,mx])=>`<label><span>${l}</span><span class="pfv"><input type="number" data-pf="${k}" value="${pf[k]}" step="${st}" min="${mn}" max="${mx}" inputmode="decimal"> <small>${u}</small></span>${PF_SRC[k]?`<small class="mut">${PF_SRC[k]}</small>`:`<small class="mut">varsayım</small>`}</label>`).join("")}</div>

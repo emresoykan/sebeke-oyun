@@ -5,7 +5,7 @@
 // aşağıdaki gerçek dünya varsayımlarıdır. Proje göstergeleri (plantFinance) vergi ve finansman öncesidir; proje
 // finansmanı (projectFinance) borç, vergi ve satış sözleşmesini (PPA) ekler. Enflasyon, arazi, şebeke bağlantısı ve hurda
 // değeri hariçtir.
-import { TECH, capexMul } from "./config.js";
+import { TECH, capexMul, EU } from "./config.js";
 import { EQUIP, tierOf } from "./equipment.js";
 
 // Yatırım maliyeti (USD/kW): IRENA, Renewable Power Generation Costs in 2024 (Temmuz 2025), küresel ağırlıklı ortalama
@@ -125,7 +125,7 @@ export function resetPf(){pf={...PF_DEFAULT};try{localStorage.removeItem(PF_KEY)
 //  vade boyunca en düşük CFADS ÷ hedef DSCR'ı sağlayan borç (faizin vergi kalkanıyla birlikte, yinelemeli)
 export function projectFinance(p,mode="spot",market="T",stress=0){
   const b=base(p);if(!b)return {wait:true};
-  const mk=market==="E"?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(mk==="E"?pf.taxE:pf.taxT)/100;
+  const mk=EU.has(market)?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(mk==="E"?pf.taxE:pf.taxT)/100;
   const {capex,opex,E,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,batt,life}=b,ppa=mode==="ppa"&&!batt&&strike==null; // sözleşmeli santralde PPA yok
   const N=Math.max(1,Math.min(pf.tenor,life-2)),dep=Math.min(pf.dep,life),depY=capex/dep,ppaP=price*(1-pf.ppaDisc/100);
   const ebitdaAt=sx=>E.map((e,t)=>(batt?net1*(1-sx)-opex:e*(ppa&&t<pf.ppaYears?ppaP:priceAt(t,sx))-opex-e*fuelPerMWh)+cap1+(t<SUB_Y?sub1:0));

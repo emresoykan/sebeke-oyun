@@ -101,7 +101,7 @@ export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.so
 // Aylık rüzgâr hızı çarpanı (Ocak…Aralık, ay ortası; arada doğrusal; yıllık ortalama 1). Her ülkenin 2025 aylık rüzgâr
 // üretimi ve kurulu gücünden hesaplanan aylık kapasite faktörüne göre ayarlandı (docs/kalibrasyon.md):
 //  TUR: TEİAŞ (yaz poyrazıyla Ağustos en rüzgârlı, Ekim en sakin), DEU: ENTSO-E (Kasım tahmini, Aralık 2024; kış rüzgârlı,
-//  ilkbahar ve yaz sakin), ESP: ENTSO-E (kış rüzgârlı, Ağustos–Eylül sakin). Avrupa'nın diğer ülkeleri DEU ve ESP ortalaması.
+//  ilkbahar ve yaz sakin), ESP: ENTSO-E (kış rüzgârlı, Ağustos–Eylül sakin). Avrupa'nın diğer ülkeleri DEU ve ESP ortalaması, Portekiz ESP.
 export const WIND_MONTH={TUR:[1.044,1.052,0.984,0.913,0.97,1.052,1.029,1.021,1.002,0.963,0.97,1],DEU:[1.386,1.137,0.861,0.733,0.712,0.719,0.704,0.745,0.936,1.2,1.408,1.459],ESP:[1.177,1.105,1.043,0.955,0.868,0.927,0.925,0.817,0.814,0.983,1.179,1.208]};
 const E_MONTH=WIND_MONTH.DEU.map((v,i)=>(v+WIND_MONTH.ESP[i])/2);
 const inTR=(lat,lon)=>lat>35.5&&lat<42.5&&lon>25.5&&lon<45;
@@ -112,6 +112,7 @@ export function windSeason(lat,lon,m,a3){
   const w=(Math.sign(lat)||1)*DECL/23.44; // +1 yaz ortası, −1 kış ortası (o yarımküre için)
   if(lat>34&&lat<41.5&&lon>22&&lon<30.5)return 1+0.22*Math.max(0,w)-0.04*Math.max(0,-w);
   if(m==="E")return monthly(E_MONTH);
+  if(m==="I")return monthly(WIND_MONTH.ESP); // Portekiz: İspanya'nın aylık deseni
   return Math.abs(lat)>30?1-0.12*w:1;
 }
 // Soğuk mu (yağış kar olarak düşer): kış yaşanan yarımkürede yüksek enlem ya da dağ
