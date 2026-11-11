@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-11",t:"İberya ayrı piyasa",items:[
+    "İspanya ve Portekiz artık ayrı bir piyasa: İberya (gerçekte de iki ülke ortak fiyat bölgesidir, MIBEL). Fiyat ENTSO-E 2025 İspanya verisine göre: ortalama ~74 $/MWh, güneşin fiyat oranı ~%53–55, rüzgârın ~%97. İspanya'daki güneş santrali önceden Almanya'nın bulutuna göre fiyat alıyor ve gerçekte olduğundan çok kazanıyordu.",
+    "Avrupa piyasası artık Almanya'ya göre ayarlı: ortalama ~100 $/MWh, rüzgârın fiyat oranı ~%88, güneşin ~%52 (önce iki ülkenin ortalaması, ~90 $/MWh).",
+    "Kayıtlı oyunda İspanya ve Portekiz'deki sahaların İberya'ya taşındı. Avrupa'nın kredi, vergi ve izin kuralları ile Avrupa Hidrojen Bankası desteği İberya'da da geçerli; Britanya'nın kapasite ödemesi ve offshore fark sözleşmesi yalnızca Avrupa'da."]},
   {id:"2026-11-10",t:"Hafta sonu ve bayramlar",items:[
     "Türkiye'de fiyat gün tipine göre değişiyor: pazar öğlesi iş gününün ~%40'ı, cumartesi ~%75'i; gece ve akşam aynı (EPİAŞ 2024–2025). Resmî tatiller hafta sonuna benzer; Ramazan ve Kurban Bayramı'nda (arife dahil) gündüz fiyatı birkaç gün sıfıra yakın. Bayram ve tatil başlarken haber bandında not.",
     "Tarih etiketinde gün adı ve tatil adı. Batarya hafta sonu ve bayramda daha çok kazanır: gündüz ucuz, akşam normal (günlük fark iş gününde ~41, pazar ~75 $/MWh). Yıllık ortalama fiyat (~67 $/MWh) ve güneşin fiyat oranı (%83) aynı kaldı; günler arasındaki rastgele oynama azaldı."]},

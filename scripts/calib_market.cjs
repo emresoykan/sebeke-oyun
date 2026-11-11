@@ -7,13 +7,16 @@
 // Kullanım: npx vite --port 5182 &  sonra  node scripts/calib_market.cjs http://localhost:5182/sebeke-oyun/ [gün=120] [koşu=4]
 const { chromium } = require("playwright");
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",DAYS=+(process.argv[3]||120),RUNS=+(process.argv[4]||4);
-const PL={T:[["ges",37.9,32.5],["res",40.05,26.6]],E:[["ges",39.5,-3.5],["res",53.4,9.6],["res",41.7,-4.3]],N:[["ges",35.0,-106.0],["res",42.0,-94.5]]};
+const PL={T:[["ges",37.9,32.5],["res",40.05,26.6]],E:[["ges",48.8,11.5],["res",53.4,9.6]],I:[["ges",39.5,-3.5],["res",41.7,-4.3]],N:[["ges",35.0,-106.0],["res",42.0,-94.5]]};
+// CALIB_REGS='{"E":{"mult":1.8},"I":{"sk":4}}' REG alanlarını, CALIB_FCF='{"E":0.2}' FLEET_CF'yi koda dokunmadan değiştirir (deneme için)
+const REGS=process.env.CALIB_REGS?JSON.parse(process.env.CALIB_REGS):null,FCF=process.env.CALIB_FCF?JSON.parse(process.env.CALIB_FCF):null;
 (async()=>{const b=await chromium.launch();const all=[];
 for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("pageerror",e=>errs.push(String(e).slice(0,200)));
   await p.route(/fonts\.g|tile|arcgis|maptiler|openstreetmap|cartocdn|amazonaws/,r=>r.abort());
   await p.addInitScript(()=>{localStorage.clear();localStorage.setItem("sebeke-profile-v1",JSON.stringify({name:"T",company:"D",color:"#1F9D74",spec:"eng",created:1}));});
   await p.goto(URL0);await p.waitForTimeout(3000);
-  const r=await p.evaluate(async([PL,DAYS])=>{const st=await import("/src/state.js"),w=await import("/src/world.js"),sim=await import("/src/sim.js"),ac=await import("/src/actions.js"),S=st.S;
+  const r=await p.evaluate(async([PL,DAYS,REGS,FCF])=>{const st=await import("/src/state.js"),w=await import("/src/world.js"),sim=await import("/src/sim.js"),ac=await import("/src/actions.js"),cfg=await import("/src/config.js"),S=st.S;
+    if(REGS)for(const [k,o] of Object.entries(REGS)){Object.assign(cfg.REG[k],o);if(o.s0!=null)S.mSolar[k]=o.s0;}if(FCF)Object.assign(cfg.FLEET_CF,FCF);
     S.money=1e10;S.won=true;S.win1=1;S.evCool=1e9;S.mi=9;Object.assign(S.ob,{g:1,pick:1,tech:1,prod:1,sale:1,card:1,rep:1,desk:1});
     S.hyd={};for(let y=2026;y<=2035;y++)S.hyd[y]={w:1,ref:0}; // normal hidrolojik yıl (hydro.js): kalibrasyon taban düzeyi ölçer
     const ids={};for(const [mk,list] of Object.entries(PL))list.forEach(([k,la,lo],i)=>{const id=`${mk}_${k}${i}`;S.sites[id]={...w.describe(la,lo),permit:"ok"};ac.build(id,k,"std");ids[id]={mk,k};});
@@ -24,11 +27,11 @@ for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("page
     const out={};for(const mk in A){const a=A[mk],avg=a.p/a.n;out[mk]={avg,wind:a.w?a.wp/a.w/avg:null,solar:a.sp/a.s/avg,fleetCF:a.fn?a.f/a.fn:null,windH:a.wh/DAYS,plants:{}};}
     S.plants.forEach(q=>{const x=ids[q.t];if(!x)return;const a=q.ac;out[x.mk].plants[q.t]={cap:a.r/a.e/out[x.mk].avg,cf:a.e/a.cap};});
     out.riv=Object.values(S.rivals||{}).reduce((a,o)=>a+o.sites.reduce((b,s)=>b+s.mw,0),0);
-    return out;},[PL,DAYS]);
+    return out;},[PL,DAYS,REGS,FCF]);
   all.push(r);const f=(x,d=2)=>x==null?"–":x.toFixed(d);
-  console.log(`koşu ${run+1}: `+["T","E","N"].map(mk=>{const m=r[mk];return `${mk} fiyat ${f(m.avg,1)} rüzgâr ${f(m.wind)} güneş ${f(m.solar)} filoKF ${f(m.fleetCF,3)} endeks ${f(m.windH)} | `+Object.entries(m.plants).map(([id,v])=>`${id} ${f(v.cap)}`).join(" ");}).join(" || ")+` rakip ${r.riv} MW${errs.length?" HATA "+errs.join("|"):""}`);
+  console.log(`koşu ${run+1}: `+["T","E","I","N"].map(mk=>{const m=r[mk];return `${mk} fiyat ${f(m.avg,1)} rüzgâr ${f(m.wind)} güneş ${f(m.solar)} filoKF ${f(m.fleetCF,3)} endeks ${f(m.windH)} | `+Object.entries(m.plants).map(([id,v])=>`${id} ${f(v.cap)}`).join(" ");}).join(" || ")+` rakip ${r.riv} MW${errs.length?" HATA "+errs.join("|"):""}`);
   await p.close();}
 await b.close();
 const S=(mk,g)=>{const v=all.map(r=>g(r[mk])).filter(x=>x!=null);return v.length?`${(v.reduce((a,b)=>a+b,0)/v.length).toFixed(3)} (${Math.min(...v).toFixed(3)}–${Math.max(...v).toFixed(3)})`:"–";};
-for(const mk of ["T","E","N"])console.log(`${mk}: fiyat ${S(mk,m=>m.avg)} | rüzgâr oranı ${S(mk,m=>m.wind)} | güneş oranı ${S(mk,m=>m.solar)} | filo KF ${S(mk,m=>m.fleetCF)} | rüzgâr endeksi ${S(mk,m=>m.windH)}`);
+for(const mk of ["T","E","I","N"])console.log(`${mk}: fiyat ${S(mk,m=>m.avg)} | rüzgâr oranı ${S(mk,m=>m.wind)} | güneş oranı ${S(mk,m=>m.solar)} | filo KF ${S(mk,m=>m.fleetCF)} | rüzgâr endeksi ${S(mk,m=>m.windH)}`);
 })();

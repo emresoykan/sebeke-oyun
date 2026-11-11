@@ -51,6 +51,7 @@ export const DERATE={batt:0.2094,phs:0.9};
 export const CFD={E:{k:"off",p:Math.round(91.20*FX.gbp*10)/10,years:20,src:"Britanya CfD 7. tur (Ocak 2026), sabit tabanlı offshore £91,20/MWh"}};
 export const H2SUB={
   E:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
+  I:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
   N:{kg:3,years:10,until:Date.UTC(2028,0,1),src:"ABD 45V vergi kredisi, en çok 3 $/kg (inşaata 2028'den önce başlanmalı)"}
 };
 // bir depolama santralinin günlük kapasite ödemesi ($); bu piyasada mekanizma yoksa 0

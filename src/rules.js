@@ -1,5 +1,5 @@
 // Kare bazlı kurallar: izinli teknolojiler, arazi/izin maliyeti ve olasılıkları
-import { REG, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT, SPV_KM } from "./config.js";
+import { REG, EU, MAR_UNLOCK, FLO_UNLOCK, SITE_LIMIT, SPV_KM } from "./config.js";
 import { spec } from "./profile.js";
 import { S } from "./state.js";
 import { fillRes } from "./world.js";
@@ -53,9 +53,9 @@ export const locked=k=>(k==="mar"&&totalMW()<MAR_UNLOCK)||(k==="flo"&&totalMW()<
 export function landCost(t){return t.sea?30000:REG[t.reg].land;}
 export function permitFee(t){return t.sea?10000:5000;}
 // küçültülmüş projede (Projeyi küçült seçeneği, t.cap) etki alanı daralır, onay ihtimali artar
-export function permitProb(t){let p=t.sea?0.6:({p:0.03,f:0.3,m:0.7,d:0.95,pl:0.85})[t.ter];if(t.mreg==="E")p*=0.9;if(spec()==="reg"&&t.ter!=="p")p=Math.min(0.98,p+0.1);if(t.cap)p=Math.min(0.97,p*1.2+0.05);if(t.boost)p=Math.min(0.98,Math.max(0.01,p+t.boost));return p;}
+export function permitProb(t){let p=t.sea?0.6:({p:0.03,f:0.3,m:0.7,d:0.95,pl:0.85})[t.ter];if(EU.has(t.mreg))p*=0.9;if(spec()==="reg"&&t.ter!=="p")p=Math.min(0.98,p+0.1);if(t.cap)p=Math.min(0.97,p*1.2+0.05);if(t.boost)p=Math.min(0.98,Math.max(0.01,p+t.boost));return p;}
 // inceleme süresi aralığı (gün): 3–6 gün, ormanda, Avrupa'da ve denizde daha uzun
-export function permitRange(t){const e=(t.ter==="f"?3:0)+(t.mreg==="E"?2:0)+(t.sea?2:0)-(spec()==="reg"?1:0);return [3+e,6+e];}
+export function permitRange(t){const e=(t.ter==="f"?3:0)+(EU.has(t.mreg)?2:0)+(t.sea?2:0)-(spec()==="reg"?1:0);return [3+e,6+e];}
 export function permitDays(t,[a,b]=permitRange(t)){return a+Math.floor(Math.random()*(b-a+1));}
 // Sahanın kurulu güç sınırı (küçültülmüş projede SHRINK_MW)
 export const SHRINK_MW=20;
