@@ -39,6 +39,10 @@ const r=await p.evaluate(async([u,DAYS])=>{const imp=n=>import(u.find(x=>new URL
   const F=fin.FIN.ges.capex*eq.EQUIP.ges.std.capex*5000;
   out.finOk=["T","E","I","N","A"].every(m=>!out.econ[m]||near(out.econ[m].capex,F*cfg.capexMul("ges",m),1e-9));
   fin.setWacc(0.10);
+  // kurumlar vergisi piyasaya göre: İberya taxI, Avrupa taxE (11.11.2026)
+  const qE=S.plants.find(x=>x.t==="GE"),qI=S.plants.find(x=>x.t==="GI"),irr=(q,m)=>{const r=fin.projectFinance(q,"spot",m);return r.wait?null:r.projIrr;};
+  const i0=irr(qI,"I"),e0=irr(qE,"E");fin.setPf("taxE",0);const i1=irr(qI,"I"),e1=irr(qE,"E");fin.setPf("taxI",0);const i2=irr(qI,"I");fin.resetPf();
+  out.tax={def:[fin.PF_DEFAULT.taxE,fin.PF_DEFAULT.taxI],src:!!fin.PF_SRC.taxI,i0,i1,i2,e0,e1};
   // eski kayıt (piyasa v1): İspanya'daki saha, santral ve rakip sahası Avrupa'dan İberya'ya taşınır; Almanya'dakiler kalır
   const old=JSON.parse(JSON.stringify(S));delete old.mktV;delete old.mSolar.I;
   old.sites.GI.mreg="E";old.sites.GI.reg="E";old.plants.find(q=>q.t==="GI").m="E";
@@ -53,6 +57,8 @@ ok(r.costOk,`GES kurulum bedeli piyasaya göre: T ${r.cost.T}, E ${r.cost.E}, I 
 ok(r.wind[0]===r.wind[1],"karada rüzgâr değişmedi");
 ok(r.note,"panelde yatırım maliyeti notu (Kuzey Amerika +%53)");
 ok(r.migr,"eski kayıtta santralin piyasası tamamlanıyor");
+ok(r.tax.def[0]===29.9&&r.tax.def[1]===25&&r.tax.src&&(r.tax.i0==null||(r.tax.i1===r.tax.i0&&r.tax.i2>=r.tax.i0))&&(r.tax.e0==null||r.tax.e1>=r.tax.e0),
+  `kurumlar vergisi: Avrupa %${r.tax.def[0]}, İberya %${r.tax.def[1]}; İberya santrali yalnızca İberya vergisinden etkilenir (${JSON.stringify(r.tax)})`);
 ok(r.mkt.site==="I"&&r.mkt.reg==="I"&&r.mkt.plant==="I"&&r.mkt.riv==="IE"&&r.mkt.de==="E"&&r.mkt.ms&&r.mkt.v===1&&r.mkt.log&&r.mkt.fresh===1,`eski kayıt: İspanya'daki saha, santral ve rakip sahası İberya'ya taşındı, Almanya kaldı (${JSON.stringify(r.mkt)})`);
 ok(r.finOk,"proje ekonomisinde yatırım piyasa katsayılı");
 console.log("  · ölçüm (%7,5 iskonto, "+DAYS+" gün): "+["T","E","I","N","A"].map(m=>{const e=r.econ[m];return e?`${m} yatırım ${(e.capex/1e6).toFixed(2)} M$, KF ${pc(e.cf)}, fiyat ${f0(e.price)}, LCOE ${f0(e.lcoe)} $/MWh, IRR ${pc(e.irr)}`:`${m} veri yok`;}).join(" | "));

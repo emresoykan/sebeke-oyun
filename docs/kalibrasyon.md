@@ -738,7 +738,7 @@ ENTSO-E 2025 tam yıl; "Avrupa rüzgârının fiyat etkisi" bölümündeki aynı
 - **Avrupa'nın geri kalanı Almanya'ya göre ayarlı.** Fransa, İtalya, İskandinavya, Britanya ve Doğu Avrupa'nın fiyat düzeyi ve oranları farklı. Bu ülkelerin verisi bu çalışmada kullanılmadı.
 - **Portekiz İspanya'yla aynı.** Gerçekte MIBEL'de iki ülkenin fiyatı bazı saatlerde ayrışır; oyunda ayrışmaz.
 - **İberya GES'inin yatırımı IRENA Avrupa ortalaması** (779 $/kW). İspanya'nın ülke maliyeti farklı olabilir; doğrulanmadı.
-- **Kurumlar vergisi ortalama alındı.** Vergi Avrupa ve İberya'da aynı (%27,5; Almanya ve İspanya ortalaması). Gerçekte İspanya %25.
+- **Kurumlar vergisi ortalama alındı.** Vergi Avrupa ve İberya'da aynı (%27,5; Almanya ve İspanya ortalaması). Gerçekte İspanya %25. (11.11.2026: ayrıldı; "İberya ve Avrupa: kurumlar vergisi" bölümü.)
 - **Tek temsilî nokta ve tek yıl.** Güneş etkisi tek temsilî noktanın bulutluluğundan hesaplanıyor; hedefler tek yıla (2025) dayanıyor.
 
 # Negatif fiyat (11.11.2026)
@@ -840,3 +840,33 @@ ENTSO-E gün öncesi fiyatlar, 2025, MCP `day_ahead_prices` ile aylık sorgular.
 - **Destekli santral yok.** Gerçekte bazı destekli santraller negatif fiyatta da üretmeye devam eder; oyunda modellenmedi. Oyuncunun santrali hep desteksiz gibi davranır.
 - **Dengeleme piyasasının negatif fiyatı ayrı modellenmedi.** Dengesizlik gün öncesi fiyatına bağlı kalır.
 - **Kuzey Amerika'da taban 0 kaldı.** ABD piyasalarının verisi bu çalışmada kullanılmadı.
+
+# İberya ve Avrupa: kurumlar vergisi (11.11.2026)
+
+## Neden
+- **Vergi Avrupa tek piyasayken seçilmişti.** %27,5, Almanya'nın %29,9'u ile İspanya'nın %25'inin ortalamasıydı.
+- **Artık her piyasa bir ülkeye göre ayarlı.** Avrupa'nın fiyatı Almanya'ya, İberya'nınki İspanya'ya göre ayarlı. Vergi de aynı ülkelerden alındı.
+
+## Değişiklik (`finance.js` `PF_DEFAULT`, `projectFinance`; panel "Finansman varsayımları")
+- **Oranlar** (Tax Foundation, OECD verisi, 2025; repoda önceden kullanılan aynı kaynak):
+  - Avrupa: %29,9 (Almanya).
+  - İberya: %25 (İspanya). Portekiz'in oranı farklıdır; ayrı modellenmedi.
+- **Kredi faizi** Avrupa ve İberya'da aynı kaldı (%6,9; marj varsayımı).
+- **Eski kayıt:** Oyuncu eski varsayılanı (%27,5) saklamışsa Avrupa yeni varsayılana geçer, İberya %25'ten başlar.
+- **GES yatırımı değişmedi** (IRENA Avrupa ortalaması, 779 $/kW). İspanya'nın ülke değeri IRENA'nın *Renewable Power Generation Costs in 2024* raporunda yer alıyor olabilir. Bu oturumda irena.org'a erişilemedi; ikincil kaynaklarda İspanya'ya özgü 2024 değeri bulunamadı.
+
+## Etki (aynı koşular, eski ve yeni vergi; `sim_year` 2 koşu)
+| | Vergi | Vergi sonrası proje IRR'ı | Özsermaye IRR'ı | Borç oranı |
+|---|---|---|---|---|
+| GES, İberya (İspanya iç kesim) | %27,5 → %25 | +0,1 puan | +0,1 puan | değişmedi |
+| RES, Avrupa (Kuzey Almanya) | %27,5 → %29,9 | −0,2 puan | −0,3 ile −0,8 puan | −1 ile −2 puan |
+
+Vergi öncesi göstergeler (LCOE, NPV, IRR) değişmez.
+
+## Vaka çalışması (`sim_year` 8 yeni koşu)
+| Santral | KF | Kısıntı | Satış fiyatı ($/MWh) | IRR (vergisiz) | Spot: borç / özsermaye IRR'ı | PPA: borç / özsermaye IRR'ı |
+|---|---|---|---|---|---|---|
+| GES, İberya | %14,8–17,8 | %23–35 | 54,8–56,7 | %5,4–7,8 | %42–52 / %4,1–7,2 | %43–54 / %3,3–6,0 |
+| RES, Avrupa | %20,2–26,0 | – | 86,8–94,9 | %11,5–15,8 | %50–66 / %11,9–21,5 | %65–75 / %11,2–20,9 |
+
+Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–29'dan %23–35'e) koşudan koşuya hava değişimindendir. Piyasa ortalamaları: İberya 74,5 (73,8–75,4), Avrupa 102,5 (97,3–104,7) $/MWh.

@@ -191,7 +191,7 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 |---|---|---|
 | Kredi faizi, Türkiye ve diğer piyasalar | %8,6 | ABD 10 yıllık hazine %5,10 (FRED DGS10, 15.10.2026) + %3,5 marj (varsayım) |
 | Kredi faizi, Avrupa ve İberya | %6,9 | ABD 10 yıllık %5,10 + %1,8 marj (varsayım) |
-| Kurumlar vergisi | Türkiye %25, Avrupa ve İberya %27,5 | Türkiye: ikincil kaynaklar (KVK md. 32); Avrupa: Almanya %29,9 ve İspanya %25 ortalaması (Tax Foundation, OECD 2025) |
+| Kurumlar vergisi | Türkiye %25, Avrupa %29,9, İberya %25 | Türkiye: ikincil kaynaklar (KVK md. 32); Avrupa: Almanya, İberya: İspanya (Tax Foundation, OECD 2025); Portekiz ayrı modellenmedi. 11.11.2026'ya kadar Avrupa ve İberya %27,5 (ortalama) |
 | Zarar devri | Türkiye 5 yıl, Avrupa süresiz | KVK md. 9 (ikincil kaynaklar); Avrupa'da yıllık mahsup üst sınırları uygulanmadı |
 | Vade, borç oranı üst sınırı, hedef DSCR (spot / PPA), vergi amortismanı, PPA süresi ve indirimi | 12 yıl, %75, 1,40 / 1,20, 10 yıl, 10 yıl, %10 | varsayım |
 
