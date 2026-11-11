@@ -7,7 +7,8 @@ import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
 import { checkMissions } from "../missions.js";
 import { slopeOf } from "../slope.js";
 import { fillRes, ghiAt } from "../world.js";
-import { fmt$, dots, shape, techVars } from "../utils.js";
+import { fmt$, fmtP, dots, shape, techVars } from "../utils.js";
+import { AYLAR } from "../calendar.js";
 import { siteMW } from "../sim.js";
 import { buyLand, applyPermit, build, undoFor, undoLast, sellSite } from "../actions.js";
 import { saleOffer, SALE } from "../sale.js";
@@ -22,7 +23,7 @@ import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
-import { CAP, DERATE, H2SUB, CFD, capDay, h2Grant, cfdGrant, cfdRate } from "../support.js";
+import { CAP, DERATE, H2SUB, CFD, EEG, capDay, h2Grant, cfdGrant, cfdRate, eegGrant, eegOn, eegMV } from "../support.js";
 import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
 import { hydText, hydOdds } from "../hydro.js";
 import { yekaStatus } from "../yeka.js";
@@ -100,6 +101,8 @@ function supportNote(t,k){
     return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
   if(k==="off"){const g=cfdGrant(m,k),s=CFD[m];
     return `<div class="eqnote support"><b>Fark sözleşmesi:</b> ${g?`${s.src}: ${dec(g.p)} $/MWh, ${s.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Piyasa fiyatı altındaysa fark ödenir, üstündeyse sen geri ödersin. Gerçekte ihaleyle kazanılır; oyunda ihale fiyatıyla kazanılmış sayılır.`:`${nm} piyasasında deniz üstü RES'e destek yok; Avrupa'da Britanya'nın fark sözleşmesi fiyatı var.${m==="T"?" Türkiye'nin ilk deniz üstü YEKA'sı 2027'nin ilk çeyreğine planlandı.":""}`}</div>`;}
+  if(EEG[k]&&(m==="E"||m==="I")){const g=eegGrant(t,k);
+    return `<div class="eqnote support"><b>Piyasa primi${g?" (Almanya)":""}:</b> ${g?`${EEG[k].src}: ödül değeri ${dec(g.aw)} $/MWh, ${EEG.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Elektriğini piyasada satarsın; ay sonunda ${k==="ges"?"güneşin":"rüzgârın"} o ayki piyasa değeri (fiyatların ${k==="ges"?"güneş":"rüzgâr"} üretimiyle ağırlıklı ortalaması) ödülün altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Negatif fiyatlı saatlerin üretimine prim ödenmez. Gerçekte ihaleyle kazanılır; oyunda ortalama ödül değeriyle kazanılmış sayılır.`:`${t.country||nm} için oyunda kara ${TECH[k].n} desteği tanımlı değil (veri toplanmadı). Almanya'daki sahalar piyasa primi alır.`}</div>`;}
   if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama bu fiyat iki küçük, erken proje içindi; oyundaki yüzer RES maliyeti ticari ölçek tahmini olduğu için bu fiyat gerçekte olmayan bir kâr verirdi.</div>`;
   return "";
 }
@@ -107,6 +110,12 @@ function supportNote(t,k){
 function cfdHtml(id){
   const ps=S.plants.filter(p=>p.t===id&&p.cfd);if(!ps.length)return "";
   return ps.map(p=>{const on=cfdRate(p)!=null;return `<div class="status${on?" ok":""}"><b>Fark sözleşmesi:</b> ${TECH[p.k].n} ${p.mw} MW, ${dec(p.cfd.p)} $/MWh; ${on?`${p.cfd.until-S.dayNo+1} gün kaldı. Fark günlük raporda.`:"süresi doldu, üretim piyasa fiyatından satılıyor."}</div>`;}).join("");
+}
+// piyasa primi olan santraller (support.js EEG): ödül değeri, kalan süre, bu ayın ve geçen ayın piyasa değeri
+function eegHtml(id){
+  const ps=S.plants.filter(p=>p.t===id&&p.eeg);if(!ps.length)return "";const o=S.sites[id],fit=o.fit&&S.dayNo<=o.fit.until,L=S.eegLast;
+  return ps.map(p=>{const on=eegOn(p),v=eegMV(p.k),lv=L&&L.mv?L.mv[p.k]:null,pr=x=>`${fmtP(x)}${x<p.eeg.aw?` (prim ${dec(p.eeg.aw-x)})`:" (prim yok)"}`;
+    return `<div class="status${on?" ok":""}"><b>Piyasa primi:</b> ${TECH[p.k].n} ${p.mw} MW, ödül değeri ${dec(p.eeg.aw)} $/MWh; ${on?`${p.eeg.until-S.dayNo+1} gün kaldı.${fit?" Alım garantisi sürerken prim birikmez.":""}${v!=null?` Bu ay şimdiye kadar piyasa değeri ${pr(v)}.`:""}${lv!=null?` Geçen ay (${AYLAR[L.mo%12]}) ${pr(lv)}.`:""} Prim ay sonunda ödenir.`:"süresi doldu, üretim yalnızca piyasa fiyatından satılıyor."}</div>`;}).join("");
 }
 // Sahayı sat (sale.js): alıcı teklifinin dökümü (defter değeri ve teklif), kredi kapama, nakde geçecek tutar ve kâr/zarar.
 // Kutu kapalı gelir; açıkken yeniden çizimde açık kalır (sellOpen: açık kutunun sahası). Eğitim bitince görünür.
@@ -265,7 +274,7 @@ function renderPanelImpl(){
     if(mw)html+=`<div class="live" id="liveStatus">${statusText(plantStatus(id))}</div>`;
     if(o.fit&&S.dayNo<=o.fit.until)html+=`<div class="status ok">Alım garantisi (başlangıç desteği): piyasa fiyatı ${o.fit.p} $/MWh'nin altında kalan saatlerde fark ödenir. ${o.fit.until-S.dayNo+1} gün kaldı.</div>`;
     if(o.yeka)html+=yekaHtml(o);
-    html+=cfdHtml(id);
+    html+=cfdHtml(id)+eegHtml(id);
     if(fullOn()&&yekEligible(id))html+=yekHtml(id);
     else if(fullOn()&&o.mreg==="T"&&S.plants.some(q=>q.t===id&&q.k==="hes"))html+=hydHtml(yekYear(),false);
     if(mw)html+=`<div class="actions"><button data-a="fly">3D yakından bak</button><button data-a="cine">🎬 Sinematik tur</button></div>`;

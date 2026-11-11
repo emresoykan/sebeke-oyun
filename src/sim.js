@@ -17,7 +17,7 @@ import { maybeEvent } from "./events.js";
 import { checkMissions } from "./missions.js";
 import { dayFx, celebrate, toast } from "./ui/fx.js";
 import { initWx, stepWx, forecast, sampleWx, clearFactor, setSeason } from "./weather.js";
-import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate, doyOf } from "./calendar.js";
+import { CAL, setCalendar, noonAmp, demandOf, seasonOf, fmtDate, doyOf, AYLAR } from "./calendar.js";
 import { MREF, siteWx, clock, fleetWind } from "./wxsite.js";
 import { RENEW, PV, production, cspHeat, dayAhead, settle, deskSummary } from "./market.js";
 import { openDesk } from "./ui/desk.js";
@@ -25,7 +25,7 @@ import { acc } from "./finance.js";
 import { rivalsDay, rivalCap } from "./rivals.js";
 import { news, realNews } from "./news.js";
 import { leagueDay } from "./league.js";
-import { capDay, DERATE, h2Rate, cfdRate, cfdMigrate } from "./support.js";
+import { capDay, DERATE, h2Rate, cfdRate, cfdMigrate, EEG, eegOn, eegMigrate, eegDay, eegSettle } from "./support.js";
 import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
 import { hydDay, hydShift, hydVol } from "./hydro.js";
 import { dayFactor, dayNews } from "./daytype.js";
@@ -41,11 +41,12 @@ export function newDay(){
   const sn=seasonOf(CAL.date);if(S.dayNo>1&&sn.k!==prev.k&&S.seasonSeen!==sn.k){S.seasonSeen=sn.k;addLog(`${sn.i} ${sn.n} geldi (${fmtDate(CAL.date)}). ${SEASON_NOTE[sn.k]}`);toast(`${sn.i} ${sn.n} geldi`,SEASON_NOTE[sn.k]);news(sn.i,`${sn.n} geldi. ${SEASON_NOTE[sn.k]}`,"season");}
   const fresh=S.newsDay!==S.dayNo;S.newsDay=S.dayNo; // sayfa yeniden yüklenince aynı günün haberleri ve rakip hamleleri tekrarlanmasın
   S.plants.forEach(p=>{if(!p.m&&S.sites[p.t])p.m=S.sites[p.t].mreg;}); // eski kayıt: santralin piyasası (proje ekonomisi)
-  yekDay();hydDay();gridDay();cfdMigrate();realNews();dayNews(CAL.date,S,news); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
+  yekDay();hydDay();gridDay();cfdMigrate();eegMigrate();realNews();dayNews(CAL.date,S,news); // YEKDEM yıl geçişi ve son başvuru hatırlatması; yılın hidrolojisi; bağlantı kontenjanı; gerçek dünyadan tarihli haberler
   if(fresh)rivalsDay();
   if(!S.wx)S.wx=initWx();
   const z=()=>Object.fromEntries(PROD.map(k=>[k,0]));
-  setD({st:{E:z(),R:z(),imb:0,bNet:0,pNet:0,cap:0,h2kg:0,h2R:0,h2C:0,h2Z:0,h2Sub:0,h2G:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0,fit:0,yek:0,yeka:0,cfd:0},wxf:forecast(S.wx,24)});
+  setD({st:{E:z(),R:z(),imb:0,bNet:0,pNet:0,cap:0,h2kg:0,h2R:0,h2C:0,h2Z:0,h2Sub:0,h2G:0,curt:0,opex:0,sBase:0,da:0,dev:0,short:0,surp:0,bBal:0,fcErr:0,fcE:0,fee:0,fuel:0,fit:0,yek:0,yeka:0,cfd:0,mp:0},wxf:forecast(S.wx,24)});
+  eegPay(); // Almanya piyasa primi: ay değiştiyse biten ayın primi (support.js)
   MARKETS.forEach(k=>{
     // piyasanın temsilî noktasındaki saatlik hava tahmini: bulut güneş üretimini, rüzgâr rüzgâr üretimini, sıcak hava akşam talebini belirler
     const [la,lo]=MREF[k],ws=D.wxf.slice(0,24).map(x=>sampleWx(x,la,lo));
@@ -125,6 +126,9 @@ export function tick(){
       // fark sözleşmesi (support.js, deniz üstü RES): gerçekleşen üretim sözleşme fiyatıyla satış fiyatı arasındaki farkı alır ya da
       // öder; proje gelirine (ac) katılır
       const cf=cfdRate(p);if(cf!=null&&e>0){const x=e*(cf-sp);cash+=x;st.cfd+=x;ac.r+=x;ac.cf=(ac.cf||0)+x;live(p.t,0,x);}
+      // piyasa primi (support.js EEG, Almanya): uygun üretim ay boyunca birikir, prim ay sonunda ödenir (eegPay). Negatif fiyatlı
+      // saat ve başlangıç desteği (alım garantisi) süresi sayılmaz
+      if(e>0&&pr>=0&&eegOn(p)&&!(t.fit&&S.dayNo<=t.fit.until))p.eegE=(p.eegE||0)+e;
       // alım garantisi (ilk proje, config.js FIT): piyasa fiyatı tabanın altındaysa fark gerçekleşen üretime ödenir. Proje
       // ekonomisine (ac) katılmaz: ömür boyu getiri hesabı desteksiz piyasa fiyatıyla kalır
       // YEKDEM ve YEKA (sabit fiyat; saatlik fark gün sonunda uzlaştırılır)
@@ -180,8 +184,9 @@ export function endDay(){
   const st=D.st, E=st.E, R=st.R;
   const net=dayNet(st);
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
-  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,pNet:st.pNet,cap:st.cap,h2:{kg:st.h2kg,r:st.h2R,c:st.h2C,z:st.h2Z,s:st.h2Sub,g:st.h2G},curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,yek:st.yek,yeka:st.yeka,cfd:st.cfd,err:st.fcE>0?st.fcErr/st.fcE:0};
+  S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,pNet:st.pNet,cap:st.cap,h2:{kg:st.h2kg,r:st.h2R,c:st.h2C,z:st.h2Z,s:st.h2Sub,g:st.h2G},curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,yek:st.yek,yeka:st.yeka,cfd:st.cfd,mp:st.mp,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
+  eegDay(D.E); // Avrupa piyasasının bugünkü fiyatları ayın teknoloji piyasa değerine (support.js EEG)
   MARKETS.forEach(k=>S.mSolar[k]=Math.min(solarCap(k),S.mSolar[k]+PRICE.grow));
   // izin süreçleri
   Object.values(S.sites).forEach(o=>{
@@ -241,9 +246,17 @@ export function awardAch(){
 export function netWorth(){let v=S.money-totalDebt();Object.values(S.sites).forEach(o=>v+=landCost(o));S.plants.forEach(p=>v+=p.cost??TECH[p.k].capex*p.mw/BLOCK);return v;}
 export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p.mw,0);}
 
+// Almanya piyasa primi (support.js EEG): ay değişince biten ayın uygun üretimine prim = max(0, ödül değeri − teknolojinin
+// piyasa değeri) ödenir; proje gelirine (ac) katılır. ac.mq ve ac.mv (uygun üretim ve piyasa değeriyle çarpımı) proje
+// ekonomisinin fiyat stresinde primi yeniden hesaplaması için (finance.js)
+function eegPay(){const r=eegSettle();if(!r||!r.length)return;let tot=0;
+  r.forEach(({p,q,mv,x})=>{const ac=acc(p);ac.mp=(ac.mp||0)+x;ac.mq=(ac.mq||0)+q;ac.mv=(ac.mv||0)+q*mv;ac.r+=x;tot+=x;});
+  S.money+=tot;D.st.mp+=tot;const L=S.eegLast,ks=[...new Set(r.map(o=>o.p.k))];
+  addLog(`Piyasa primi (Almanya), ${AYLAR[L.mo%12]}: ${ks.map(k=>`${k==="ges"?"güneşin":"rüzgârın"} piyasa değeri ${fmtP(L.mv[k])}, ödül değeri ${String(EEG[k].aw).replace(".",",")} $/MWh`).join("; ")}. ${tot>0?`${fmt$(tot)} prim ödendi.`:"Piyasa değeri ödülün üstünde: prim yok."}`);}
+
 // Günün net kazancı: satış gelirleri (destek primleri dahil) − dengesizlik + batarya ve pompaj − işletme − tahmin servisi
 // − yakıt + hidrojen geliri − elektrolizörün elektriği + kapasite ödemesi + hidrojen desteği
-export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet+(st.pNet||0)-st.opex-st.fee-(st.fuel||0)+(st.fit||0)+(st.yek||0)+(st.yeka||0)+(st.cfd||0)+(st.h2R||0)-(st.h2C||0)+(st.cap||0)+(st.h2Sub||0);
+export const dayNet=st=>PROD.reduce((a,k)=>a+(st.R[k]||0),0)-st.imb+st.bNet+(st.pNet||0)-st.opex-st.fee-(st.fuel||0)+(st.fit||0)+(st.yek||0)+(st.yeka||0)+(st.cfd||0)+(st.mp||0)+(st.h2R||0)-(st.h2C||0)+(st.cap||0)+(st.h2Sub||0);
 
 // JES: rezervuar verimine (ilk sondajda belli olur) bağlı sabit, hava ve saatten bağımsız üretim
 function geoOut(p,h){const t=site(p.t);return p.mw*Math.min(0.96,GEO_CF*(t.well??1)*eqOf(p).perf)*factor("out",t.mreg,"jes",h);}

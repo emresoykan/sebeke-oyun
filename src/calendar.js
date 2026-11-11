@@ -11,7 +11,7 @@ export const doyOf=d=>Math.floor((d-Date.UTC(d.getUTCFullYear(),0,1))/DAY_MS)+1;
 // güneşin eğimi (derece): yazın +23,4, kışın −23,4
 export const declOf=d=>23.44*Math.sin(2*Math.PI*(284+doyOf(d))/365);
 
-const AYLAR=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+export const AYLAR=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 export const fmtDate=d=>`${d.getUTCDate()} ${AYLAR[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 // mevsim (kuzey yarımküreye göre; güney yarımkürede tersi)
 export function seasonOf(d,lat=TR_LAT){

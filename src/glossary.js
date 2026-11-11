@@ -4,7 +4,7 @@
 // basitleştirmesini söyler (oyun değerleri temsilidir, gerçek veri değildir). Oyunda değişen bir kural burada da güncellenmeli.
 import { K_SHORT, K_SURP } from "./market.js";
 import { FIT, PHS_H, H2, CSP, YEKDEM, YEKA, GRID, REG } from "./config.js";
-import { CFD } from "./support.js";
+import { CFD, EEG } from "./support.js";
 import { ECON_YEAR } from "./loans.js";
 import { SALE } from "./sale.js";
 
@@ -47,6 +47,9 @@ export const TERMS=[
   {k:"cfd",t:"Fark sözleşmesi (CfD)",e:"Contract for Difference",c:"piyasa",
     d:"Üreticiye sabit bir sözleşme fiyatı (strike price) güvencesi veren iki yönlü destek: piyasa fiyatı sözleşme fiyatının altındaysa fark üreticiye ödenir, üstündeyse üretici farkı geri öder. Britanya'nın 7. turunda (Ocak 2026) sabit tabanlı deniz üstü rüzgâr 8,2 GW için £91,20/MWh (2024 fiyatlarıyla, enflasyona endeksli, 20 yıl), yüzer rüzgâr £216,49/MWh'ten sözleşme aldı.",
     g:`Avrupa'da deniz üstü RES (offshore) ilk bloğun kurulumundan itibaren ${CFD.E.years} ekonomik yıl ${String(CFD.E.p).replace(".",",")} $/MWh fark sözleşmesi alır; fark saatlik uzlaştırılır ve proje gelirine katılır (günlük raporda "Fark sözleşmesi"). Yüzer RES ve diğer piyasalar almaz.`},
+  {k:"piyasaprimi",t:"Piyasa primi (EEG)",e:"Market premium (Marktprämie)",c:"piyasa",
+    d:"Almanya'nın yenilenebilir enerji yasasındaki (EEG) kayan, tek yönlü destek. Santral elektriğini piyasada kendisi satar; ihalede kazandığı ödül değeri (anzulegender Wert) ile teknolojinin o ayki piyasa değeri arasındaki fark ay sonunda üretimine prim olarak ödenir. Piyasa değeri, ayın saatlik fiyatlarının ülkedeki güneş ya da rüzgâr üretimiyle ağırlıklı ortalamasıdır: aynı teknolojiden ortalamadan daha iyi zamanda üreten santral daha çok kazanır. Piyasa değeri ödülün üstündeyse prim yok, geri ödeme de yok (fark sözleşmesinden farkı bu). 2025'ten beri yeni santrallerin negatif fiyatlı saatlerdeki üretimine prim ödenmez. BNetzA ihalelerinde ortalama ödül 2026'da arazi GES için 4,79 ct/kWh (Temmuz turu), kara rüzgârı için 4,79 ct/kWh (Ağustos turu).",
+    g:`Almanya'daki GES ve kara RES sahaları ilk blokla ${EEG.years} ekonomik yıl (${Math.round(EEG.years*ECON_YEAR)} oyun günü) ödül değeri ${String(EEG.ges.aw).replace(".",",")} $/MWh ile prim alır. Piyasa değeri Avrupa piyasasının saatlik fiyatlarından, güneşte piyasanın güneş profili, rüzgârda rüzgâr filosuyla hesaplanır; prim ay değişince günlük raporda "Piyasa primi". İlk projenin alım garantisi sürerken prim birikmez. Diğer Avrupa ülkeleri için oyunda destek tanımlı değil.`},
   {k:"baglanti",t:"Bağlantı kapasitesi",e:"Grid connection capacity",c:"piyasa",
     d:"Bir santralin şebekeye bağlanabileceği güç; iletim şirketi (Türkiye'de TEİAŞ) trafo merkezi ve bölge bazında belirler. Türkiye'de yeni RES ve GES için en kıt kaynaktır: 2026'da lisanssız üretime 3.500 MW açıldı (iletim 1.500, dağıtım 2.000 MW) ve iletimdeki kapasitenin %97'si Eylül sonunda dağıtılmıştı. Lisanslı yeni kapasite büyük ölçüde YEKA ve depolamalı ön lisansla verilir; depolamalı yolda üretim gücü, taahhüt edilen depolama gücünü aşamaz.",
     g:`Türkiye'de yeni RES, GES ve deniz GES'i için her yıl ${GRID.quota} MW serbest kontenjanın var (${GRID.close[1]} Eylül'e kadar; 1 Ocak'ta yenilenir). Sahada batarya varsa blok önce ona bağlanır: üretim gücü sahadaki bataryanın gücünü aşamaz. İlk projen ve YEKA sahasının kendi teknolojisi kontenjana sayılmaz. Rakipler ve diğer piyasalar sınırlanmaz.`},

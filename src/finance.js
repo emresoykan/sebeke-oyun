@@ -49,6 +49,7 @@ export const FIN={
 export const NET=["batt","phs","h2"];
 export const SUB_Y=10; // hidrojen üretim desteğinin süresi (yıl; support.js H2SUB)
 export const CFD_Y=20; // deniz üstü RES fark sözleşmesinin süresi (yıl; support.js CFD)
+export const EEG_Y=20; // Almanya piyasa priminin süresi (yıl; support.js EEG)
 export const DEGR=0.005;            // GES yıllık üretim kaybı (varsayım); panelli tüm türlere (kara, yüzer, deniz üstü)
 const PV_DEGR=["ges","fpv","spv"];
 export const MIN_H=72;              // gösterge için en az 72 saatlik (3 oyun günü) işletme verisi
@@ -77,23 +78,27 @@ function base(p){
   const cf=a.cap>0?a.e/a.cap:0; // kapasite faktörü: üretim / (kurulu güç × saat); güç sonradan arttıysa da doğru kalır
   // fark sözleşmesi (support.js): satış fiyatı sözleşme farkı çıkarılarak piyasa fiyatıdır; sözleşmeli santral ilk CFD_Y yıl
   // sözleşme fiyatından, sonra piyasa fiyatından satar (fiyat stresinden etkilenmez)
-  const e1=batt?0:cf*p.mw*8760,price=a.e>0?(a.r-(a.cf||0))/a.e:0,fuelPerMWh=a.e>0?a.f/a.e:0,strike=p.cfd?p.cfd.p:null;
+  const e1=batt?0:cf*p.mw*8760,price=a.e>0?(a.r-(a.cf||0)-(a.mp||0))/a.e:0,fuelPerMWh=a.e>0?a.f/a.e:0,strike=p.cfd?p.cfd.p:null;
+  // piyasa primi (support.js EEG): satış fiyatı primi çıkarılarak piyasa fiyatıdır; ilk EEG_Y yıl prim eklenir. Prim, kapanan
+  // aylarda uygun MWh başına ödenen ortalama primdir (henüz ay kapanmadıysa ödül değeriyle satış fiyatı farkı); fiyat stresinde
+  // piyasa değeri de düşer, prim en az ödül değeriyle stresli ortalama piyasa değeri farkı olur
+  const eg=p.eeg||null,mq=a.mq||0,mvA=mq>0?a.mv/mq:price,mpE=mq>0?a.mp/mq:0,premAt=(t,sx=0)=>eg&&t<EEG_Y?Math.max(mpE,eg.aw-mvA*(1-sx)):0;
   // depolama ve hidrojen: MW başına net gelirin yıllığa çevrilmesi. Destekler ayrılır (support.js): kapasite ödemesi
   // ömür boyu süren piyasa geliri sayılır (fiyat stresinden etkilenmez); hidrojen desteği yalnızca ilk SUB_Y yıl
   const yr=x=>a.cap>0?(x||0)/a.cap*p.mw*8760:0,cap1=yr(a.cp),sub1=yr(a.sub),net1=batt?yr(a.r-(a.cp||0)-(a.sub||0)):0;
   const E=Array.from({length:f.life},(_,t)=>PV_DEGR.includes(p.k)?e1*(1-DEGR)**t:e1);
-  const priceAt=(t,sx=0)=>strike!=null&&t<CFD_Y?strike:price*(1-sx);
+  const priceAt=(t,sx=0)=>strike!=null&&t<CFD_Y?strike:price*(1-sx)+premAt(t,sx);
   // yatırım: küresel ortalama × piyasa katsayısı (config.js CAPEX_M; p.m santralin piyasası)
-  return {f,batt,capex:f.capex*capexMul(p.k,p.m)*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
+  return {f,batt,capex:f.capex*capexMul(p.k,p.m)*q.capex*kw,opex:f.opex*q.opex*kw,cf,e1,price,strike,prem:eg?premAt(0):null,priceAt,fuelPerMWh,net1,cap1,sub1,E,life:f.life,days:a.h/24};
 }
 
 // Bir santral kaydının gerçek dünya göstergeleri (vergi ve finansman öncesi); yeterli veri yoksa {wait:true}
 export function plantFinance(p){
   const b=base(p);if(!b)return {wait:true,h:p.ac?p.ac.h:0};
-  const {capex,opex,cf,e1,net1,cap1,sub1,price,strike,priceAt,fuelPerMWh,E,batt,life,days,f}=b,flows=[];let disc=0,discE=0;
+  const {capex,opex,cf,e1,net1,cap1,sub1,price,strike,prem,priceAt,fuelPerMWh,E,batt,life,days,f}=b,flows=[];let disc=0,discE=0;
   E.forEach((e,i)=>{const t=i+1,cost=opex+e*fuelPerMWh;flows.push((batt?net1-opex:e*priceAt(i)-cost)+cap1+(i<SUB_Y?sub1:0));disc+=cost/(1+wacc)**t;discE+=e/(1+wacc)**t;});
   const lcoe=batt||discE<=0?null:(capex+disc)/discE;
-  return {capex,opex,cf,e1,net1,price,strike,lcoe,npv:npvAt(wacc,capex,flows),irr:irrOf(capex,flows),pb:paybackOf(capex,flows),life,days,src:f.src};
+  return {capex,opex,cf,e1,net1,price,strike,prem,lcoe,npv:npvAt(wacc,capex,flows),irr:irrOf(capex,flows),pb:paybackOf(capex,flows),life,days,src:f.src};
 }
 
 export const SHORT_DAYS=30; // daha kısa veride mevsimsellik yıllık değeri saptırabilir
@@ -129,6 +134,8 @@ export function projectFinance(p,mode="spot",market="T",stress=0){
   const b=base(p);if(!b)return {wait:true};
   const mk=EU.has(market)?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(market==="I"?pf.taxI:mk==="E"?pf.taxE:pf.taxT)/100; // faiz Avrupa ve İberya'da aynı
   const {capex,opex,E,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,batt,life}=b,ppa=mode==="ppa"&&!batt&&strike==null; // sözleşmeli santralde PPA yok
+  // piyasa primli santral (support.js EEG) PPA yıllarında prim almaz: yeşil PPA menşe garantisi ister, destekli elektriğe menşe
+  // garantisi verilmez (çifte pazarlama yasağı); PPA bitince prim süresinin kalanında priceAt ile prim döner
   const N=Math.max(1,Math.min(pf.tenor,life-2)),dep=Math.min(pf.dep,life),depY=capex/dep,ppaP=price*(1-pf.ppaDisc/100);
   const ebitdaAt=sx=>E.map((e,t)=>(batt?net1*(1-sx)-opex:e*(ppa&&t<pf.ppaYears?ppaP:priceAt(t,sx))-opex-e*fuelPerMWh)+cap1+(t<SUB_Y?sub1:0));
   // vergi; geçmiş yıl zararı önce en eskisinden mahsup edilir. Türkiye'de en çok 5 yıl devreder (KVK md. 9); Avrupa'da süre
