@@ -558,11 +558,97 @@ Değerler `calib_shape.cjs` (3 koşu) ve `calib_market.cjs` (4 koşu) ortalamala
   - Rüzgâr fiyat oranı 0,981.
   - Avrupa ve Kuzey Amerika değişmedi.
   - Vaka çalışması: 8 yeni proje koşusu Türkiye aralıklarında kaldı (GES IRR %11,1–13,6, ortalama 66,3); satırlar korundu.
+- **10.11.2026 güncellemesi (`rg` 2.300, `s0` 0,67):** Hafta sonu etkisi eklenince iş günündeki öğle düşüşü (`sm`) sığlaştı; rakip GES terimi de `sm` ile çarpıldığı için aynı rakip gücü güneş fiyatını daha az düşürür oldu. Yıllık düşüş yine ~5 puan olsun diye `rg` 2.300'e, ilk yıl doygunluğu korunsun diye `s0` 0,67'ye çekildi. 3 yıl × 4 koşu:
+
+| Oyun yılı | Türkiye fiyatı ($/MWh) | Güneş fiyat oranı | Güneşin piyasa satış fiyatı | Rakip kurulu gücü (GES) |
+|---|---|---|---|---|
+| 1 | 66,8 | 0,834 | 55,7 | 0,27 GW (0,16) |
+| 2 | 60,7 (−%9) | 0,779 (−5,5 puan) | 47,3 | 0,93 GW (0,59) |
+| 3 | 54,4 (−%19) | 0,739 (−4 puan) | 40,3 (−%28) | 1,50 GW (0,85) |
+
 - **Sınırlama:** Rakiplerin yatırım hızı ayrıca kalibre edilmedi; düşüş hızı kurulu güç ile fiyat etkisinin birlikte sonucudur. 2026'da filo büyümesi yavaşladı (Ocak–Ekim ~%11). Gerçek düşüş 2026'da 8 puandan az olabilir; 2026 tam yıl verisiyle (Ocak 2027) yeniden bakılmalı.
 
 ## Sınırlamalar
 - **Şekil hedefi yine tek yıla (2025) dayanıyor.** Aylık fark yıldan yıla çok oynuyor; oyun 2024 ile 2025 arasında ya da yakınında kalıyor. Kış farkı 2024'ten düşük, 2025'ten yüksek.
 - **Limit dolar cinsinden sabit.** Gerçekte TL'dir ve EPDK kararıyla değişir. 4.500 TL değeri EPİAŞ verisinden çıkarıldı; EPDK kararı doğrulanamadı.
-- **Hafta sonu ve tatil etkisi yok.** Günden güne fark rastgele oynamayla (`nz`) temsil ediliyor; gerçekte hafta sonu öğle fiyatı daha derin düşer.
+- **Hafta sonu ve tatil etkisi yok.** Günden güne fark rastgele oynamayla (`nz`) temsil ediliyor; gerçekte hafta sonu öğle fiyatı daha derin düşer. (10.11.2026: eklendi; "Hafta sonu ve tatil" bölümü.)
 - **Güneş üretimi yalnızca lisanslı santrallerden** (gerçek zamanlı veri). Lisanssız güneşin profili benzer varsayıldı.
 - **Normal yıl hedefi karma:** güneş fiyat oranı 2025'ten (kurak yıl), aylık düzey 2024–2025 ortalamasından, limit 2026'dan.
+
+# Hafta sonu ve tatil (10.11.2026)
+
+## Neden
+"Günlük fiyat şekli" bölümünde günden güne fiyat farkı saatlik rastgele oynamayla (±%12) temsil ediliyordu. Gerçekte bu farkın büyük kısmı gün tipinden gelir. Hafta sonu ve tatilde iş yerleri kapalıdır; gündüz talebi düşer, güneş üretimi aynı kalır, gündüz fiyatı derin iner.
+
+## Veri
+EPİAŞ PTF, saatlik, USD; 2024 ve 2025 (731 gün). Her gün, aynı ayın iş günlerinin saatlik ortalamasına bölündü.
+
+| Gün tipi | Gün sayısı | Gün ortalaması | Öğle 10–15 | Gece 0–6 | Akşam 18–22 | Günlük en yüksek–en düşük farkı ($/MWh) |
+|---|---|---|---|---|---|---|
+| İş günü | 499 | 1 | 1 | 1 | 1 | 42,3 |
+| Cumartesi | 100 | 0,93 | 0,77 | 1,03 | 1,00 | 50,2 |
+| Pazar | 100 | 0,78 | 0,40 | 1,01 | 0,96 | 67,4 |
+| Tek günlük resmî tatil | 14 | 0,85 | 0,61 | ~1,0 | ~1,0 | 61,5 |
+| Ramazan ve Kurban Bayramı, arife dahil | 18 | 0,52 | 0,08 | ~0,74 | ~0,82 | 76,1 |
+
+- **Saatlik desen:**
+  - Pazar 08–15 saatleri iş gününün 0,25–0,51'i, 07'de 0,85, 16'da 0,66, 17'de 0,87. Gece ve akşam ~1.
+  - Bayramda bütün gün düşük: gece 0,65–0,89, gündüz 0,03–0,09.
+- **Tatil tarihleri veriyle doğrulandı.**
+  - Bayram günleri ve arifeleri pazardan da düşük; örneğin 2024'te 12 Nisan'ın gün oranı 0,19, 2025'te 6 Haziran'ınki 0,30.
+  - 28 Ekim yarım günü fiyatı etkilemiyor (oran ~1,0); tatil sayılmadı.
+  - 23 Nisan 2024'te etki görülmedi (1,10). Tek günlük tatiller arasında oynaklık büyük: 0,66–1,10.
+- **2026 bayramları da veride görünüyor:**
+  - Ramazan arifesi 19 Mart'ta günlük ortalama 10,7, 20 Mart'ta 2,6 $/MWh; 23 Mart iş günü 42,0.
+  - Kurban Bayramı 27–30 Mayıs (yağışlı Mayıs zaten sıfıra yakındı).
+
+## Model (`src/daytype.js`, `config.js` `REG.T.dt`)
+- **Gün tipi önceliği:** bayram, arife dahil (Ramazan 3, Kurban 4 gün) > resmî tatil > pazar > cumartesi > iş günü.
+  - Sabit tatiller: 1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağustos, 29 Ekim.
+  - Bayramlar 2024–2026 için gerçek tarihlerle yazıldı.
+  - Sonraki yıllar tablolu (aritmetik) hicri takvimden hesaplanıyor. Bu algoritma 2024–2026'nın 6 bayramının 3'ünü doğru, 3'ünü bir gün geç verdi; yani sonraki yıllarda tarih ±1 gün sapabilir.
+- **Fiyattaki talep terimi** gün tipine göre saat saat çarpılır: `a × (1 − d × w[saat])`.
+  - `w`: gündüz ağırlığı; 07'de 0,3, 08–15'te 0,8–0,9, 16'da 0,6, 17'de 0,3, gece 0. Pazar deseninden alındı; öğle doymasın diye biraz yayvan.
+  - `d` (gündüz derinliği): cumartesi 0,22, pazar 0,48, resmî tatil 0,30, bayram 0,6.
+  - `a` (bütün gün çarpanı): bayramda 0,8, diğerlerinde 1.
+  - Oyunda gündüz fiyatı güneş etkisi kadar zaten düşük olduğu için derinlikler fiyat oranlarını tutturacak şekilde ayarlandı.
+- **Telafiler:**
+  - Saatlik rastgele oynama ±%12'den diğer piyasalar gibi ±%8'e indi (`nz` kaldırıldı).
+  - Gerçek güneş fiyat oranı (0,834) hafta sonlarını zaten içerdiği için iş günündeki öğle düşüşü (`sm`) ~%35 sığlaştı.
+  - Yıl ortalaması korunsun diye `mult` 0,94 → 0,962.
+  - Rakip GES etkisi `rg` 3.500 → 2.300 ve `s0` 0,69 → 0,67 (aşağıda).
+- **Oyuncu tarafı:**
+  - Tarih etiketinde gün adı ve tatil adı.
+  - Bayramın ilk oyun günü ve resmî tatilde haber bandında not.
+  - Sözlükte "Hafta sonu ve tatil etkisi".
+- **Takvim notu:** Bir oyun günü 3 takvim günüdür. Haftanın 7 günü eşit sıklıkla gelir. Tek günlük bir tatile her yıl isabet olasılığı ~1/3; bayramın 4–5 gününden genelde 1–2'si oyun gününe düşer. Oyun 20 Mart 2026'da, Ramazan Bayramı'nın ilk gününde başlar.
+- **Ölçüm:** `scripts/calib_shape.cjs` gün tipi tablosunu da yazar (`CALIB_DT` ile koda dokunmadan deneme).
+
+## Sonuç (`calib_shape`, 120 gün × 3 koşu; normal yıl)
+| Gün tipi | Oyunda gün sayısı | Gün ortalaması | Öğle 10–15 | Gece | Akşam | Günlük fark ($/MWh) |
+|---|---|---|---|---|---|---|
+| İş günü | 237 | 1 | 1 | 1 | 1 | 41,3 (42,3) |
+| Cumartesi | 51 | 0,91 (0,93) | 0,73 (0,77) | 1,00 (1,03) | 1,01 (1,00) | 55,3 (50,2) |
+| Pazar | 51 | 0,80 (0,78) | 0,41 (0,40) | 0,99 (1,01) | 1,01 (0,96) | 74,5 (67,4) |
+| Resmî tatil | 9 | 0,88 (0,85) | 0,60 (0,61) | 1,01 | 1,00 | 68,4 (61,5) |
+| Bayram | 12 | 0,49 (0,52) | 0,03 (0,08) | 0,65 (0,74) | 0,78 (0,82) | 78,3 (76,1) |
+
+Parantezde EPİAŞ 2024–2025. Takvim her koşuda aynı olduğu için gün sayıları 3 koşunun toplamıdır.
+
+- **Yıl:**
+  - Ortalama 66,8 $/MWh (`calib_market`, 4 koşu: 67,2; 66,5–67,8; hedef 66,4).
+  - Güneş fiyat oranı 0,83 (`calib_market`: 0,831; hedef 0,834).
+  - Rüzgâr fiyat oranı 0,979; rüzgâr filosu kapasite faktörü 0,318.
+  - Günlük fark 50,0 $/MWh (önce 51,7).
+  - Avrupa ve Kuzey Amerika'nın fiyat modeli değişmedi (bu ölçümde 92,7 ve 64,6 $/MWh).
+- **Hafta sonu farkı gerçekten biraz geniş** (cumartesi 55 / 50, pazar 75 / 67). Saat grubu ortalamaları tutarken farkın geniş kalmasının nedeni ayrıca incelenmedi; gün içi en düşük ve en yüksek saatin dağılımı gerçekten farklı olabilir (yorum, ölçülmedi).
+- **Bayram gecesi gerçekten düşük** (0,65 / 0,74). Bütün gün çarpanı (`a` 0,8) ile gündüz derinliği birlikte ayarlandı; öğle oranını (0,03 / 0,08) bozmadan geceyi yükseltmek için ayrı bir gece çarpanı gerekirdi. 18 gerçek günlük örnek için gereksiz görüldü.
+- **Hidroloji hedefleri korundu** (`calib_hydro`, `rg` 3.500 ile; `rg` ilk yılı az etkiler): kurak yıl 69,4, çok yağışlı yıl 50,8 $/MWh. Yağışlı ÷ kurak aylık oran Nisan 0,34, Mayıs 0,25, Haziran 0,50, Mart 0,65 (hedef 0,33 / 0,21 / 0,49 / 0,65).
+- **Vaka çalışması:** Türkiye için 7 yeni proje koşusu (`sim_year`) sayfadaki aralıklarda kaldı. Taban fiyat 65,8 (64,5–67,1), Konya GES IRR %11,7–12,5, Çanakkale RES IRR %19,8–23,9. Satırlar korundu; yalnızca günlük fark ve çok yıllı fiyat yolu güncellendi.
+- **Çok yıllı fiyat yolu:** "Çok yıllı fiyat yolu" bölümündeki 10.11.2026 notu.
+
+## Sınırlamalar
+- **Tek günlük tatillerin etkisi çok oynak** (0,66–1,10). Oyun hepsine aynı derinliği verir.
+- **Bayram tarihleri 2027'den sonra ±1 gün sapabilir** (tablolu hicri takvim). Gerçek tarihler Diyanet takviminden eklenebilir.
+- **Köprü günleri ve yarım günler yok.** Bayramın hafta sonuna bitişik günleri, idari izinler ve 28 Ekim gibi yarım günler ayrıca modellenmedi; 28 Ekim veride de etkisiz.
+- **Gün tipi yalnızca Türkiye'de.** Avrupa ve Kuzey Amerika'da hafta sonu etkisi rastgele oynamanın içinde kaldı.

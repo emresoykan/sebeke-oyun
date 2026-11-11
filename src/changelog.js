@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-10",t:"Hafta sonu ve bayramlar",items:[
+    "Türkiye'de fiyat gün tipine göre değişiyor: pazar öğlesi iş gününün ~%40'ı, cumartesi ~%75'i; gece ve akşam aynı (EPİAŞ 2024–2025). Resmî tatiller hafta sonuna benzer; Ramazan ve Kurban Bayramı'nda (arife dahil) gündüz fiyatı birkaç gün sıfıra yakın. Bayram ve tatil başlarken haber bandında not.",
+    "Tarih etiketinde gün adı ve tatil adı. Batarya hafta sonu ve bayramda daha çok kazanır: gündüz ucuz, akşam normal (günlük fark iş gününde ~41, pazar ~75 $/MWh). Yıllık ortalama fiyat (~67 $/MWh) ve güneşin fiyat oranı (%83) aynı kaldı; günler arasındaki rastgele oynama azaldı."]},
   {id:"2026-11-09.2",t:"Rakiplerin güneşi fiyatı daha yavaş düşürüyor",items:[
     "Türkiye'de rakipler güneş santrali kurdukça güneşin fiyat oranı artık yılda ~6–7 puan düşüyor (önce ~15). Gerçekte güneş filosu yılda ~%28 büyürken oran ~8 puan düştü (EPİAŞ, TEİAŞ 2024–2025).",
     "Üçüncü oyun yılında güneşin piyasa satış fiyatı ilk yıla göre ~%31 düşük (önce ~%52). İlk yılın fiyatları değişmedi."]},

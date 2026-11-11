@@ -1,6 +1,7 @@
 // --- Grafik ve göstergeler ---
 import { wp } from "../perfmark.js";
 import { GOAL, WIN1, REG, MARKETS, BANKRUPT_DAYS, H2, priceCap } from "../config.js";
+import { dayType } from "../daytype.js";
 import { S, D, save, selSite } from "../state.js";
 import { clamp, shape, fmt$, fmtP, cssv } from "../utils.js";
 import { netWorth, dayNet } from "../sim.js";
@@ -35,7 +36,7 @@ export function render(){const t=performance.now();renderImpl();wp("render (üst
 function renderImpl(){
   const h=Math.min(S.hour,23),k=selMarket(),M=D[k],st=D.st;
   document.getElementById("cash").textContent=fmt$(S.money);
-  const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");dl.textContent=`${sn.i} ${fmtDate(CAL.date)}`;document.getElementById("dayNo").textContent=`Gün ${S.dayNo}`;
+  const sn=seasonOf(CAL.date);const dl=document.getElementById("dayLbl");const dty=dayType(CAL.date);dl.textContent=`${sn.i} ${fmtDate(CAL.date)} ${dty.g3}${dty.n?" · "+dty.n:""}`;document.getElementById("dayNo").textContent=`Gün ${S.dayNo}`;
   document.getElementById("clockTop").textContent=String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("clock").textContent=REG[k].n+" piyasası • "+String(S.hour%24).padStart(2,"0")+":00";
   document.getElementById("sky").style.background=skyColor(S.hour);
