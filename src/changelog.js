@@ -2,6 +2,8 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-11.3",t:"Avrupa ve İberya'da vergi",items:[
+    "Finansman varsayımlarında kurumlar vergisi artık piyasaya göre: Avrupa %29,9 (Almanya), İberya %25 (İspanya). Önce ikisi de %27,5'ti (iki ülkenin ortalaması). Etkisi küçük: İberya'daki GES'in vergi sonrası getirisi ~0,1 puan artar, Almanya'daki RES'inki ~0,2 puan azalır."]},
   {id:"2026-11-11.2",t:"Negatif fiyat",items:[
     "Avrupa ve İberya'da fiyat sıfırın altına inebiliyor: üreten para öder, tüketen para alır. Bahar öğlelerinde güneş ve rüzgâr talebi aşınca olur; saatlerin ~%6'sı (ENTSO-E 2025: Almanya ~575, İspanya ~552 saat). Avrupa'da derin olabilir (gerçekte en düşük −250 €/MWh), İberya'da sığdır (en düşük −15 €). Türkiye'de fiyat sıfırın altına inmez.",
     "Negatif fiyatlı saatte GES, RES ve JES üretmez, HES suyunu saklar; batarya, pompaj HES ve elektrolizör şebekeden alırken para kazanır. Fiyat grafiği sıfırın altını gösterir; piyasada ilk negatif fiyatta haber çıkar. Sözlükte \"Negatif fiyat\".",
