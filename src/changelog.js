@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-11.4",t:"Almanya'da piyasa primi",items:[
+    "Almanya'daki GES ve kara RES artık piyasa primi alıyor (Almanya'nın yenilenebilir enerji yasası EEG). Elektriğini piyasada satarsın; ay sonunda güneşin ya da rüzgârın o ayki piyasa değeri ödül değerinin altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Ödül değeri 53,6 $/MWh: BNetzA'nın 2026 ihalelerinde güneşte ve kara rüzgârında ortalama 4,79 ct/kWh. Süre 20 ekonomik yıl, ilk blokla başlar.",
+    "Oyunda bir yıllık ölçümde Kuzey Almanya'daki rüzgâr santrali neredeyse hiç prim almadı (rüzgârın piyasa değeri ~90 $/MWh, ödülün üstünde); güneş santrali MWh başına 8–15 $ aldı (yaz aylarında güneşin piyasa değeri düşük). Negatif fiyatlı saatlerin üretimine prim ödenmez.",
+    "Saha panelinde ödül değeri, bu ayın ve geçen ayın piyasa değeri; günlük raporda \"Piyasa primi\"; proje ekonomisinde fiyatın altında prim. Fransa ve diğer Avrupa ülkeleri için oyunda destek tanımlı değil. Sözlükte \"Piyasa primi (EEG)\"."]},
   {id:"2026-11-11.3",t:"Avrupa ve İberya'da vergi",items:[
     "Finansman varsayımlarında kurumlar vergisi artık piyasaya göre: Avrupa %29,9 (Almanya), İberya %25 (İspanya). Önce ikisi de %27,5'ti (iki ülkenin ortalaması). Etkisi küçük: İberya'daki GES'in vergi sonrası getirisi ~0,1 puan artar, Almanya'daki RES'inki ~0,2 puan azalır."]},
   {id:"2026-11-11.2",t:"Negatif fiyat",items:[

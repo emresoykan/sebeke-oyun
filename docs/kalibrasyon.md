@@ -837,7 +837,7 @@ ENTSO-E gün öncesi fiyatlar, 2025, MCP `day_ahead_prices` ile aylık sorgular.
 ## Sınırlamalar
 - **Derinlik hedefi yanlı örneklere dayanıyor.** Negatif fiyatın ortalama derinliği yıl geneli için ölçülmedi; örnekler negatifin yoğun olduğu günlerden.
 - **Gerçekte sıfır civarında yoğun bir kütle var.** İspanya'da çok saat 0,00–0,01 €'da kapanır. Oyunda bu kütle eşleme ile sığ negatiflere dağılır; sıfır fiyatlı saat kalmaz.
-- **Destekli santral yok.** Gerçekte bazı destekli santraller negatif fiyatta da üretmeye devam eder; oyunda modellenmedi. Oyuncunun santrali hep desteksiz gibi davranır.
+- **Destekli santral de negatif fiyatta üretmez.** Gerçekte eski destekli santraller negatif fiyatta da üretmeye devam edebilir. Oyundaki tek kara desteği Almanya'nın piyasa primi (aşağıda, 11.11.2026); 2025'ten beri yeni santrallere negatif fiyatlı saatte prim ödenmediği için o saatte üretmemeleri gerçekle uyumlu.
 - **Dengeleme piyasasının negatif fiyatı ayrı modellenmedi.** Dengesizlik gün öncesi fiyatına bağlı kalır.
 - **Kuzey Amerika'da taban 0 kaldı.** ABD piyasalarının verisi bu çalışmada kullanılmadı.
 
@@ -870,3 +870,65 @@ Vergi öncesi göstergeler (LCOE, NPV, IRR) değişmez.
 | RES, Avrupa | %20,2–26,0 | – | 86,8–94,9 | %11,5–15,8 | %50–66 / %11,9–21,5 | %65–75 / %11,2–20,9 |
 
 Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–29'dan %23–35'e) koşudan koşuya hava değişimindendir. Piyasa ortalamaları: İberya 74,5 (73,8–75,4), Avrupa 102,5 (97,3–104,7) $/MWh.
+
+# Almanya piyasa primi (EEG) (11.11.2026)
+
+## Neden
+- **Avrupa'da kara GES ve RES desteksizdi.** Oyunda Avrupa'nın tek üretim desteği Britanya'nın offshore fark sözleşmesiydi.
+- **Negatif fiyat eklenince destek önem kazandı.** Destek, santralin negatif ve düşük fiyatlı saatlerdeki davranışını ve getirisini belirler.
+
+## Gerçek
+- **Mekanizma:** Kayan, tek yönlü piyasa primi (EEG, Marktprämie).
+  - Santral elektriğini piyasada kendisi satar.
+  - Ay sonunda üretimine prim = max(0, ödül değeri − teknolojinin o ayki piyasa değeri) ödenir.
+  - Piyasa değeri (Monatsmarktwert): ayın saatlik fiyatlarının ülkedeki güneş ya da rüzgâr üretimiyle ağırlıklı ortalaması.
+  - Piyasa değeri ödülün üstündeyse prim yok, geri ödeme de yok (iki yönlü fark sözleşmesinden farkı bu). Süre 20 yıl.
+- **Ödül değeri** (BNetzA basın bültenleri, hacim ağırlıklı ortalama):
+
+| İhale | Tur | Ortalama | Önceki turlar | Kaynak |
+|---|---|---|---|---|
+| Güneş, birinci segment (arazi GES) | 1 Temmuz 2026 | 4,79 ct/kWh (teklifler 4,38–4,97; tavan 5,90) | Mart 2026 4,94 | BNetzA, 18.08.2026 |
+| Kara rüzgârı | 1 Ağustos 2026 | 4,79 ct/kWh (tavan 7,25) | Mayıs 2026 5,06; Şubat 2026 5,54; Kasım 2025 6,06 | BNetzA, 17.09.2026; geçmiş turlar BDEW |
+
+- **İkisinin eşit çıkması rastlantı.** Rüzgârda ödül hızla düşüyor (Mayıs 2025'te 6,83).
+- **Negatif fiyat:** 2025'ten beri işletmeye giren santrallere negatif fiyatlı saatlerin üretimi için prim ödenmez (Solarspitzengesetz; ikincil kaynaklar). Bu saatler destek süresinin sonuna eklenir.
+
+## Model (`src/support.js` `EEG`, `sim.js` `eegPay`, `finance.js` `EEG_Y`)
+- **Kim alır:** Sahası Almanya'da (`a3` DEU) olan GES ve kara RES. İlk blokla 20 ekonomik yıl (116 oyun günü). Eski kayıtlarda bugünden başlar.
+- **Ödül değeri:** 47,9 €/MWh × 1,1199 = 53,6 $/MWh, iki teknolojide de (FRED kuru, 23.10.2026, diğer desteklerle aynı).
+- **Piyasa değeri:** Avrupa piyasasının saatlik fiyatları, her gün sonunda ayın birikimine eklenir.
+  - Güneş: piyasanın güneş profiliyle (`sunP`) ağırlıklı.
+  - Rüzgâr: rüzgâr filosunun saatlik kapasite oranıyla (`fleet`) ağırlıklı.
+  - Takvim ayı oyun takviminden; bir ay ~10 oyun günü.
+- **Uygun üretim:** Santralin saat saat ürettiği MWh.
+  - Fiyat sıfırın altındaysa sayılmaz. Oyunda santraller o saatte zaten üretmez.
+  - Başlangıç desteği (alım garantisi) sürerken sayılmaz: iki destek üst üste binmez.
+- **Ödeme:** Ay değişince uygun üretim × max(0, ödül − piyasa değeri).
+  - Nakde ve proje gelirine (`ac.mp`) eklenir.
+  - Günlük raporda "Piyasa primi" satırı; günlükte ayın piyasa değeri ve tutar.
+- **Proje ekonomisi:** Satış fiyatı primsiz piyasa fiyatıdır; ilk 20 yıl buna prim eklenir.
+  - Prim: kapanan aylarda uygun MWh başına ödenen ortalama. Henüz ay kapanmadıysa ödülle satış fiyatı farkı.
+  - Fiyat stresinde (−%20) prim en az, ödül ile %20 düşmüş ortalama piyasa değeri arasındaki fark olur. Aylık primin dışbükeyliği nedeniyle bu bir alt sınırdır.
+  - PPA seçilirse PPA yıllarında prim yok. Gerekçe: yeşil PPA menşe garantisi ister; destekli elektriğe menşe garantisi verilmez (çifte pazarlama yasağı). PPA bitince prim, sürenin kalanında döner.
+
+## Ölçüm (`EEG=1 node scripts/sim_year.cjs 120 52.3,13.9 53.8,9.5 <adres>`, 2 koşu, başlangıç desteği kapalı)
+| Santral | Prim ($/MWh üretim) | Not |
+|---|---|---|
+| GES, Brandenburg | 7,9–15,0 | Yaz aylarında güneşin piyasa değeri ödülün altında |
+| RES, Kuzey Almanya | 0–0,2 | Rüzgârın piyasa değeri (~90 $/MWh) neredeyse her ay ödülün üstünde |
+
+- **Vaka çalışması değişmedi.** `sim_year` varsayılan olarak primi kapatır, çünkü vaka çalışması piyasa satışıdır (merchant). Kuzey Almanya RES'inin primi zaten ~0.
+- **Yan bulgu: Almanya'daki GES'in üretimi düşük.** Brandenburg'daki GES'in kapasite faktörü kısıntı sonrası %5–6, kısıntı öncesi ~%8–10; kısıntı %34–39.
+  - Gerçek Alman arazi GES'i ~%10–12 kapasite faktörüyle çalışır. Bu, yaygın verim aralığından bir tahmin; bu oturumda doğrulanmadı.
+  - Kısıntının yüksek olmasının olası nedeni: piyasa fiyatı temsilî noktanın güneşine göre negatife iner ve bu saatler santralin güneşli saatleriyle çakışır.
+  - Bu değişiklikte ele alınmadı; ayrı bir kalibrasyon işi.
+
+## Sınırlamalar
+- **Yalnızca Almanya.** Fransa, İtalya ve diğer Avrupa ülkelerinin destekleri (ör. Fransa'nın complément de rémunération mekanizması) için veri toplanmadı.
+- **Ödül ortalama değer.** Gerçekte her santral kendi teklifini alır (teklif usulü). Oyunda ihaleyi kazanmış sayılır; ihale riski ve hacim sınırı yok.
+- **Rüzgârda saha düzeltmesi yok.** Gerçekte ödül değeri sahanın rüzgâr kalitesine göre düzeltilir (Referenzertragsmodell): zayıf sahada yükselir, güçlü sahada düşer.
+- **Negatif saatlerin süreye eklenmesi modellenmedi.**
+- **Piyasa değeri oyunun Avrupa piyasasından.** Gerçek Alman güneş ve rüzgâr filosunun saatlik üretimi değil, oyunun güneş profili ve rüzgâr filosu kullanılır.
+- **Prim çeyrek saatlik değil saatlik.** Oyun saatlik çalışır.
+- **Proje ekonomisinde prim süresi** santralin yaşından bağımsız olarak ilk 20 yıl sayılır (fark sözleşmesiyle aynı basitleştirme).
+

@@ -9,7 +9,7 @@ import { render } from "./hud.js";
 import { TECH, BLOCK, H2 } from "../config.js";
 import { placeName } from "../world.js";
 import { eqName, tierOf } from "../equipment.js";
-import { FIN, NET, DEGR, MIN_H, SHORT_DAYS, wacc, setWacc, plantFinance, projectFinance, pf, setPf, resetPf, PF_SRC } from "../finance.js";
+import { FIN, NET, DEGR, MIN_H, SHORT_DAYS, wacc, setWacc, plantFinance, projectFinance, EEG_Y, pf, setPf, resetPf, PF_SRC } from "../finance.js";
 
 const nf=(v,d=1)=>v.toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const M$=v=>`${v<0?"−":""}${nf(Math.abs(v)/1e6,2)} M$`;
@@ -25,7 +25,7 @@ function rows(){
     const batt=NET.includes(p.k),short=f.days<SHORT_DAYS;
     return `<tr><td>${name}</td>
       <td>${batt?"—":pct(f.cf)}${short?' <small class="mut" title="Kısa veri dönemi: mevsimsellik yıllık değeri saptırabilir">*</small>':""}</td>
-      <td>${batt?`${M$(f.net1)}/yıl`:`${nf(f.price,0)} $/MWh`}</td>
+      <td>${batt?`${M$(f.net1)}/yıl`:`${nf(f.price,0)} $/MWh`}${f.prem!=null?`<br><small class="mut" title="Almanya piyasa primi (EEG), MWh başına; ${EEG_Y} yıl">+${nf(f.prem,1)} prim</small>`:""}</td>
       <td>${M$(f.capex)}</td>
       <td>${f.lcoe==null?"—":nf(f.lcoe,0)+" $/MWh"}</td>
       <td class="${f.npv<0?"neg":"pos"}">${M$(f.npv)}</td>

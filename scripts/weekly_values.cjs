@@ -21,6 +21,7 @@ const ROOT = path.resolve(__dirname, "..");
   rows.push(["Kapasite ödemesi", grab(/CAP=\{[\s\S]*?src:"([^"]+)"/), "GB kapasite piyasası, PJM sonuçları", "src/support.js CAP"]);
   rows.push(["Hidrojen desteği", grab(/H2SUB=\{[\s\S]*?src:"([^"]+)"/), "Avrupa Hidrojen Bankası, ABD 45V", "src/support.js H2SUB"]);
   rows.push(["Offshore fark sözleşmesi", grab(/CFD=\{[\s\S]*?src:"([^"]+)"/), "Britanya CfD turları, Almanya WindSeeG", "src/support.js CFD"]);
+  rows.push(["Almanya piyasa primi", `${grab(/EEG=\{[\s\S]*?ges:\{[^}]*?src:"([^"]+)"/)}; ${grab(/EEG=\{[\s\S]*?res:\{[^}]*?src:"([^"]+)"/)}`, "BNetzA ihale sonuçları (güneş: 1 Mart, 1 Temmuz, 1 Aralık turları; kara rüzgârı: 1 Şubat, Mayıs, Ağustos, Kasım)", "src/support.js EEG"]);
   const ids = [...news.matchAll(/id:"([^"]+)",d:"([^"]+)"/g)].map(m => m[2]).sort();
   rows.push(["Gerçek dünya haberleri", `${ids.length} haber, son tarih ${ids[ids.length - 1]}`, "haftalık başlıklar", "src/data/realnews.js"]);
   for (const [n, v, s, f] of rows) console.log(`• ${n}: ${v}\n    kontrol: ${s}\n    dosya: ${f}`);
