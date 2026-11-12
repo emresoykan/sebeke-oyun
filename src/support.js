@@ -15,7 +15,7 @@
 //  saatlerinde hazır olmama cezası da vardır (basitleştirme).
 //
 // Yeşil hidrojen üretim desteği (kg başına, ilk kurulumdan itibaren 10 ekonomik yıl):
-//  Avrupa: Avrupa Hidrojen Bankası ilk ihalesi (Nisan 2024) kazanan primler €0,37–0,48/kg, ortalama ~€0,40 ≈ 0,45 $/kg
+//  Avrupa (bütün Avrupa piyasaları; ilk ihalenin 7 kazananı İspanya, Portekiz ve İskandinavya'dan): Avrupa Hidrojen Bankası ilk ihalesi (Nisan 2024) kazanan primler €0,37–0,48/kg, ortalama ~€0,40 ≈ 0,45 $/kg
 //   (IEA, Bruegel). Gerçekte rekabetçi ihale ve bütçe sınırı var; oyunda ortalama primle kazanılmış sayılır.
 //  Kuzey Amerika: ABD 45V vergi kredisi en çok 3 $/kg (yaşam döngüsü emisyonu en düşük sınıf), 10 yıl; 2025 yasasıyla
 //   inşaatına 1 Ocak 2028'den önce başlanan tesisler (CRS). Oyunda takvim tarihi 2028'e gelmeden kurulan elektrolizör alır.
@@ -66,6 +66,9 @@ export const CFD={E:{k:"off",p:Math.round(91.20*FX.gbp*10)/10,years:20,src:"Brit
 export const H2SUB={
   E:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
   I:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
+  R:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
+  L:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim"},
+  K:{kg:0.40*FX.eur,years:10,src:"Avrupa Hidrojen Bankası ilk ihalesi, ortalama ~€0,40/kg prim (kazananlar arasında İskandinav projeler var)"},
   N:{kg:3,years:10,until:Date.UTC(2028,0,1),src:"ABD 45V vergi kredisi, en çok 3 $/kg (inşaata 2028'den önce başlanmalı)"}
 };
 // bir depolama santralinin günlük kapasite ödemesi ($); bu piyasada mekanizma yoksa 0

@@ -1,6 +1,6 @@
 // --- Panel ---
 import { wp } from "../perfmark.js";
-import { BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM, GRID, capexMul } from "../config.js";
+import { EU, BLOCK, SITE_MIN_KM, REG, TECH, TER_N, MAR_UNLOCK, MAR_PREMIUM, FLO_UNLOCK, FLOAT_KM, PHS_H, H2, CSP, FPV_COOL, SPV_GAIN, SPV_KM, YEKDEM, GRID, capexMul } from "../config.js";
 import { S, selSite, save } from "../state.js";
 import { allowed, locked, totalMW, landCost, permitFee, permitProb, oddsTxt, ministry, tooSteep, slopeOfSite, SLOPE, baseAllowed, siteCap, permitOptions, siteBlock, capMW, fits } from "../rules.js";
 import { spotCheck, ob, proOn, inTutorial, fullOn } from "../tutorial.js";
@@ -101,7 +101,7 @@ function supportNote(t,k){
     return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
   if(k==="off"){const g=cfdGrant(m,k),s=CFD[m];
     return `<div class="eqnote support"><b>Fark sözleşmesi:</b> ${g?`${s.src}: ${dec(g.p)} $/MWh, ${s.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Piyasa fiyatı altındaysa fark ödenir, üstündeyse sen geri ödersin. Gerçekte ihaleyle kazanılır; oyunda ihale fiyatıyla kazanılmış sayılır.`:`${nm} piyasasında deniz üstü RES'e destek yok; Avrupa'da Britanya'nın fark sözleşmesi fiyatı var.${m==="T"?" Türkiye'nin ilk deniz üstü YEKA'sı 2027'nin ilk çeyreğine planlandı.":""}`}</div>`;}
-  if(EEG[k]&&(m==="E"||m==="I")){const g=eegGrant(t,k);
+  if(EEG[k]&&EU.has(m)){const g=eegGrant(t,k);
     return `<div class="eqnote support"><b>Piyasa primi${g?" (Almanya)":""}:</b> ${g?`${EEG[k].src}: ödül değeri ${dec(g.aw)} $/MWh, ${EEG.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Elektriğini piyasada satarsın; ay sonunda ${k==="ges"?"güneşin":"rüzgârın"} o ayki piyasa değeri (fiyatların ${k==="ges"?"güneş":"rüzgâr"} üretimiyle ağırlıklı ortalaması) ödülün altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Negatif fiyatlı saatlerin üretimine prim ödenmez. Gerçekte ihaleyle kazanılır; oyunda ortalama ödül değeriyle kazanılmış sayılır.`:`${t.country||nm} için oyunda kara ${TECH[k].n} desteği tanımlı değil (veri toplanmadı). Almanya'daki sahalar piyasa primi alır.`}</div>`;}
   if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama bu fiyat iki küçük, erken proje içindi; oyundaki yüzer RES maliyeti ticari ölçek tahmini olduğu için bu fiyat gerçekte olmayan bir kâr verirdi.</div>`;
   return "";

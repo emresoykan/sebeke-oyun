@@ -113,9 +113,11 @@ export const techName=k=>TECH[k].n;
 // Kaynaksız varsayımlar: kredi marjı, borç oranı üst sınırı, vade, hedef DSCR'lar, vergi amortisman süresi, PPA süresi ve
 // indirimi. Hedef DSCR spot satışta yüksek, PPA'da düşüktür: fiyatı sabitlenmiş gelir bankaya daha az risk taşır, bu yüzden
 // aynı nakit akışına daha çok borç verilir.
-export const PF_DEFAULT={rateT:8.6,rateE:6.9,tenor:12,gear:75,dscrM:1.40,dscrP:1.20,taxT:25,taxE:29.9,taxI:25,dep:10,ppaYears:10,ppaDisc:10};
+export const PF_DEFAULT={rateT:8.6,rateE:6.9,tenor:12,gear:75,dscrM:1.40,dscrP:1.20,taxT:25,taxE:29.9,taxI:25,taxR:25,taxL:27.8,taxK:20.6,dep:10,ppaYears:10,ppaDisc:10};
 export const PF_SRC={rateT:"ABD 10 yıllık %5,10 (FRED) + %3,5 marj (varsayım)",rateE:"ABD 10 yıllık %5,10 (FRED) + %1,8 marj (varsayım)",
-  taxT:"Türkiye kurumlar vergisi (ikincil kaynak)",taxE:"Almanya %29,9 (Tax Foundation / OECD 2025)",taxI:"İspanya %25 (Tax Foundation / OECD 2025); Portekiz ayrı modellenmedi"};
+  taxT:"Türkiye kurumlar vergisi (ikincil kaynak)",taxE:"Almanya %29,9 (Tax Foundation / OECD 2025)",taxI:"İspanya %25 (Tax Foundation / OECD 2025); Portekiz ayrı modellenmedi",
+  taxR:"Fransa %25 (PwC; %3,3 sosyal katkı yalnızca 763 bin €'yu aşan vergide, 2025 ek vergisi yalnızca 1 milyar € ciroda)",
+  taxL:"İtalya %27,8 (IRES %24 + IRAP %3,9; Tax Foundation / OECD 2025)",taxK:"İsveç %20,6 (PwC); Norveç ve Finlandiya ayrı modellenmedi"};
 const PF_KEY="sebeke-pf";
 // eski kayıt: Avrupa'nın eski varsayılanı (%27,5) saklandıysa yeni varsayılana (Almanya %29,9) geçer; İberya ayrı (11.11.2026)
 export let pf=(()=>{try{const o=JSON.parse(localStorage.getItem(PF_KEY)||"null");if(o&&o.taxI==null&&o.taxE===27.5)delete o.taxE;return o?{...PF_DEFAULT,...o}:{...PF_DEFAULT};}catch(e){return {...PF_DEFAULT};}})();
@@ -132,7 +134,8 @@ export function resetPf(){pf={...PF_DEFAULT};try{localStorage.removeItem(PF_KEY)
 //  vade boyunca en düşük CFADS ÷ hedef DSCR'ı sağlayan borç (faizin vergi kalkanıyla birlikte, yinelemeli)
 export function projectFinance(p,mode="spot",market="T",stress=0){
   const b=base(p);if(!b)return {wait:true};
-  const mk=EU.has(market)?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(market==="I"?pf.taxI:mk==="E"?pf.taxE:pf.taxT)/100; // faiz Avrupa ve İberya'da aynı
+  // faiz bütün Avrupa piyasalarında aynı; vergi piyasaya göre (taxE, taxI, taxR, taxL, taxK), diğer piyasalarda Türkiye varsayımı
+  const mk=EU.has(market)?"E":"T",r=(mk==="E"?pf.rateE:pf.rateT)/100,tax=(pf["tax"+market]!=null?pf["tax"+market]:pf.taxT)/100;
   const {capex,opex,E,price,strike,priceAt,fuelPerMWh,net1,cap1,sub1,batt,life}=b,ppa=mode==="ppa"&&!batt&&strike==null; // sözleşmeli santralde PPA yok
   // piyasa primli santral (support.js EEG) PPA yıllarında prim almaz: yeşil PPA menşe garantisi ister, destekli elektriğe menşe
   // garantisi verilmez (çifte pazarlama yasağı); PPA bitince prim süresinin kalanında priceAt ile prim döner

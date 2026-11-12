@@ -1,4 +1,4 @@
-// Negatif fiyat kalibrasyonu (docs/kalibrasyon.md "Negatif fiyat"): Avrupa (E) ve İberya (I) piyasasında ham fiyatın
+// Negatif fiyat kalibrasyonu (docs/kalibrasyon.md "Negatif fiyat"): Avrupa (E), İberya (I), Fransa (R) ve İskandinavya (K) piyasasında ham fiyatın
 // (sim.js D[k].raw: sıfırda kesilmeden önce) ve oyundaki fiyatın (D[k].price) dağılımı. Yazılanlar: ham fiyatı sıfırın
 // altında olan saatlerin payı, negatif fiyatlı saatlerin payı (aylara göre de), ortalaması, ortancası ve en düşüğü; ortalama
 // fiyat ve güneş fiyat oranı. Oyun normal (rakipler yatırım yapar), olay kartları kapalı, oyuncunun santrali yok.
@@ -9,7 +9,7 @@
 const { chromium } = require("playwright");
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",DAYS=+(process.argv[3]||120),RUNS=+(process.argv[4]||2);
 const NEG=process.env.CALIB_NEG?JSON.parse(process.env.CALIB_NEG):null,REGS=process.env.CALIB_REGS?JSON.parse(process.env.CALIB_REGS):null;
-const MK=["E","I"];
+const MK=process.env.CALIB_MK?process.env.CALIB_MK.split(","):["E","I","R","K"];
 (async()=>{const b=await chromium.launch();const all=[];
 for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("pageerror",e=>errs.push(String(e).slice(0,200)));
   await p.route(/fonts\.g|tile|arcgis|maptiler|openstreetmap|openfreemap|cartocdn|amazonaws/,r=>r.abort());

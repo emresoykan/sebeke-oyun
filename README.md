@@ -191,8 +191,8 @@ Ekonomi aynı parayla daha çok MW kurdurur; premium 40 MW'lık saha sınırınd
 | Varsayım | Varsayılan | Dayanak |
 |---|---|---|
 | Kredi faizi, Türkiye ve diğer piyasalar | %8,6 | ABD 10 yıllık hazine %5,10 (FRED DGS10, 15.10.2026) + %3,5 marj (varsayım) |
-| Kredi faizi, Avrupa ve İberya | %6,9 | ABD 10 yıllık %5,10 + %1,8 marj (varsayım) |
-| Kurumlar vergisi | Türkiye %25, Avrupa %29,9, İberya %25 | Türkiye: ikincil kaynaklar (KVK md. 32); Avrupa: Almanya, İberya: İspanya (Tax Foundation, OECD 2025); Portekiz ayrı modellenmedi. 11.11.2026'ya kadar Avrupa ve İberya %27,5 (ortalama) |
+| Kredi faizi, Avrupa piyasaları | %6,9 | ABD 10 yıllık %5,10 + %1,8 marj (varsayım) |
+| Kurumlar vergisi | Türkiye %25, Avrupa %29,9, İberya %25, Fransa %25, İtalya %27,8, İskandinavya %20,6 | Türkiye: ikincil kaynaklar (KVK md. 32); Avrupa: Almanya, İberya: İspanya, İtalya: IRES + IRAP (Tax Foundation, OECD 2025); Fransa: PwC (%3,3 sosyal katkı 763 bin €'yu aşan vergide, 2025 ek vergisi 1 milyar € ciroda; proje şirketine uygulanmaz); İskandinavya: İsveç (PwC). Portekiz, Norveç ve Finlandiya ayrı modellenmedi. 11.11.2026'ya kadar Avrupa ve İberya %27,5 (ortalama) |
 | Zarar devri | Türkiye 5 yıl, Avrupa süresiz | KVK md. 9 (ikincil kaynaklar); Avrupa'da yıllık mahsup üst sınırları uygulanmadı |
 | Vade, borç oranı üst sınırı, hedef DSCR (spot / PPA), vergi amortismanı, PPA süresi ve indirimi | 12 yıl, %75, 1,40 / 1,20, 10 yıl, 10 yıl, %10 | varsayım |
 
@@ -326,6 +326,25 @@ Oyunda biyokütle santrali "Biyokütle" diye yazılır, "BES" kısaltması kulla
 - **Açık konu:** Almanya'da güneş üretiminin sıfır ve altı fiyatlı saatlere düşen payı oyunda ~%28–36. Gerçek 2025 için kaynaklar %16 (tam yıl) ile ~1/3 (ilk yarı) arasında; saatlik veri bu ortamdan alınamadı, fiyat modeli değişmedi.
 - Ayrıntı: `docs/kalibrasyon.md`, "Güneş üretimi: bulut düzeltmesi".
 - Test: `node scripts/test_pv.cjs <adres>` (tablonun bilinen noktalardaki değeri ve boylam çevrimi, çarpanın Konya'yla ölçeklenmesi, GES üretiminin saat saat formülle aynı olması, Almanya'da artış, saha paneli durumu, CSP'nin ham açıklığı). Tablo: `node scripts/gen_cloudk.cjs <adres>`; ölçüm: `node scripts/calib_pv.cjs 120 "37.9,32.5;52.3,13.9" <adres>`.
+
+**Avrupa'nın ayrı piyasaları: Fransa, İtalya, İskandinavya (`config.js` `REG.R/L/K`, 12.11.2026).** Avrupa beş piyasa oldu: Avrupa (Almanya ve diğerleri), İberya, Fransa, İtalya ve İskandinavya (Norveç, İsveç, Finlandiya, İzlanda). Danimarka fiyatı Almanya'ya yakın olduğu için Avrupa'da kaldı.
+- **Hedefler (ENTSO-E 2025, 1 € = 1,1306 $):**
+
+| Piyasa | Bölge | Ortalama fiyat | Güneş oranı | Rüzgâr oranı | Negatif saat |
+|---|---|---|---|---|---|
+| Fransa | FR | 61,07 € ≈ 69,0 $ | 0,591 | 0,896 | ~%5,8 (en düşük −118 €) |
+| İtalya | IT-SUD (Kuzey 115,86 €) | 115,03 € ≈ 130,1 $ | 0,824 | 0,950 | yok (en düşük 0) |
+| İskandinavya | SE3 | 46,24 € ≈ 52,3 $ | 0,589 | 0,761 | ~%3,9 (en düşük −25 €) |
+
+- **Oyunda** (`calib_market`, 120 gün × 4 koşu): Fransa 68,2 $, 0,573, 0,905, %6,3; İtalya 130,1 $, 0,818, 0,965, negatif yok; İskandinavya 52,5 $, 0,595, 0,796, %3,2. Avrupa ve İberya değişmedi (Avrupa 8'er koşuda eski kod 102,2 $, yeni kod 100,7 $; fark koşudan koşuya oynaklık içinde).
+- **Model:** Her piyasanın kendi fiyat düzeyi, güneş ve rüzgâr etkisi, rüzgâr filosu (bölge ağırlıkları yaklaşık, doğrulanmadı) ve temsilî noktası var.
+  - İskandinavya'da aylık talep düzeyi SE3'ün 2025 aylık fiyat oranından (Haziran 0,45, Şubat 1,48). Negatif fiyat eşiği sıfırın altında: çok saat sıfıra yakın kapanır.
+  - İtalya'da negatif fiyat yok.
+  - Oyuncunun rüzgâr üretimi değişmedi (kara/deniz katsayısı ve aylık desen Avrupa'dakiyle aynı).
+- **Kurallar:** Kredi, izin ve Avrupa Hidrojen Bankası desteği üç piyasada da geçerli; kurumlar vergisi piyasaya göre. Britanya'nın kapasite ödemesi ve offshore fark sözleşmesi ile Almanya'nın piyasa primi yalnızca Avrupa'da: Fransa, İtalya ve İskandinavya'daki offshore artık Britanya'nın fark sözleşmesini almaz.
+- **Kayıt:** Eski kayıtta bu ülkelerdeki sahalar, santraller ve rakip sahaları yeni piyasalara taşınır (piyasa v2).
+- **Sınırlamalar:** İtalya, İsveç ve Norveç gerçekte birden çok fiyat bölgesidir (İsveç'te SE1 ile SE4 arasında büyük fark); oyunda her biri tek fiyat. Fransa'nın negatif fiyatları oyunda sığ (en düşük −34 ile −52 $; gerçekte −133 $). Ayrıntı: `docs/kalibrasyon.md`, "Avrupa'nın kalanı".
+- Test: `node scripts/test_eu3.cjs <adres>` (ülkelerin piyasası, fiyat tabanı, Avrupa kuralları ve hidrojen desteği, vergi, rüzgâr üretiminin değişmemesi, bir günlük fiyat, eski kaydın taşınması, panel notu, sözlük).
 
 **Almanya piyasa primi (`src/support.js` `EEG`, 11.11.2026).** Almanya'daki GES ve kara RES, ilk bloğun kurulumundan itibaren 20 ekonomik yıl (~116 oyun günü) kayan, tek yönlü piyasa primi alır.
 - **Gerçek (BNetzA basın bültenleri 18.08.2026 ve 17.09.2026):** Güneş birinci segment (arazi GES) 1 Temmuz 2026 turu ortalama ödül 4,79 ct/kWh; kara rüzgârı 1 Ağustos 2026 turu 4,79 ct/kWh (eşitlik rastlantı). Prim = max(0, ödül − teknolojinin aylık piyasa değeri); piyasa değeri ayın fiyatlarının ülkedeki güneş ya da rüzgâr üretimiyle ağırlıklı ortalaması. 2025'ten beri yeni santrallere negatif fiyatlı saatte prim ödenmez.

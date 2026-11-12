@@ -26,7 +26,7 @@ export const YEKDEM={p:59.2,store:69.9,kinds:["ges","fpv","spv","res"],newDays:3
 // pazarı Çin'le (en büyük pazar; Hindistan 525), Kuzey Amerika ABD'yle temsil edildi. Türkiye, Güney Amerika, Orta Doğu ve
 // Okyanusya için değer bulunamadı: küresel ortalama. Rüzgâr ve diğer teknolojilerde ülke değeri bulunamadı (Çin'de karada rüzgâr
 // 1.000 $/kW'ın altında, kesin değer yok). Rakiplerin yatırımı değişmedi (fiyat kalibrasyonu korunur).
-export const CAPEX_M={ges:{E:779/691,I:779/691,N:1058/691,A:591/691,F:1093/691}};
+export const CAPEX_M={ges:{E:779/691,I:779/691,R:779/691,L:779/691,K:779/691,N:1058/691,A:591/691,F:1093/691}};
 const SOLAR_FAM=["ges","fpv","spv"];
 export const capexMul=(k,m)=>{const t=CAPEX_M[SOLAR_FAM.includes(k)?"ges":k];return (t&&t[m])||1;};
 // Şebeke bağlantı kapasitesi (Türkiye; grid.js, docs/guncellemeler.md). quota: oyuncunun her takvim yılı kontenjan dışı
@@ -73,8 +73,9 @@ export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
 // Rüzgâr filosunun uzun dönem ortalama kapasite oranı (güç eğrisi, arıza payı düşülmeden; src/windfleet.js noktaları):
 // fiyattaki rüzgâr endeksi bununla bölünür (ortalaması ~1). Yalnızca burada değeri olan piyasalarda filo endeksi kullanılır;
 // diğerleri tek temsilî noktanın rüzgârıyla kalır. Ölçüm: scripts/calib_market.cjs (120 gün × 20 koşu, 11.11.2026: Avrupa
-// (Almanya filosu) 0,23, İberya (İspanya filosu) 0,22; koşudan koşuya 0,15–0,29)
-export const FLEET_CF={E:0.23,I:0.22};
+// (Almanya filosu) 0,23, İberya (İspanya filosu) 0,22; koşudan koşuya 0,15–0,29). 12.11.2026: Fransa 0,30, İtalya 0,19,
+// İskandinavya 0,11 (kalibrasyon turlarındaki koşuların ortalaması; filo noktaları yaklaşık, oyuncunun santralinin üretimini değiştirmez)
+export const FLEET_CF={E:0.23,I:0.22,R:0.30,L:0.19,K:0.11};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 // Bir piyasanın saatlik fiyat tavanı ($/MWh): azami fiyatı olan piyasada o (Türkiye), diğerlerinde oyunun genel üst sınırı
@@ -118,6 +119,20 @@ export const REG={
   // güneş etkisi (sk) azaltıldı: Avrupa 4,0 → 3,45, İberya 2,6 → 2,15 (docs/kalibrasyon.md "Negatif fiyat")
   E:{n:"Avrupa",mult:1.70,s0:0.70,land:40000,sk:3.45,wk:1.45,neg:{t:31,z:43,a:0.0026,p:2.4,f:-283}},
   I:{n:"İberya",mult:1.19,s0:0.70,land:40000,sk:2.15,wk:0.97,neg:{t:31,z:43,a:0.14,p:1.64,f:-17}},
+  // Avrupa'nın diğer ayrı piyasaları (12.11.2026; docs/kalibrasyon.md "Avrupa'nın kalanı"). ENTSO-E 2025 tam yıl hedefleri
+  // (1 € = 1,1306 $, FRED 2025 ortalaması): Fransa (FR) 61,07 €/MWh ≈ 69,0 $, güneş oranı 0,591, rüzgâr 0,896, negatif saat
+  // ~%5,8, en düşük −118 € (≈ −133 $). İtalya (IT-SUD; Kuzey 115,86 € ile neredeyse aynı) 115,03 € ≈ 130,1 $, güneş 0,824,
+  // rüzgâr 0,950, negatif fiyat yok (2025'te en düşük 0). İskandinavya (İsveç SE3; Norveç, İsveç, Finlandiya, İzlanda)
+  // 46,24 € ≈ 52,3 $, güneş 0,589, rüzgâr 0,761, negatif saat ~%3,9, en düşük −25 € (≈ −28 $). Danimarka fiyatı Almanya'ya
+  // yakın olduğu için Avrupa'da kaldı. Ayar: calib_market 120 gün × 2 koşu, 7 tur (docs/kalibrasyon.md).
+  // Fransa'da aylık talep düzeyi (dem) denendi; 2025'in aylık fiyat oranı güneşin etkisini zaten içerdiği için negatif saat
+  // %15–20'ye çıktı, kullanılmadı. İskandinavya'da dem = SE3 2025 aylık ortalama fiyatın yıl ortalamasına oranı (yazın
+  // bahar seli ve düşük talep fiyatı düşürür; Haziran 0,45, Şubat 1,48). İskandinavya'da negatif fiyat eşiği sıfırın altında
+  // (t −12): çok saat sıfıra yakın kapanır, yalnızca ham fiyat −12 $'ın altına inince negatif olur
+  R:{n:"Fransa",mult:1.10,s0:0.70,land:40000,sk:2.35,wk:1.35,neg:{t:31,z:43,a:0.008,p:2.4,f:-133}},
+  L:{n:"İtalya",mult:1.74,s0:0.70,land:40000,sk:1.35,wk:0.65},
+  K:{n:"İskandinavya",mult:0.89,s0:0.70,land:40000,sk:3.9,wk:2.0,dem:[1.195,1.477,1.001,0.74,0.852,0.449,0.715,0.942,1.029,1.237,1.37,1.025],
+    neg:{t:-12,z:12,a:0.14,p:1.64,f:-28}},
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},
   F:{n:"Afrika",mult:1.05,s0:0.20,land:8000},
@@ -126,9 +141,9 @@ export const REG={
   O:{n:"Okyanusya",mult:1.00,s0:0.80,land:20000},
   G:{n:"Grönland"}, X:{n:"Antarktika"}
 };
-export const MARKETS=["T","E","I","N","S","F","M","A","O"];
-// Avrupa kuralları (kredi faizi, vergi, izin süresi) iki Avrupa piyasasında da geçerli: Avrupa ve İberya
-export const EU=new Set(["E","I"]);
+export const MARKETS=["T","E","I","R","L","K","N","S","F","M","A","O"];
+// Avrupa kuralları (kredi faizi, izin süresi; vergi piyasaya göre) bütün Avrupa piyasalarında geçerli
+export const EU=new Set(["E","I","R","L","K"]);
 export const TECH={
   ges:{n:"GES",long:"Güneş (GES)",capex:55000,opex:100,c:"--solar"},
   // RES: IRENA 2024 1.041 $/kW × 5 MW = 5,21 M$, GES ile aynı ölçek (1/63) → 83 b$ (önceden 140 b$, ölçek 1/37: rüzgâr
