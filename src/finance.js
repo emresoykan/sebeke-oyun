@@ -82,7 +82,8 @@ function base(p){
   // piyasa primi (support.js EEG): satış fiyatı primi çıkarılarak piyasa fiyatıdır; ilk EEG_Y yıl prim eklenir. Prim, kapanan
   // aylarda uygun MWh başına ödenen ortalama primdir (henüz ay kapanmadıysa ödül değeriyle satış fiyatı farkı); fiyat stresinde
   // piyasa değeri de düşer, prim en az ödül değeriyle stresli ortalama piyasa değeri farkı olur
-  const eg=p.eeg||null,mq=a.mq||0,mvA=mq>0?a.mv/mq:price,mpE=mq>0?a.mp/mq:0,premAt=(t,sx=0)=>eg&&t<EEG_Y?Math.max(mpE,eg.aw-mvA*(1-sx)):0;
+  const eg=p.eeg||null,mq=a.mq||0,mvA=mq>0?a.mv/mq:price,mpE=mq>0?a.mp/mq:0,premAt=(t,sx=0)=>eg&&t<EEG_Y?(eg.two?eg.aw-mvA*(1-sx):Math.max(mpE,eg.aw-mvA*(1-sx))):0;
+  // Fransa'nın tamamlayıcı ödemesi iki yönlü (eg.two): prim tam olarak tarif − piyasa değeri; fiyat stresinde artar, yüksek fiyatta eksi
   // depolama ve hidrojen: MW başına net gelirin yıllığa çevrilmesi. Destekler ayrılır (support.js): kapasite ödemesi
   // ömür boyu süren piyasa geliri sayılır (fiyat stresinden etkilenmez); hidrojen desteği yalnızca ilk SUB_Y yıl
   const yr=x=>a.cap>0?(x||0)/a.cap*p.mw*8760:0,cap1=yr(a.cp),sub1=yr(a.sub),net1=batt?yr(a.r-(a.cp||0)-(a.sub||0)):0;

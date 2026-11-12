@@ -47,18 +47,18 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   delete S.sites.DW.fit;
   // ay sonu ödemesi (zorla): biten ayın birikimi güneş 40, rüzgâr 70 $/MWh piyasa değeri; GES 1000, RES 500 MWh uygun üretim
   const mo=cal.CAL.date.getUTCFullYear()*12+cal.CAL.date.getUTCMonth();
-  S.eeg={mo:mo-1,s:[40*10,10],w:[70*5,5]};dg.eegE=1000;dw.eegE=500;const a0={mp:dg.ac.mp||0,mq:dg.ac.mq||0,mv:dg.ac.mv||0,r:dg.ac.r},w0={mp:dw.ac?dw.ac.mp||0:0},m0=S.money;
+  S.eeg={E:{mo:mo-1,s:[40*10,10],w:[70*5,5]}};dg.eegE=1000;dw.eegE=500;const a0={mp:dg.ac.mp||0,mq:dg.ac.mq||0,mv:dg.ac.mv||0,r:dg.ac.r},w0={mp:dw.ac?dw.ac.mp||0:0},m0=S.money;
   S.hour=0;sim.newDay();close();const expG=1000*(aw-40);
-  out.pay={mp:st.D.st.mp,expG,dmp:dg.ac.mp-a0.mp,dmq:dg.ac.mq-a0.mq,dmv:dg.ac.mv-a0.mv,dr:dg.ac.r-a0.r,dw:(dw.ac.mp||0)-w0.mp,dwq:dw.ac.mq,reset:[dg.eegE,dw.eegE],last:S.eegLast,newMo:S.eeg.mo===mo,log:(S.log||[]).slice(0,3).map(x=>typeof x==="string"?x:x.m||x.t||JSON.stringify(x)).join(" | ")};
-  out.payOk=near(st.D.st.mp,expG,1e-9)&&near(out.pay.dmp,expG,1e-9)&&out.pay.dmq===1000&&near(out.pay.dmv,40000,1e-9)&&near(out.pay.dr,expG,1e-9)&&out.pay.dw===0&&out.pay.dwq===500&&dg.eegE===0&&dw.eegE===0&&S.eegLast.mo===mo-1&&near(S.eegLast.mv.ges,40)&&out.pay.newMo;
+  out.pay={mp:st.D.st.mp,expG,dmp:dg.ac.mp-a0.mp,dmq:dg.ac.mq-a0.mq,dmv:dg.ac.mv-a0.mv,dr:dg.ac.r-a0.r,dw:(dw.ac.mp||0)-w0.mp,dwq:dw.ac.mq,reset:[dg.eegE,dw.eegE],last:S.eegLast.E,newMo:S.eeg.E.mo===mo,log:(S.log||[]).slice(0,3).map(x=>typeof x==="string"?x:x.m||x.t||JSON.stringify(x)).join(" | ")};
+  out.payOk=near(st.D.st.mp,expG,1e-9)&&near(out.pay.dmp,expG,1e-9)&&out.pay.dmq===1000&&near(out.pay.dmv,40000,1e-9)&&near(out.pay.dr,expG,1e-9)&&out.pay.dw===0&&out.pay.dwq===500&&dg.eegE===0&&dw.eegE===0&&S.eegLast.E.mo===mo-1&&near(S.eegLast.E.mv.ges,40)&&out.pay.newMo;
   out.logOk=out.pay.log.includes("Piyasa primi (Almanya)")&&out.pay.log.includes("güneşin piyasa değeri 40 $/MWh");
   for(let h=0;h<24;h++){sim.tick();close();}
   out.last=S.last.mp;out.report=((document.getElementById("report")||{}).innerText||"").includes("Piyasa primi");
   // gerçek ay geçişi: ayın başından itibaren günlük fiyatlarla bağımsız birikim; ay değişince ödenen piyasa değeri bununla aynı
-  let gs=0,gd=0,ws=0,wd=0,n=0,paid=null;const mo1=S.eeg.mo;
+  let gs=0,gd=0,ws=0,wd=0,n=0,paid=null;const mo1=S.eeg.E.mo;
   // önceki günlerin birikimi (bu ay içinde zaten geçen günler) testin bağımsız toplamına baştan katılır
-  gs=S.eeg.s[0];gd=S.eeg.s[1];ws=S.eeg.w[0];wd=S.eeg.w[1];
-  for(let d=0;d<14&&!paid;d++){S.hour=0;sim.newDay();close();if(S.eegLast&&S.eegLast.mo===mo1){paid={...S.eegLast,mp:st.D.st.mp};break;}
+  gs=S.eeg.E.s[0];gd=S.eeg.E.s[1];ws=S.eeg.E.w[0];wd=S.eeg.E.w[1];
+  for(let d=0;d<14&&!paid;d++){S.hour=0;sim.newDay();close();if(S.eegLast&&S.eegLast.E&&S.eegLast.E.mo===mo1){paid={...S.eegLast.E,mp:st.D.st.mp};break;}
     [dg,dw].forEach(q=>q.down=false);const M=st.D.E;M.price.forEach((x,h)=>{const s=M.sunP[h]||0,f=M.fleet?M.fleet[h]||0:1;gs+=x*s;gd+=s;ws+=x*f;wd+=f;});n++;
     for(let h=0;h<24;h++){sim.tick();close();}}
   out.month={n,paid,ges:gd>0?gs/gd:null,res:wd>0?ws/wd:null,avg:null};
@@ -79,7 +79,7 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
 const f1=x=>x==null?"–":x.toFixed(1),pc=x=>x==null?"–":(x*100).toFixed(1)+"%";
 console.log("  · sahalar:",JSON.stringify(r.where));
 ok(r.grantOk,`Almanya GES ve RES hak aldı (${r.grant.aw} $/MWh, ${r.grant.days} gün); Türkiye, Fransa, İspanya ve offshore almadı`+(r.grantOk?"":" "+JSON.stringify(r.grant)));
-ok(r.panelD&&r.panelF.includes("desteği tanımlı değil"),"panel notları: Almanya'da prim, Fransa'da tanımlı değil"+(r.panelD?"":"\n"+r.panelDt));
+ok(r.panelD&&r.panelF.includes("Tamamlayıcı ödeme (Fransa)")&&/Katılmıyorsun|katılmadın/.test(r.panelF),"panel notları: Almanya'da prim, Fransa'da katılım seçilmemiş tamamlayıcı ödeme"+(r.panelD?"":"\n"+r.panelDt));
 ok(r.accOk,`bir gün: uygun üretim = üretim (${f1(r.acc.dq)} MWh; negatif saat ${r.acc.neg}, o saatlerde üretim ${f1(r.acc.eNeg)}); alım garantili sahada birikim ${f1(r.acc.dw)}`);
 ok(r.payOk,`ay sonu: GES 1000 MWh × (${r.grant.aw} − 40) = ${f1(r.pay.expG)} $ ödendi (${f1(r.pay.mp)}), proje gelirine katıldı; RES piyasa değeri 70 > ödül: prim yok`+(r.payOk?"":" "+JSON.stringify(r.pay)));
 ok(r.logOk,"ödeme günlükte: "+r.pay.log.slice(0,160));

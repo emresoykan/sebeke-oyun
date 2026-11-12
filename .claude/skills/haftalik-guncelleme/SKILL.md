@@ -53,7 +53,8 @@ Düzenli kontroller (başlık olmasa da):
   (TL değerin o günkü kurla dolar karşılığı; normal yıl ortalamasına oranı ~1,5 korunur, `calib_shape.cjs` ile ölç),
   YEKA turları (yeni il, fiyat, katkı payı), deniz üstü YEKA, lisanssız kapasite duyuruları, offshore
   fark sözleşmesi turları, Almanya EEG ihale sonuçları (BNetzA; güneş ve kara rüzgârı ortalama ödül değeri →
-  `support.js` `EEG`), IRENA yıllık maliyet raporu (Temmuz).
+  `support.js` `EEG`), Fransa CRE PPE2 ihale sonuçları (arazi GES ve kara rüzgârı tarifi → `support.js` `PREM.FRA`),
+  İtalya GSE FER X ihale sonuçları (güneş ve rüzgâr sözleşme fiyatı → `support.js` `FERX`), IRENA yıllık maliyet raporu (Temmuz).
 
 ## 3. Ayırma
 Her madde dört gruptan birine girer (`docs/guncellemeler.md`):
