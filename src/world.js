@@ -84,8 +84,12 @@ const sunOf=(lat,lon)=>Math.max(0.12,Math.min(1,ghiAt(lat,lon)/9));
 //  TUR (T): işletmedeki santrallerin il dağılımı (EPDK) ile TEİAŞ (~%33). Santraller hücre ortalamasından rüzgârlı sırt ve
 //      tepelere kurulur; veri bunu ortaladığı için katsayı 1'in biraz üstünde.
 //  DEU: ENTSO-E aylık üretim ve kurulu güç (~%20); ESP: ENTSO-E (~%20,5). Veri bu ülkelerde gerçeğin üstünde kalıyor.
-//  Avrupa'nın diğer ülkeleri ve Portekiz DEU ve ESP ortalaması; diğer piyasalar kalibre edilmedi (1).
-export const LAND_K={T:1.02,E:0.83,I:0.83,R:0.83,L:0.83,K:0.83}, LAND_KC={DEU:0.73,ESP:0.925};
+//  Avrupa'nın diğer ülkeleri ve Portekiz DEU ve ESP ortalaması (Fransa ve İtalya da; ayrı kalibre edilmedi).
+//  İskandinavya (K; 12.11.2026): İsveç filosu ENTSO-E 2025 ~%25 (39,8 TWh, Q4'ün %49'u yayımlanmış, tamamı tahmini; 18,0 GW).
+//      Ormanlık iç bölgelerde veri ve orman düşüşü rüzgârı az gösteriyordu (oyunda filo %9); 1,3 ile ~%25 (scripts/wind_fleet.cjs
+//      SE, 240 gün: 1,15 → %21, 1,25 → %22, 1,3 → %27; tek koşu ±%10). Finlandiya ve Norveç için ayrı veri toplanmadı, aynı
+//      katsayı. Diğer piyasalar kalibre edilmedi (1).
+export const LAND_K={T:1.02,E:0.83,I:0.83,R:0.83,L:0.83,K:1.3}, LAND_KC={DEU:0.73,ESP:0.925};
 const landK=(m,a3)=>LAND_KC[a3]??LAND_K[m]??1;
 const windScore=v=>Math.max(0.05,Math.min(0.95,(v-4)/8.5));
 const windOf=(lat,lon,ter,coastNear,m,a3)=>windScore(landK(m,a3)*(wind100At(lat,lon)+(ter==="m"?0.8:0)+(coastNear?0.3:0)-(ter==="f"?0.5:0)));

@@ -59,7 +59,7 @@ ok(r.note,"panelde yatırım maliyeti notu (Kuzey Amerika +%53)");
 ok(r.migr,"eski kayıtta santralin piyasası tamamlanıyor");
 ok(r.tax.def[0]===29.9&&r.tax.def[1]===25&&r.tax.src&&(r.tax.i0==null||(r.tax.i1===r.tax.i0&&r.tax.i2>=r.tax.i0))&&(r.tax.e0==null||r.tax.e1>=r.tax.e0),
   `kurumlar vergisi: Avrupa %${r.tax.def[0]}, İberya %${r.tax.def[1]}; İberya santrali yalnızca İberya vergisinden etkilenir (${JSON.stringify(r.tax)})`);
-ok(r.mkt.site==="I"&&r.mkt.reg==="I"&&r.mkt.plant==="I"&&r.mkt.riv==="IE"&&r.mkt.de==="E"&&r.mkt.ms&&r.mkt.v===2&&r.mkt.log&&r.mkt.fresh===2,`eski kayıt: İspanya'daki saha, santral ve rakip sahası İberya'ya taşındı, Almanya kaldı (${JSON.stringify(r.mkt)})`);
+ok(r.mkt.site==="I"&&r.mkt.reg==="I"&&r.mkt.plant==="I"&&r.mkt.riv==="IE"&&r.mkt.de==="E"&&r.mkt.ms&&r.mkt.v===3&&r.mkt.log&&r.mkt.fresh===3,`eski kayıt: İspanya'daki saha, santral ve rakip sahası İberya'ya taşındı, Almanya kaldı (${JSON.stringify(r.mkt)})`);
 ok(r.finOk,"proje ekonomisinde yatırım piyasa katsayılı");
 console.log("  · ölçüm (%7,5 iskonto, "+DAYS+" gün): "+["T","E","I","N","A"].map(m=>{const e=r.econ[m];return e?`${m} yatırım ${(e.capex/1e6).toFixed(2)} M$, KF ${pc(e.cf)}, fiyat ${f0(e.price)}, LCOE ${f0(e.lcoe)} $/MWh, IRR ${pc(e.irr)}`:`${m} veri yok`;}).join(" | "));
 ok(!errs.length,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));

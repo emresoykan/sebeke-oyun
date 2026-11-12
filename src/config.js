@@ -74,8 +74,9 @@ export const PRICE={lvl:1.08,solar:30,grow:0.002,capK:1.2,wind:8,heat:0.35};
 // fiyattaki rüzgâr endeksi bununla bölünür (ortalaması ~1). Yalnızca burada değeri olan piyasalarda filo endeksi kullanılır;
 // diğerleri tek temsilî noktanın rüzgârıyla kalır. Ölçüm: scripts/calib_market.cjs (120 gün × 20 koşu, 11.11.2026: Avrupa
 // (Almanya filosu) 0,23, İberya (İspanya filosu) 0,22; koşudan koşuya 0,15–0,29). 12.11.2026: Fransa 0,30, İtalya 0,19,
-// İskandinavya 0,11 (kalibrasyon turlarındaki koşuların ortalaması; filo noktaları yaklaşık, oyuncunun santralinin üretimini değiştirmez)
-export const FLEET_CF={E:0.23,I:0.22,R:0.30,L:0.19,K:0.11};
+// İskandinavya 0,31 (kalibrasyon koşularının ortalaması; filo noktaları yaklaşık). İskandinavya'nın kara rüzgâr katsayısı
+// (world.js LAND_K.K) İsveç filosuna göre ayarlanınca filo kapasite oranı 0,11'den ~0,31'e çıktı; mult 0,89 → 0,99, wk 2,0 → 2,8
+export const FLEET_CF={E:0.23,I:0.22,R:0.30,L:0.19,K:0.31};
 export const BASE=[2600,2450,2350,2300,2300,2400,2700,2950,3050,3000,2900,2850,2800,2800,2850,2950,3100,3300,3400,3400,3300,3150,2950,2750].map(x=>x/35);
 
 // Bir piyasanın saatlik fiyat tavanı ($/MWh): azami fiyatı olan piyasada o (Türkiye), diğerlerinde oyunun genel üst sınırı
@@ -131,7 +132,7 @@ export const REG={
   // (t −12): çok saat sıfıra yakın kapanır, yalnızca ham fiyat −12 $'ın altına inince negatif olur
   R:{n:"Fransa",mult:1.10,s0:0.70,land:40000,sk:2.35,wk:1.35,neg:{t:31,z:43,a:0.008,p:2.4,f:-133}},
   L:{n:"İtalya",mult:1.74,s0:0.70,land:40000,sk:1.35,wk:0.65},
-  K:{n:"İskandinavya",mult:0.89,s0:0.70,land:40000,sk:3.9,wk:2.0,dem:[1.195,1.477,1.001,0.74,0.852,0.449,0.715,0.942,1.029,1.237,1.37,1.025],
+  K:{n:"İskandinavya",mult:0.99,s0:0.70,land:40000,sk:3.9,wk:2.8,dem:[1.195,1.477,1.001,0.74,0.852,0.449,0.715,0.942,1.029,1.237,1.37,1.025],
     neg:{t:-12,z:12,a:0.14,p:1.64,f:-28}},
   N:{n:"Kuzey Amerika",mult:0.85,s0:0.50,land:25000},
   S:{n:"Güney Amerika",mult:0.90,s0:0.40,land:12000},

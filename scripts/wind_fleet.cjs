@@ -4,6 +4,8 @@
 //  TR: EPDK işletmedeki RES il dağılımı (ilk 25 il, MWm); ilin en rüzgârlı noktası (santraller sırtlara kurulur)
 //  DE, ES: eyalet/bölge ağırlıkları yaklaşık (yayımlanmış bir kaynakla doğrulanmadı), noktaların ortancası
 //  DEoff: Alman deniz üstü kümeleri, ağırlıklar yaklaşık
+//  SE: İsveç'in rüzgâr bölgeleri (ağırlıklar yaklaşık kurulu güç, GW; doğrulanmadı), noktaların ortancası (12.11.2026)
+// WIND_KC='{"SWE":1.2}' ülke kara katsayısını (world.js LAND_KC) koda dokunmadan değiştirir (deneme için)
 // Kullanım: önce `npx vite --port 5181`, sonra  node scripts/wind_fleet.cjs TR 365   (DE, ES, DEoff)
 // Hava modeli her koşuda başka tohumla başlar; tek yıl ±%10 sapabilir, birkaç koşunun ortalamasını alın.
 const { chromium } = require("playwright");
@@ -13,13 +15,16 @@ const SETS={
   ES:{pick:"med",sea:false,r:3,IL:{"Castilla y León":[41.8,-4.5,6.5],"Aragón":[41.6,-1.0,5.5],"Castilla-La Mancha":[39.6,-2.5,4],"Galicia":[43.0,-8.0,3.9],"Andalucía Cádiz":[36.3,-5.7,2],"Andalucía Granada":[37.2,-3.2,1.7],"Cataluña":[41.2,0.6,1.5],"Navarra":[42.6,-1.7,1.3],"Valencia":[39.7,-0.9,1.3],"Asturias":[43.3,-6.3,0.6],"La Rioja":[42.3,-2.5,0.45]}},
   DEoff:{pick:"med",sea:true,r:1,IL:{"BorWin":[54.2,6.5,3],"Bard":[54.35,5.95,2],"Helgoland":[54.2,7.6,2.5],"Arkona":[54.8,14.1,1.2],"Baltic":[54.6,12.65,0.5]}}
 };
+SETS.SE={pick:"med",sea:false,r:3,IL:{"Norrbotten":[65.7,21.0,2.5],"Västernorrland-Jämtland":[63.0,16.5,5],"Västra Götaland":[58.3,12.8,2.5],"Skåne-Kalmar":[56.3,13.8,1.5]}};
+const KC=process.env.WIND_KC?JSON.parse(process.env.WIND_KC):null;
 const [SET,DAYS,URL]=[process.argv[2]||"TR",+process.argv[3]||365,process.argv[4]||"http://localhost:5181/"];
 (async()=>{
   const b=await chromium.launch({args:["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});const p=await b.newPage();
   await p.addInitScript(()=>{localStorage.clear();localStorage.setItem("sebeke-profile-v1",JSON.stringify({name:"Sim",company:"Sim",color:"#1F9D74",spec:"eng",created:1}));});
   await p.goto(URL);await p.waitForTimeout(5000);
-  const r=await p.evaluate(async([C,DAYS])=>{
+  const r=await p.evaluate(async([C,DAYS,KC])=>{
     const st=await import("/src/state.js"),sim=await import("/src/sim.js"),wx=await import("/src/wxsite.js"),W=await import("/src/weather.js"),wo=await import("/src/world.js"),ru=await import("/src/rules.js"),cal=await import("/src/calendar.js");
+    if(KC)Object.assign(wo.LAND_KC,KC);
     const S=st.S;S.money=1e12;S.won=true;document.querySelectorAll("dialog[open]").forEach(d=>d.close());document.getElementById("pauseBtn")?.click();
     const probes=[];
     for(const [n,[lat0,lon0,mw]] of Object.entries(C.IL)){const pts=[];
@@ -34,6 +39,6 @@ const [SET,DAYS,URL]=[process.argv[2]||"TR",+process.argv[3]||365,process.argv[4
     return {set:C.name,days:DAYS,cf:+(probes.reduce((a,q)=>a+q.sp/q.N*q.mw,0)/Wt*AV).toFixed(3),
       monthly:Array.from({length:12},(_,m)=>+(probes.reduce((a,q)=>a+(q.mn[m]?q.mo[m]/q.mn[m]:0)*q.mw,0)/Wt*AV).toFixed(3)),
       sites:probes.map(q=>({n:q.n,speed:+W.windSpeedOf(q.t).toFixed(2),cf:+(q.sp/q.N*AV).toFixed(3)}))};
-  },[{...SETS[SET],name:SET},DAYS]);
+  },[{...SETS[SET],name:SET},DAYS,KC]);
   console.log(JSON.stringify(r,null,1));await b.close();
 })();

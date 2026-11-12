@@ -1057,11 +1057,11 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
   - Fransa: 9 bölge ve 3 deniz üstü saha.
   - İtalya: 8 bölge.
   - İskandinavya: İsveç'te 4, Finlandiya'da 2, Norveç'te 2 bölge.
-  - `FLEET_CF`: 0,30 / 0,19 / 0,11 (kalibrasyon koşularının ortalaması).
+  - `FLEET_CF`: 0,30 / 0,19 / 0,11 (kalibrasyon koşularının ortalaması). İskandinavya'nın değeri aynı gün 0,31 oldu: aşağıda "İskandinavya'nın rüzgâr üretimi".
   - Türkiye'nin noktaları yeniden üretilmedi; kıyı düzeltmesinden sonra iki nokta kayıyordu, eski değerler korundu.
 - **Aylık talep düzeyi (`dem`):** Fransa'da denendi, kullanılmadı. 2025'in aylık fiyat oranı baharın güneş etkisini zaten içerdiği için güneş iki kez sayıldı: negatif saat %15–20'ye çıktı, rüzgâr oranı 1'in üstüne çıktı. İtalya'da gerek kalmadı. İskandinavya'da gerekli: Türkiye'ye göre ayarlı genel aylık talep yazın yüksektir, İsveç'te ise yazın fiyat düşer (bahar seli, düşük talep). Bu olmadan güneş oranı 1'in üstüne çıkıyordu.
 - **İskandinavya'nın negatif eşiği sıfırın altında:** Güneş ve rüzgâr etkisi oranları tutturacak kadar güçlü olunca ham fiyat sık sık sıfırın altına iniyor; eşik 31 ve hatta 3 $ iken negatif saat %9–11'de kaldı. Eşik −12 $ olunca −12 ile 12 arası 0–12 $'a gerilir, gerçekteki gibi çok saat sıfıra yakın kapanır.
-- **Oyuncunun santralleri:** Rüzgâr üretimi değişmedi; kara ve deniz katsayısı (`LAND_K`, `SEA_K`) ve aylık rüzgâr deseni Avrupa'dakiyle aynı. Güneş üretimi zaten sahanın ışınımına ve bulut düzeltmesine bağlı. Yatırım katsayısı Avrupa'yla aynı (IRENA Avrupa ortalaması).
+- **Oyuncunun santralleri:** Rüzgâr üretimi değişmedi; kara ve deniz katsayısı (`LAND_K`, `SEA_K`) ve aylık rüzgâr deseni Avrupa'dakiyle aynı. İskandinavya'nın kara katsayısı aynı gün İsveç filosuna göre ayarlandı (aşağıda). Güneş üretimi zaten sahanın ışınımına ve bulut düzeltmesine bağlı. Yatırım katsayısı Avrupa'yla aynı (IRENA Avrupa ortalaması).
 - **Kurallar:**
   - `EU` kümesi: kredi faizi ve izin süresi bütün Avrupa piyasalarında aynı.
   - Kurumlar vergisi piyasaya göre: Fransa %25 (PwC; %3,3 sosyal katkı 763 bin €'yu aşan vergide, 2025 ek vergisi 1 milyar € ciroda), İtalya %27,8 (IRES + IRAP; Tax Foundation/OECD), İskandinavya %20,6 (İsveç, PwC).
@@ -1088,8 +1088,51 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
 
 ## Sınırlamalar
 - **Tek fiyat bölgesi.** İtalya (7 bölge), İsveç (4), Norveç (5) gerçekte birden çok fiyat bölgesidir. İsveç'te kuzey (SE1–SE2, rüzgârın çoğu) güneyden çok ucuzdur; oyunda hepsi SE3 fiyatı.
-- **Kaba rüzgâr filosu.** Filo ağırlıkları yaklaşık. İskandinavya'nın oyun filosu kapasite faktörü düşük (0,11): noktalar orman ve iç bölgelerde. Bu yalnızca fiyattaki rüzgâr endeksini ölçekler, santral üretimini değiştirmez.
+- **Kaba rüzgâr filosu.** Filo ağırlıkları yaklaşık. İskandinavya'nın oyun filosu kapasite faktörü önce düşüktü (0,11): noktalar orman ve iç bölgelerde (aşağıda düzeltildi).
 - **Fransa'nın derin negatifleri yok.** Oyunda en düşük −34 ile −52 $, gerçekte −133 $.
 - **Tek yıl.** Hedefler 2025'e dayanır; Fransa'nın 2025 kışı gaz fiyatıyla pahalıydı.
 - **Destekler yalnızca Avrupa piyasasında.** Fransa'nın tamamlayıcı ödeme (complément de rémunération) ve İtalya'nın teşvikleri modellenmedi.
+
+## İskandinavya'nın rüzgâr üretimi (12.11.2026, vaka satırları sırasında)
+- **Sorun:** Vaka çalışması için İsveç'in iç kesiminde (63°K 16,5°D) kurulan RES'in kapasite faktörü %3–4 çıktı. Oyunun İsveç filosu (`wind_fleet.cjs` SE, 4 bölge) %9.
+  - Neden: Ormanlık iç bölgelerde rüzgâr verisi ve orman düşüşü (−0,5 m/s) ile Avrupa'nın kara katsayısı (0,83, Almanya'ya göre) rüzgârı az gösteriyordu.
+  - Fransa ve İtalya'da sorun yok: filo %30 ve %19, örnek santraller %26–32 ve %13–24.
+- **Gerçek:** İsveç kara rüzgârı 2025 (ENTSO-E A75):
+  - Üretim: Ocak–Haziran 21,06 TWh, Temmuz–Eylül 6,83 TWh, Ekim–Aralık 5,89 TWh.
+  - Ekim–Aralık dönemlerinin yalnızca %49,4'ü yayımlanmış; tamamı ~11,9 TWh (tahmin). Yıllık ~39,8 TWh.
+  - Kurulu güç 18,0 GW (ENTSO-E, Ocak 2025). Filo kapasite faktörü **~%25**.
+- **Değişiklik (`world.js` `LAND_K.K`):** 0,83 → 1,3. Ölçümler (240 gün, tek koşu ±%10):
+
+| Katsayı | Filo kapasite faktörü |
+|---|---|
+| 0,83 | %8,7 |
+| 1,0 | %13 |
+| 1,15 | %21 |
+| 1,25 | %22 |
+| 1,3 | %24–27 (3 koşu, ortalama %25) |
+
+  - Finlandiya ve Norveç için ayrı veri toplanmadı; aynı katsayı.
+  - Deniz katsayısı değişmedi.
+  - Eski kayıtta İskandinavya'daki kara sahalarının rüzgâr puanı yeniden hesaplanır (piyasa v3).
+- **Fiyat yeniden ayarlandı:**
+  - Filonun kapasite oranı 0,11'den ~0,31'e çıktı; `FLEET_CF.K` 0,31.
+  - Rüzgâr endeksi değiştiği için `wk` 2,0 → 2,8, `mult` 0,89 → 0,99.
+  - Sonuç (4 koşu): fiyat 52,5 (50,6–53,9) $/MWh, güneş oranı 0,575, rüzgâr oranı 0,85 (0,78–0,88), negatif saat %5,3 (3,5–8,3).
+  - Rüzgâr oranı hedefin (0,761) üstünde kaldı: `wk` 3,4'te de 0,83. Ham fiyat sıfırın altına inince eşik (−12 $) sıfıra yakın fiyata çevirdiği için rüzgârlı saatlerin fiyatı daha fazla düşmüyor.
+
+## Vaka çalışması: Fransa, İtalya, İskandinavya (`sim_year` 120 gün × 8 koşu, piyasa başına)
+| Santral | KF | Satış fiyatı ($/MWh) | LCOE (%10) | NPV (M$) | IRR | Spot: borç / özsermaye IRR'ı |
+|---|---|---|---|---|---|---|
+| GES Fransa (Gard, 43,9°K 4,3°D) | %12,6–15,3 (kısıntı %16–33) | 52,8–56,2 | 75,8–91,8 | −1,85 ile −1,25 | %2,9–5,4 | %32–42 / %1,6–4,1 |
+| RES Fransa (Hauts-de-France, 50,0°K 2,8°D) | %26,1–31,6 | 62,9–66,2 | 55,9–67,8 | −0,16 ile +1,04 | %9,6–12,5 | %53–61 / %10,0–14,5 |
+| GES İtalya (Puglia, 41,3°K 15,9°D) | %17,6–19,7 (kısıntı yok) | 103,0–108,0 | 58,9–65,8 | +2,85 ile +3,48 | %19,1–21,0 | %75 / %35,1–40,5 |
+| RES İtalya (Puglia, 41,2°K 15,6°D) | %13,1–24,3 | 118,3–126,2 | 72,6–135,2 | −0,66 ile +4,90 | %8,3–21,2 | %52–75 / %7,7–40,4 |
+| GES İskandinavya (Skåne, 55,8°K 13,4°D) | %9,8–12,3 (kısıntı %9–22) | 32,2–38,1 | 93,9–118,2 | −3,10 ile −2,83 | < %0 | %12–17 / yok |
+| RES İskandinavya (Västra Götaland, 58,3°K 12,8°D) | %14,4–27,1 | 37,7–47,0 | 65,2–122,5 | −4,46 ile −2,96 | < %0 | %7–27 / yok |
+
+- **Piyasa ortalamaları:** Fransa 69,0 (67,4–70,4), İtalya 130,4 (128,9–131,5), İskandinavya 52,1 (50,1–53,9) $/MWh.
+- **İtalya GES'i** 2025'in gaz ağırlıklı fiyatı sürerse çok kârlı. Güneşin değeri yüksek (yakalama oranı 0,79–0,83; gerçek IT-SUD 0,824), negatif fiyat yok.
+- **İtalya RES'inin aralığı geniş.** Koşularda santral farklı noktalara kuruldu (dağlık arazi); kapasite faktörü %13–24.
+- **İskandinavya'da hiçbiri yatırımını geri ödemiyor.** Ortalama fiyat düşük, güneş ve rüzgâr bunun altında satıyor.
+- **İskandinavya RES sahası:** Rüzgâr filosunun ortalamasına (%25) en yakın bölge seçildi. Kuzey İsveç (Norrbotten) ve güneydoğu kıyısı (Skåne–Kalmar) oyunda %40–49 verir; ama fiyat bütün İsveç için SE3'ünkü.
 
