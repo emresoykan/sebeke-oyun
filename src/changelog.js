@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-12.4",t:"2027 bayramları",items:[
+    "2027 bayram tarihleri Diyanet takvimine göre: Ramazan Bayramı 9–11 Mart, Kurban Bayramı 16–19 Mayıs (arifeler dahil Türkiye'de fiyat düşük). Oyun bunları önceden bir gün geç gösteriyordu.",
+    "Sonraki yıllarda bayramlar ay evresinden hesaplanır: 2024–2027'nin 8 bayramının 7'sini doğru veriyor (önceki hesap 3'ünü)."]},
   {id:"2026-11-12.3",t:"İskandinavya'da rüzgâr",items:[
     "İsveç, Finlandiya ve Norveç'teki rüzgâr santralleri gerçeğe göre çok az üretiyordu (oyunda İsveç filosu ~%9, gerçekte ~%25; ENTSO-E 2025). Ormanlık iç bölgelerde rüzgâr az gösteriliyordu. Artık filo ~%25; kayıtlı oyunda bu piyasadaki sahaların rüzgâr değeri yeniden hesaplandı.",
     "İskandinavya'nın fiyatı buna göre yeniden ayarlandı (ortalama ~52 $/MWh); rüzgârlı saatlerde fiyat daha çok düşüyor. Vaka çalışmasına Fransa, İtalya ve İskandinavya'dan örnek santraller eklendi."]},

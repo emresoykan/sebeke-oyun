@@ -36,9 +36,11 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   // gün tipi çarpanı: bugünün tipi pazar gibi çarpılınca gece aynı, güneşli saatler düşük
   const k0=dty.dayType(cal.CAL.date).k,dt0=T.dt[k0];T.cap=1e9;T.dt[k0]={...(dt0||{}),d:Math.min(0.95,((dt0&&dt0.d)||0)+0.3)};const e=run();if(dt0)T.dt[k0]=dt0;else delete T.dt[k0];T.cap=out.cap.cap;
   out.dt={night:night.every(h=>Math.abs(e.T[h]-a.T[h])<1e-9),day:[9,10,11,12].every(h=>e.T[h]<a.T[h]||e.T[h]===0),k0};
-  // bilinen tarihler (2026 bayramları EPİAŞ fiyat düşüşüyle doğrulandı); 2027 tablolu hicri takvimden
+  // bilinen tarihler (2026 bayramları EPİAŞ fiyat düşüşüyle doğrulandı; 2027 Diyanet takvimi)
   const ty=s=>{const x=dty.dayType(new Date(s+"T00:00:00Z"));return x.k+(x.n?":"+x.n:"");};
-  out.types=["2026-03-19","2026-03-20","2026-03-23","2026-05-30","2026-10-29","2026-11-07","2026-11-08","2026-11-10","2027-03-10"].map(ty);
+  out.types=["2026-03-19","2026-03-20","2026-03-23","2026-05-30","2026-10-29","2026-11-07","2026-11-08","2026-11-10","2027-03-08","2027-05-19","2027-05-20"].map(ty);
+  // ay hesabı bilinen yılların bayramlarını tutturuyor mu (KNOWN'a bakmadan)
+  const iso=t=>new Date(t).toISOString().slice(5,10);out.calc=[2024,2025,2026,2027].flatMap(y=>dty.calcStarts(y).map(x=>x.k+y+(iso(x.t)===dty.KNOWN[y][x.k]?"":"✗"+iso(x.t))));
   const f=n=>dty.dayFactor(new Date(n+"T00:00:00Z"),T.dt);out.fac={sun12:f("2026-11-08")[12],sat12:f("2026-11-07")[12],sun2:f("2026-11-08")[2],bay2:f("2026-03-20")[2],wd:f("2026-11-10")};
   // tarih etiketi ve bayram haberi (bir kez)
   (await imp("ui/hud.js")).render();out.lbl=document.getElementById("dayLbl").textContent;
@@ -54,7 +56,8 @@ ok(r.dem.up&&r.dem.sameE,"aylık talep düzeyi (dem) Türkiye'nin gece fiyatın�
 ok(r.sm.night&&r.sm.sunny,`aylık güneş çarpanı (sm) gece fiyatını değiştirmez, ${r.sm.n} güneşli saatte fiyatı düşürür`);
 ok(r.nz.T==null&&r.nz.E==null,"saatlik rastgele oynama Türkiye'de de diğer piyasalar gibi (±%8; günden güne farkı gün tipi açıklar)");
 ok(r.dt.night&&r.dt.day,`gün tipi çarpanı (bugünün tipi ${r.dt.k0}, gündüz düşüşü 0,3 artırılınca): gece fiyatı aynı, 09–12 düşük`);
-ok(r.types.join("|")==="bay:Ramazan Bayramı arifesi|bay:Ramazan Bayramı|wd|bay:Kurban Bayramı|hol:Cumhuriyet Bayramı|sat|sun|wd|bay:Ramazan Bayramı",`gün tipleri: ${r.types.join(", ")}`);
+ok(r.types.join("|")==="bay:Ramazan Bayramı arifesi|bay:Ramazan Bayramı|wd|bay:Kurban Bayramı|hol:Cumhuriyet Bayramı|sat|sun|wd|bay:Ramazan Bayramı arifesi|bay:Kurban Bayramı|wd",`gün tipleri: ${r.types.join(", ")}`);
+ok(r.calc.length===8&&r.calc.filter(x=>x.includes("✗")).length<=1,`bayram hesabı (ay evresi) 2024–2027 bayramlarında ${r.calc.filter(x=>!x.includes("✗")).length}/8 doğru: ${r.calc.join(" ")}`);
 ok(r.fac.sun12<r.fac.sat12&&r.fac.sat12<1&&r.fac.sun2===1&&r.fac.bay2<1&&r.fac.wd===null,`çarpan: pazar öğle ${r.fac.sun12.toFixed(2)} < cumartesi ${r.fac.sat12.toFixed(2)} < 1; pazar gece 1; bayram gece ${r.fac.bay2.toFixed(2)}; iş günü yok`);
 ok(/ (Paz|Pzt|Sal|Çar|Per|Cum|Cmt)( · |$)/.test(r.lbl),`tarih etiketinde gün adı: "${r.lbl}"`);
 ok(r.bnews===1,`bayram haberi bir kez (${r.bnews})`);
