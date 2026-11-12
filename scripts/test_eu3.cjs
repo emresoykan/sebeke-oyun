@@ -25,7 +25,7 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
     names:["R","L","K"].map(k=>cfg.REG[k].n),h2:["R","L","K"].every(k=>sp.h2Grant(k)&&sp.h2Grant(k).kg===sp.h2Grant("E").kg),
     floor:{L:cfg.priceFloor("L",-30),K5:cfg.priceFloor("K",-5),K40:cfg.priceFloor("K",-40),R0:cfg.priceFloor("R",0),R50:cfg.priceFloor("R",50)}};
   // rüzgâr: kara ve deniz katsayısı, aylık desen Avrupa'dakiyle aynı (oyuncunun RES üretimi değişmez)
-  out.wind={land:["R","L","K"].every(k=>w.LAND_K[k]===w.LAND_K.E&&w.SEA_K[k]===w.SEA_K.E),
+  out.wind={land:["R","L"].every(k=>w.LAND_K[k]===w.LAND_K.E)&&w.LAND_K.K===1.3&&["R","L","K"].every(k=>w.SEA_K[k]===w.SEA_K.E),
     season:["R","L","K"].every(k=>Math.abs(wx.windSeason(48,3,k,"FRA")-wx.windSeason(48,3,"E","FRA"))<1e-12)};
   // sahalar ve bir gün
   const mk=(id,[la,lo],k)=>{S.sites[id]={...w.describe(la,lo),permit:"ok"};ac.build(id,k,"std");return S.plants.find(q=>q.t===id&&q.k===k);};
@@ -44,23 +44,24 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   out.gloss=(gl.TERMS.find(t=>t.k==="tbolge")||{}).g||"";
   // eski kayıt (piyasa v1): Fransa, İtalya ve İsveç'teki sahalar, santraller ve rakip sahaları Avrupa'dan taşınır; Almanya kalır
   const old=JSON.parse(JSON.stringify(S));old.mktV=1;["R","L","K"].forEach(k=>delete old.mSolar[k]);
+  const seWind=S.sites.SE.wind;old.sites.SE.wind=0.05; // eski katsayıyla düşük rüzgâr puanı
   for(const id of ["FR","IT","SE"]){old.sites[id].mreg="E";old.sites[id].reg="E";old.plants.filter(q=>q.t===id).forEach(q=>q.m="E");}
   old.rivals={x:{cash:0,sites:[{lat:46.5,lon:2.5,k:"ges",mw:5,mreg:"E"},{lat:41.3,lon:16,k:"ges",mw:5,mreg:"E"},{lat:52.6,lon:8.4,k:"res",mw:5,mreg:"E"}]}};
   localStorage.setItem(cfg.SAVE_KEY,JSON.stringify(old));const L=st.load();
   out.mig={sites:["FR","IT","SE","DE"].map(id=>L.sites[id].mreg).join(""),reg:["FR","IT","SE"].map(id=>L.sites[id].reg).join(""),
     plants:["FR","IT","SE"].map(id=>L.plants.find(q=>q.t===id).m).join(""),riv:L.rivals.x.sites.map(x=>x.mreg).join(""),
-    ms:["R","L","K"].every(k=>L.mSolar[k]===cfg.REG[k].s0),v:L.mktV,log:/Fransa, İtalya ve İskandinavya/.test(L.log[0]||""),fresh:st.fresh().mktV};
+    ms:["R","L","K"].every(k=>L.mSolar[k]===cfg.REG[k].s0),v:L.mktV,log:L.log.some(x=>/Fransa, İtalya ve İskandinavya/.test(x)),wind:[L.sites.SE.wind,seWind],windLog:/İskandinavya'da rüzgâr/.test(L.log[0]||""),fresh:st.fresh().mktV};
   return out;},u);
 const f1=x=>x==null?"–":x.toFixed(1),pc=x=>x==null?"–":(x*100).toFixed(2)+"%";
 ok(r.m.FR==="R"&&r.m.IT==="L"&&r.m.SE==="K"&&r.m.NO==="K"&&r.m.FI==="K"&&r.m.DK==="E"&&r.m.DE==="E"&&r.m.ES==="I",`ülkelerin piyasası: ${JSON.stringify(r.m)}`);
 ok(r.cfg.markets&&r.cfg.names.join()==="Fransa,İtalya,İskandinavya",`piyasalar tanımlı, Avrupa kurallarında, yatırım katsayısı Avrupa'yla aynı (${r.cfg.names.join(", ")})`);
 ok(r.cfg.h2,"Avrupa Hidrojen Bankası desteği üç piyasada da");
 ok(r.cfg.floor.L===0&&r.cfg.floor.K5>=0&&r.cfg.floor.K40<0&&r.cfg.floor.R0<0&&r.cfg.floor.R50===50,`fiyat tabanı: İtalya'da negatif yok, İskandinavya'da eşik sıfırın altında, Fransa'da Almanya gibi (${JSON.stringify(r.cfg.floor)})`);
-ok(r.wind.land&&r.wind.season,"rüzgâr üretimi Avrupa'dakiyle aynı (kara/deniz katsayısı ve aylık desen)");
+ok(r.wind.land&&r.wind.season,"rüzgâr: Fransa ve İtalya Avrupa'nın katsayısında, İskandinavya 1,3 (İsveç filosu); deniz katsayısı ve aylık desen Avrupa'yla aynı");
 ok(r.day.R&&r.day.L&&r.day.K&&r.day.last&&r.day.m.join("")==="RLK",`bir gün: fiyatlar hesaplandı (ortalama R ${f1(r.day.avg[0])}, L ${f1(r.day.avg[1])}, K ${f1(r.day.avg[2])} $/MWh), santrallerin piyasası ${r.day.m.join("")}`);
 ok(r.tax.def.join()==="25,27.8,20.6"&&r.tax.src&&(r.tax.r0==null||(r.tax.r1===r.tax.r0&&r.tax.r2>=r.tax.r0)),`kurumlar vergisi: Fransa %25, İtalya %27,8, İskandinavya %20,6; Fransa santrali yalnızca Fransa vergisinden etkilenir (IRR ${pc(r.tax.r0)} → taxE 0: ${pc(r.tax.r1)} → taxR 0: ${pc(r.tax.r2)})`);
 ok(r.panel,"panel: Fransa'da kara GES desteği tanımlı değil (Almanya'nın primi yalnızca Almanya'da)");
 ok(/Fransa/.test(r.gloss)&&/İskandinavya/.test(r.gloss),"sözlükte teklif bölgesi açıklaması güncel");
-ok(r.mig.sites==="RLKE"&&r.mig.reg==="RLK"&&r.mig.plants==="RLK"&&r.mig.riv==="RLE"&&r.mig.ms&&r.mig.v===2&&r.mig.log&&r.mig.fresh===2,`eski kayıt taşındı: ${JSON.stringify(r.mig)}`);
+ok(r.mig.sites==="RLKE"&&r.mig.reg==="RLK"&&r.mig.plants==="RLK"&&r.mig.riv==="RLE"&&r.mig.ms&&r.mig.v===3&&r.mig.log&&r.mig.fresh===3&&r.mig.wind[0]===r.mig.wind[1]&&r.mig.windLog,`eski kayıt taşındı, İskandinavya sahasının rüzgârı yeniden hesaplandı: ${JSON.stringify(r.mig)}`);
 ok(!errs.length,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));
 await b.close();console.log(fails?`\n${fails} başarısız`:"\nhepsi geçti");process.exit(fails?1:0);})();

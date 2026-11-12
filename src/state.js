@@ -12,7 +12,7 @@ export let S, D={};
 export function setS(v){S=v;}
 export function setD(v){D=v;}
 
-export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{mktV:2,money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,coastV:1,loans:[],mv:3,ob:{}};}
+export function fresh(){const m={};MARKETS.forEach(k=>m[k]=REG[k].s0);return{mktV:3,money:START_MONEY,topup1:1,dayNo:1,hour:0,sites:{},nextId:1,plants:[],mSolar:m,hist:[],last:null,log:[],won:false,sel:{id:null,lat:38.6,lon:33.3},stats:freshStats(),ach:[],mi:0,evDone:0,evCool:0,evHist:[],mods:[],debt:0,tut:3,resV:3,coastV:1,loans:[],mv:3,ob:{}};}
 export function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);if(o&&o.plants&&o.sites)return migrate(o);}}catch(e){}return fresh();}
 // Ekipman ve profil öncesi kayıtlar: santraller standart kademe sayılır, istatistikler sıfırdan başlar
 // (görev numarası boş bırakılır; main.js tamamlanmış görevleri ödülsüz geçer)
@@ -61,6 +61,11 @@ function migrate(o){o.plants.forEach(p=>{if(!p.q)p.q="std";});if(!o.topup1){o.mo
     const msg=[["R","Fransa"],["L","İtalya"],["K","İskandinavya"]].filter(([k])=>n[k]).map(([k,nm])=>`${nm}'da ${n[k]}`).join(", ");
     if(msg)o.log=[`Gün ${o.dayNo}: Fransa, İtalya ve İskandinavya ayrı piyasalar oldu; ${msg} sahan artık o piyasanın fiyatından satar.`,...(o.log||[])].slice(0,8);
     o.mktV=2;}
+  // piyasa v3 (12.11.2026): İskandinavya'nın kara rüzgâr katsayısı İsveç filosuna göre ayarlandı (world.js LAND_K.K); bu
+  // piyasadaki kara sahalarının rüzgâr puanı bir kez yeniden hesaplanır
+  if(o.mktV<3){let n=0;Object.values(o.sites).forEach(t=>{if(t.mreg!=="K"||t.sea)return;const d=describe(t.lat,t.lon);if(d&&d.wind!=null&&d.wind!==t.wind){t.wind=d.wind;n++;}});
+    if(n)o.log=[`Gün ${o.dayNo}: İskandinavya'da rüzgâr üretimi gerçek filo verisine (İsveç, ENTSO-E 2025) göre ayarlandı; ${n} sahanın rüzgâr değeri arttı.`,...(o.log||[])].slice(0,8);
+    o.mktV=3;}
   o.resV=3;return o;}
 let frozen=false;
 // Kayıt dosyası yüklenirken sayfa yenilenene kadar mevcut durum kaydın üzerine yazılmaz

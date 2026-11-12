@@ -340,9 +340,10 @@ Oyunda biyokütle santrali "Biyokütle" diye yazılır, "BES" kısaltması kulla
 - **Model:** Her piyasanın kendi fiyat düzeyi, güneş ve rüzgâr etkisi, rüzgâr filosu (bölge ağırlıkları yaklaşık, doğrulanmadı) ve temsilî noktası var.
   - İskandinavya'da aylık talep düzeyi SE3'ün 2025 aylık fiyat oranından (Haziran 0,45, Şubat 1,48). Negatif fiyat eşiği sıfırın altında: çok saat sıfıra yakın kapanır.
   - İtalya'da negatif fiyat yok.
-  - Oyuncunun rüzgâr üretimi değişmedi (kara/deniz katsayısı ve aylık desen Avrupa'dakiyle aynı).
+  - Fransa ve İtalya'da oyuncunun rüzgâr üretimi değişmedi (kara/deniz katsayısı ve aylık desen Avrupa'dakiyle aynı). İskandinavya'da kara katsayısı İsveç filosuna göre 1,3 (ENTSO-E 2025 ~%25; önce oyunda %9); fiyat buna göre yeniden ayarlandı (rüzgâr oranı 0,85, hedef 0,761).
 - **Kurallar:** Kredi, izin ve Avrupa Hidrojen Bankası desteği üç piyasada da geçerli; kurumlar vergisi piyasaya göre. Britanya'nın kapasite ödemesi ve offshore fark sözleşmesi ile Almanya'nın piyasa primi yalnızca Avrupa'da: Fransa, İtalya ve İskandinavya'daki offshore artık Britanya'nın fark sözleşmesini almaz.
-- **Kayıt:** Eski kayıtta bu ülkelerdeki sahalar, santraller ve rakip sahaları yeni piyasalara taşınır (piyasa v2).
+- **Kayıt:** Eski kayıtta bu ülkelerdeki sahalar, santraller ve rakip sahaları yeni piyasalara taşınır (piyasa v2); İskandinavya'daki kara sahalarının rüzgârı yeniden hesaplanır (v3).
+- **Vaka çalışması** (8'er koşu, %10 WACC): GES IRR'ı Fransa %2,9–5,4, İtalya %19,1–21,0 (2025'in gaz ağırlıklı fiyatı sürerse), İsveç'te yatırımını geri ödemiyor; RES Fransa %9,6–12,5, İtalya %8,3–21,2 (saha farkı), İsveç'te geri ödemiyor. Vaka sayfası 5. bölüm ve `docs/kalibrasyon.md`.
 - **Sınırlamalar:** İtalya, İsveç ve Norveç gerçekte birden çok fiyat bölgesidir (İsveç'te SE1 ile SE4 arasında büyük fark); oyunda her biri tek fiyat. Fransa'nın negatif fiyatları oyunda sığ (en düşük −34 ile −52 $; gerçekte −133 $). Ayrıntı: `docs/kalibrasyon.md`, "Avrupa'nın kalanı".
 - Test: `node scripts/test_eu3.cjs <adres>` (ülkelerin piyasası, fiyat tabanı, Avrupa kuralları ve hidrojen desteği, vergi, rüzgâr üretiminin değişmemesi, bir günlük fiyat, eski kaydın taşınması, panel notu, sözlük).
 

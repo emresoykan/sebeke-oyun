@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-12.3",t:"İskandinavya'da rüzgâr",items:[
+    "İsveç, Finlandiya ve Norveç'teki rüzgâr santralleri gerçeğe göre çok az üretiyordu (oyunda İsveç filosu ~%9, gerçekte ~%25; ENTSO-E 2025). Ormanlık iç bölgelerde rüzgâr az gösteriliyordu. Artık filo ~%25; kayıtlı oyunda bu piyasadaki sahaların rüzgâr değeri yeniden hesaplandı.",
+    "İskandinavya'nın fiyatı buna göre yeniden ayarlandı (ortalama ~52 $/MWh); rüzgârlı saatlerde fiyat daha çok düşüyor. Vaka çalışmasına Fransa, İtalya ve İskandinavya'dan örnek santraller eklendi."]},
   {id:"2026-11-12.2",t:"Fransa, İtalya, İskandinavya",items:[
     "Avrupa beş piyasa oldu: Fransa, İtalya ve İskandinavya (Norveç, İsveç, Finlandiya, İzlanda) ayrıldı. Her biri ENTSO-E 2025 verisine göre ayarlı: Fransa ~69 $/MWh (bahar öğlelerinde sık negatif fiyat), İtalya ~130 $/MWh (gaz ağırlıklı, negatif fiyat yok; güneş değerini koruyor), İskandinavya ~52 $/MWh (yazın bahar seli ve rüzgârla ucuz, kışın pahalı). Danimarka Almanya'ya yakın fiyatla Avrupa'da kaldı.",
     "Bu ülkelerdeki sahaların kendi piyasasının fiyatından satar; kayıtlı oyunda taşındı. Kredi, izin ve Avrupa Hidrojen Bankası desteği aynı; kurumlar vergisi Fransa %25, İtalya %27,8, İskandinavya %20,6 (İsveç). Rüzgâr santralinin üretimi değişmedi.",
