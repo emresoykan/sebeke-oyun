@@ -7,7 +7,9 @@
 // Kullanım: npx vite --port 5182 &  sonra  node scripts/calib_market.cjs http://localhost:5182/sebeke-oyun/ [gün=120] [koşu=4]
 const { chromium } = require("playwright");
 const URL0=process.argv[2]||"http://localhost:5182/sebeke-oyun/",DAYS=+(process.argv[3]||120),RUNS=+(process.argv[4]||4);
-const PL={T:[["ges",37.9,32.5],["res",40.05,26.6]],E:[["ges",48.8,11.5],["res",53.4,9.6]],I:[["ges",39.5,-3.5],["res",41.7,-4.3]],N:[["ges",35.0,-106.0],["res",42.0,-94.5]]};
+const PL={T:[["ges",37.9,32.5],["res",40.05,26.6]],E:[["ges",48.8,11.5],["res",53.4,9.6]],I:[["ges",39.5,-3.5],["res",41.7,-4.3]],R:[["ges",43.9,4.3],["res",50.0,2.8]],L:[["ges",41.3,16.0],["res",41.2,15.6]],K:[["ges",56.0,13.6],["res",63.0,16.5]],N:[["ges",35.0,-106.0],["res",42.0,-94.5]]};
+// CALIB_MK="E,R" yalnızca bu piyasaları yazar (hepsi yine simüle edilir)
+const MKS=process.env.CALIB_MK?process.env.CALIB_MK.split(","):Object.keys(PL);
 // CALIB_REGS='{"E":{"mult":1.8,"neg":{"t":20,"z":40,"a":0.01,"p":2,"f":-283}},"I":{"sk":4}}' REG alanlarını, CALIB_FCF='{"E":0.2}' FLEET_CF'yi koda dokunmadan değiştirir (deneme için)
 const REGS=process.env.CALIB_REGS?JSON.parse(process.env.CALIB_REGS):null,FCF=process.env.CALIB_FCF?JSON.parse(process.env.CALIB_FCF):null;
 (async()=>{const b=await chromium.launch();const all=[];
@@ -29,9 +31,9 @@ for(let run=0;run<RUNS;run++){const p=await b.newPage();const errs=[];p.on("page
     out.riv=Object.values(S.rivals||{}).reduce((a,o)=>a+o.sites.reduce((b,s)=>b+s.mw,0),0);
     return out;},[PL,DAYS,REGS,FCF]);
   all.push(r);const f=(x,d=2)=>x==null?"–":x.toFixed(d);
-  console.log(`koşu ${run+1}: `+["T","E","I","N"].map(mk=>{const m=r[mk];return `${mk} fiyat ${f(m.avg,1)} rüzgâr ${f(m.wind)} güneş ${f(m.solar)} filoKF ${f(m.fleetCF,3)} endeks ${f(m.windH)}${m.negShare?` neg %${f(m.negShare*100,1)} ort ${f(m.negAvg,1)} ortanca ${f(m.negMed,1)} min ${f(m.negMin,0)}`:""} | `+Object.entries(m.plants).map(([id,v])=>`${id} ${f(v.cap)}`).join(" ");}).join(" || ")+` rakip ${r.riv} MW${errs.length?" HATA "+errs.join("|"):""}`);
+  console.log(`koşu ${run+1}: `+MKS.map(mk=>{const m=r[mk];return `${mk} fiyat ${f(m.avg,1)} rüzgâr ${f(m.wind)} güneş ${f(m.solar)} filoKF ${f(m.fleetCF,3)} endeks ${f(m.windH)}${m.negShare?` neg %${f(m.negShare*100,1)} ort ${f(m.negAvg,1)} ortanca ${f(m.negMed,1)} min ${f(m.negMin,0)}`:""} | `+Object.entries(m.plants).map(([id,v])=>`${id} ${f(v.cap)}`).join(" ");}).join(" || ")+` rakip ${r.riv} MW${errs.length?" HATA "+errs.join("|"):""}`);
   await p.close();}
 await b.close();
 const S=(mk,g)=>{const v=all.map(r=>g(r[mk])).filter(x=>x!=null);return v.length?`${(v.reduce((a,b)=>a+b,0)/v.length).toFixed(3)} (${Math.min(...v).toFixed(3)}–${Math.max(...v).toFixed(3)})`:"–";};
-for(const mk of ["T","E","I","N"])console.log(`${mk}: fiyat ${S(mk,m=>m.avg)} | rüzgâr oranı ${S(mk,m=>m.wind)} | güneş oranı ${S(mk,m=>m.solar)} | filo KF ${S(mk,m=>m.fleetCF)} | rüzgâr endeksi ${S(mk,m=>m.windH)} | negatif saat payı ${S(mk,m=>m.negShare)} | negatif ortalama ${S(mk,m=>m.negAvg)}`);
+for(const mk of MKS)console.log(`${mk}: fiyat ${S(mk,m=>m.avg)} | rüzgâr oranı ${S(mk,m=>m.wind)} | güneş oranı ${S(mk,m=>m.solar)} | filo KF ${S(mk,m=>m.fleetCF)} | rüzgâr endeksi ${S(mk,m=>m.windH)} | negatif saat payı ${S(mk,m=>m.negShare)} | negatif ortalama ${S(mk,m=>m.negAvg)}`);
 })();

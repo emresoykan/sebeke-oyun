@@ -113,7 +113,7 @@ export function windSeason(lat,lon,m,a3){
   if(WIND_MONTH[a3])return monthly(WIND_MONTH[a3]);
   const w=(Math.sign(lat)||1)*DECL/23.44; // +1 yaz ortası, −1 kış ortası (o yarımküre için)
   if(lat>34&&lat<41.5&&lon>22&&lon<30.5)return 1+0.22*Math.max(0,w)-0.04*Math.max(0,-w);
-  if(m==="E")return monthly(E_MONTH);
+  if(m==="E"||m==="R"||m==="L"||m==="K")return monthly(E_MONTH); // Fransa, İtalya, İskandinavya: ayrılmadan önceki desen
   if(m==="I")return monthly(WIND_MONTH.ESP); // Portekiz: İspanya'nın aylık deseni
   return Math.abs(lat)>30?1-0.12*w:1;
 }

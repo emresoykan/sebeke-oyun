@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-12.2",t:"Fransa, İtalya, İskandinavya",items:[
+    "Avrupa beş piyasa oldu: Fransa, İtalya ve İskandinavya (Norveç, İsveç, Finlandiya, İzlanda) ayrıldı. Her biri ENTSO-E 2025 verisine göre ayarlı: Fransa ~69 $/MWh (bahar öğlelerinde sık negatif fiyat), İtalya ~130 $/MWh (gaz ağırlıklı, negatif fiyat yok; güneş değerini koruyor), İskandinavya ~52 $/MWh (yazın bahar seli ve rüzgârla ucuz, kışın pahalı). Danimarka Almanya'ya yakın fiyatla Avrupa'da kaldı.",
+    "Bu ülkelerdeki sahaların kendi piyasasının fiyatından satar; kayıtlı oyunda taşındı. Kredi, izin ve Avrupa Hidrojen Bankası desteği aynı; kurumlar vergisi Fransa %25, İtalya %27,8, İskandinavya %20,6 (İsveç). Rüzgâr santralinin üretimi değişmedi.",
+    "Britanya'nın offshore fark sözleşmesi artık yalnızca Avrupa piyasasında: Fransa, İtalya ve İskandinavya kıyılarındaki yeni offshore santralleri almaz."]},
   {id:"2026-11-12",t:"Avrupa'da güneş üretimi",items:[
     "Almanya ve Kuzey Avrupa'daki güneş santralleri gerçeğe göre çok az üretiyordu. Oyunun havası bu bölgelerde ortalama bulutu iklim değerinin üstünde tutuyordu; yıllık ışınım zaten haritadan geldiği için bulut iki kez sayılıyordu. Artık yıllık üretim ışınım haritasını izliyor, hava yalnızca gün gün dalgalanma yaratıyor.",
     "Almanya'daki GES'in kapasite faktörü (kısıntı öncesi) %7–8'den ~%12–14'e çıktı; negatif fiyatlı saatlerde kısılan üretim ~%35'ten ~%30'a indi. Fransa'nın güneyinde üretim ~%17, İspanya'da ~%3 arttı. Türkiye'de değişiklik yok (Konya ~%21; Türkiye güneş filosu 2025'te %21,5).",

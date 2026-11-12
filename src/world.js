@@ -85,13 +85,13 @@ const sunOf=(lat,lon)=>Math.max(0.12,Math.min(1,ghiAt(lat,lon)/9));
 //      tepelere kurulur; veri bunu ortaladığı için katsayı 1'in biraz üstünde.
 //  DEU: ENTSO-E aylık üretim ve kurulu güç (~%20); ESP: ENTSO-E (~%20,5). Veri bu ülkelerde gerçeğin üstünde kalıyor.
 //  Avrupa'nın diğer ülkeleri ve Portekiz DEU ve ESP ortalaması; diğer piyasalar kalibre edilmedi (1).
-export const LAND_K={T:1.02,E:0.83,I:0.83}, LAND_KC={DEU:0.73,ESP:0.925};
+export const LAND_K={T:1.02,E:0.83,I:0.83,R:0.83,L:0.83,K:0.83}, LAND_KC={DEU:0.73,ESP:0.925};
 const landK=(m,a3)=>LAND_KC[a3]??LAND_K[m]??1;
 const windScore=v=>Math.max(0.05,Math.min(0.95,(v-4)/8.5));
 const windOf=(lat,lon,ter,coastNear,m,a3)=>windScore(landK(m,a3)*(wind100At(lat,lon)+(ter==="m"?0.8:0)+(coastNear?0.3:0)-(ter==="f"?0.5:0)));
 // Deniz: SEA_K aynı yöntemle; E: Almanya deniz üstü rüzgârı (ENTSO-E 2025, ~%31); İberya denizleri de aynı katsayı. Diğer
 // piyasalarda veri yok (1).
-export const SEA_K={E:0.725,I:0.725};
+export const SEA_K={E:0.725,I:0.725,R:0.725,L:0.725,K:0.725};
 const seaWindOf=(lat,lon,m)=>windScore((SEA_K[m]??1)*wind100At(lat,lon));
 function landTer(c,lat,lon){const park=protectedAt(lat,lon);return {park,ter:(c.m==="G"||c.m==="X")?"i":park?"p":(terrainAt(lon,lat)||(forestRule(c.a3,lat)?"f":"pl"))};}
 // Potansiyel haritası için: şehir araması olmadan yalnızca puanlar. Kurulamayan yer (buz örtüsü, Antarktika, derin deniz,

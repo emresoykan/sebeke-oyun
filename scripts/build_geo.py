@@ -20,6 +20,11 @@ def market(p):
     if a3 in ("RUS",): return "A"          # eski haritada Rusya'nın büyük kısmı Asya piyasasındaydı
     if a3 in ("CYP",): return "E"
     if a3 in ("IRN",): return "M"
+    # Avrupa'nın ayrı piyasaları (src/config.js REG): İberya (11.11.2026); Fransa, İtalya, İskandinavya (12.11.2026)
+    if a3 in ("ESP", "PRT"): return "I"
+    if a3 in ("FRA", "MCO"): return "R"
+    if a3 in ("ITA", "SMR", "MLT"): return "L"
+    if a3 in ("NOR", "SWE", "FIN", "ISL", "FRO", "ALD"): return "K"
     if cont == "Europe": return "E"
     if cont == "North America": return "N"
     if cont == "South America": return "S"

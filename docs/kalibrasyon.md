@@ -1015,3 +1015,81 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
 - **Hava modeli değişirse tablo yeniden üretilmeli** (`gen_cloudk.cjs`).
 - **Gün uzunluğu enleme göre değişmez.** Gün eğrisi (`CAL.rise`, `CAL.len`) tek bir takvimden gelir; yüksek enlemde yaz günü kısa, kış günü uzun sayılır. Öğle yüksekliği enleme göre değiştiği için yıllık toplam etkisi sınırlı; ayrı modellenmedi.
 
+# Avrupa'nın kalanı: Fransa, İtalya, İskandinavya (12.11.2026)
+
+## Neden
+- **Avrupa piyasası Almanya'ya göre ayarlıydı.** Fransa, İtalya ve İskandinavya'daki santraller Almanya'nın fiyatından satıyordu.
+- **Gerçek fiyatlar çok farklı.** 2025 ortalaması Fransa'da 61, İtalya'da 115, İsveç'te (SE3) 46 €/MWh; Almanya'da 89. Güneşin ve rüzgârın değeri de farklı.
+
+## Veri (ENTSO-E 2025, MCP `capture_price` ve `day_ahead_prices`)
+| | Fransa (FR) | İtalya (IT-SUD) | İskandinavya (SE3) |
+|---|---|---|---|
+| Ortalama fiyat | 61,07 €/MWh | 115,03 (IT-NORD 115,86) | 46,24 |
+| Güneş yakalama oranı | %59,1 | %82,4 (IT-NORD %81,9) | %58,9 |
+| Rüzgâr yakalama oranı | %89,6 | %95,0 | %76,1 |
+| Negatif saat | ~509 (%5,8) | 0 (en düşük fiyat 0) | ~344 (%3,9) |
+| En düşük | −118,01 € | 0 | −25,05 € |
+
+- **Sorgular:** İtalya rüzgârı ve İsveç tam yıl sorgusu zaman aşımına uğradığı için çeyrek ve yarı yıllarla alındı. Toplam, üretimle ağırlıklandı.
+- **Negatif saat:** Ekim–Aralık 15 dakikalık olduğu için o dönemin negatif dönem sayısı 4'e bölündü (Fransa 65 → ~16 saat, SE3 217 → ~54 saat).
+- **Kur:** 1,1306 $/€ (önceki Avrupa kalibrasyonuyla aynı).
+- **Temsilî bölge seçimi:**
+  - **İtalya:** Güney (IT-SUD). Yenilenebilir santrallerin çoğu güneyde; fiyat Kuzey'le neredeyse aynı.
+  - **İskandinavya:** İsveç SE3 (Stockholm). İsveç'in bölgeleri arasında fark büyük, SE3 ortadadır.
+  - **Danimarka:** DK1 fiyatı Almanya'ya yakın olduğu için Avrupa'da kaldı.
+  - **Baltık ülkeleri:** Avrupa'da kaldı.
+- **Aylık fiyat oranı** (günlük ortalamalardan; yıllık ortalamalar ENTSO-E değeriyle birebir):
+
+| Piyasa | Ocak…Aralık |
+|---|---|
+| Fransa | 1,675 / 2,008 / 1,257 / 0,691 / 0,317 / 0,667 / 0,949 / 0,891 / 0,57 / 0,942 / 0,968 / 1,125 |
+| İtalya | 1,236 / 1,304 / 1,03 / 0,862 / 0,809 / 0,99 / 0,979 / 0,962 / 0,958 / 0,905 / 0,988 / 0,999 |
+| SE3 | 1,195 / 1,477 / 1,001 / 0,74 / 0,852 / 0,449 / 0,715 / 0,942 / 1,029 / 1,237 / 1,37 / 1,025 |
+
+## Model (`config.js` `REG.R/L/K`, `MARKETS`, `EU`, `FLEET_CF`; `windfleet.js`; `wxsite.js` `MREF`)
+| | `mult` | `sk` | `wk` | `neg` (t, z, a, p, f) | `dem` | Temsilî nokta |
+|---|---|---|---|---|---|---|
+| Fransa (R) | 1,10 | 2,35 | 1,35 | 31, 43, 0,008, 2,4, −133 | yok | 46,5°K 2,5°D |
+| İtalya (L) | 1,74 | 1,35 | 0,65 | yok (taban 0) | yok | 41,5°K 15°D |
+| İskandinavya (K) | 0,89 | 3,9 | 2,0 | −12, 12, 0,14, 1,64, −28 | SE3 aylık oranı | 60°K 15°D |
+
+- **Rüzgâr filosu:** `gen_windfleet.cjs` ile üretildi. Bölge ağırlıkları yaklaşık kurulu güçtür (GW) ve doğrulanmadı.
+  - Fransa: 9 bölge ve 3 deniz üstü saha.
+  - İtalya: 8 bölge.
+  - İskandinavya: İsveç'te 4, Finlandiya'da 2, Norveç'te 2 bölge.
+  - `FLEET_CF`: 0,30 / 0,19 / 0,11 (kalibrasyon koşularının ortalaması).
+  - Türkiye'nin noktaları yeniden üretilmedi; kıyı düzeltmesinden sonra iki nokta kayıyordu, eski değerler korundu.
+- **Aylık talep düzeyi (`dem`):** Fransa'da denendi, kullanılmadı. 2025'in aylık fiyat oranı baharın güneş etkisini zaten içerdiği için güneş iki kez sayıldı: negatif saat %15–20'ye çıktı, rüzgâr oranı 1'in üstüne çıktı. İtalya'da gerek kalmadı. İskandinavya'da gerekli: Türkiye'ye göre ayarlı genel aylık talep yazın yüksektir, İsveç'te ise yazın fiyat düşer (bahar seli, düşük talep). Bu olmadan güneş oranı 1'in üstüne çıkıyordu.
+- **İskandinavya'nın negatif eşiği sıfırın altında:** Güneş ve rüzgâr etkisi oranları tutturacak kadar güçlü olunca ham fiyat sık sık sıfırın altına iniyor; eşik 31 ve hatta 3 $ iken negatif saat %9–11'de kaldı. Eşik −12 $ olunca −12 ile 12 arası 0–12 $'a gerilir, gerçekteki gibi çok saat sıfıra yakın kapanır.
+- **Oyuncunun santralleri:** Rüzgâr üretimi değişmedi; kara ve deniz katsayısı (`LAND_K`, `SEA_K`) ve aylık rüzgâr deseni Avrupa'dakiyle aynı. Güneş üretimi zaten sahanın ışınımına ve bulut düzeltmesine bağlı. Yatırım katsayısı Avrupa'yla aynı (IRENA Avrupa ortalaması).
+- **Kurallar:**
+  - `EU` kümesi: kredi faizi ve izin süresi bütün Avrupa piyasalarında aynı.
+  - Kurumlar vergisi piyasaya göre: Fransa %25 (PwC; %3,3 sosyal katkı 763 bin €'yu aşan vergide, 2025 ek vergisi 1 milyar € ciroda), İtalya %27,8 (IRES + IRAP; Tax Foundation/OECD), İskandinavya %20,6 (İsveç, PwC).
+  - Avrupa Hidrojen Bankası desteği üçünde de; ilk ihalenin kazananları İspanya, Portekiz ve İskandinavya'dan.
+  - Britanya'nın kapasite ödemesi ve offshore fark sözleşmesi ile Almanya'nın piyasa primi yalnızca Avrupa'da.
+- **Eski kayıt (piyasa v2):** Bu ülkelerdeki ve kıyılarındaki sahalar, santraller ve rakip sahaları taşınır; yeni piyasaların güneş doygunluğu başlangıç değerinden başlar.
+- **Harita verisi:** `scripts/build_geo.py` İberya'yı da içerecek şekilde güncellendi; önce yeniden üretilirse İspanya ve Portekiz Avrupa'ya dönerdi.
+
+## Ayar süreci (`calib_market`, 120 gün × 2 koşu, iki parametre seti paralel, 7 tur)
+- **İtalya** 3. turda tuttu. Aylık talepsiz tutuyor; aylık talep güneş oranını düşürüyordu.
+- **Fransa** ilk turlarda güneş oranı ile negatif saat birlikte hareket ediyordu; `sk` 2,3 ile 2,45 arasında güneş oranı 0,62'den 0,49'a, negatif saat %4,6'dan %8'e değişti (çok duyarlı). Derinlik `a` 0,0026'dan 0,008'e çıkarıldı (en düşük −15 $'dan −34 ile −52 $'a).
+- **İskandinavya'da** önce güneş oranı 1'in üstündeydi (aylık talep), sonra negatif saat yüksekti (eşik).
+
+## Sonuç (`calib_market` 120 gün × 4 koşu, son ayar)
+| | Gerçek 2025 | Oyun |
+|---|---|---|
+| Fransa: fiyat / güneş / rüzgâr / negatif saat | 69,0 $ / 0,591 / 0,896 / %5,8 | 68,2 (67,6–69,4) / 0,573 (0,54–0,61) / 0,905 / %6,3 (5,6–7,0) |
+| İtalya | 130,1 $ / 0,824 / 0,950 / 0 | 130,1 (129,7–130,6) / 0,818 / 0,965 / 0 |
+| İskandinavya | 52,3 $ / 0,589 / 0,761 / %3,9 | 52,5 (52,2–53,1) / 0,595 / 0,796 / %3,2 (2,5–3,9) |
+| Avrupa (kontrol) | 101 $ / 0,516 / 0,866 / %6,6 | 8 koşu: eski kod 102,2 / 0,54; yeni kod 100,7 / 0,49 |
+
+- **Avrupa ve İberya değişmedi.** Rakiplerin aday bölgelerinde Fransa, İtalya ve İskandinavya yok. Avrupa'nın 120 günlük ortalaması koşudan koşuya 97–106 $ arasında oynuyor; iki grup hedefin iki yanında.
+- **Türkiye ve Kuzey Amerika değişmedi** (67,1 ve 64,3 $/MWh).
+
+## Sınırlamalar
+- **Tek fiyat bölgesi.** İtalya (7 bölge), İsveç (4), Norveç (5) gerçekte birden çok fiyat bölgesidir. İsveç'te kuzey (SE1–SE2, rüzgârın çoğu) güneyden çok ucuzdur; oyunda hepsi SE3 fiyatı.
+- **Kaba rüzgâr filosu.** Filo ağırlıkları yaklaşık. İskandinavya'nın oyun filosu kapasite faktörü düşük (0,11): noktalar orman ve iç bölgelerde. Bu yalnızca fiyattaki rüzgâr endeksini ölçekler, santral üretimini değiştirmez.
+- **Fransa'nın derin negatifleri yok.** Oyunda en düşük −34 ile −52 $, gerçekte −133 $.
+- **Tek yıl.** Hedefler 2025'e dayanır; Fransa'nın 2025 kışı gaz fiyatıyla pahalıydı.
+- **Destekler yalnızca Avrupa piyasasında.** Fransa'nın tamamlayıcı ödeme (complément de rémunération) ve İtalya'nın teşvikleri modellenmedi.
+
