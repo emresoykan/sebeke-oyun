@@ -3,28 +3,51 @@
 // EPİAŞ 2024–2025 saatlik PTF, aynı ayın iş günlerine göre (docs/kalibrasyon.md "Hafta sonu ve tatil"): cumartesi gün
 // ortalaması 0,93 (öğle 10–15: 0,77), pazar 0,78 (0,40), tek günlük resmî tatil 0,85 (0,61), Ramazan ve Kurban Bayramı
 // arife dahil 0,52 (0,08).
-// Bayram tarihleri: 2024–2026 gerçek (EPİAŞ fiyat düşüşüyle de doğrulandı); sonraki yıllar tablolu hicri takvimden
-// hesaplanır (gerçek tarihten ±1 gün sapabilir). Ramazan Bayramı 3, Kurban Bayramı 4 gün; ikisinin de arifesi bayram sayılır.
+// Bayram tarihleri: 2024–2026 gerçek (EPİAŞ fiyat düşüşüyle de doğrulandı), 2027 Diyanet takvimi (Ağustos 2026'da açıklandı;
+// haberlerden). Sonraki yıllar ay hesabından: kavuşum (yeni ay) 12:00 UTC'den önceyse hicri ay ertesi gün, sonraysa iki gün
+// sonra başlar. Bu kural 2024–2027'nin 12 ay başının (Ramazan, Şevval, Zilhicce) 11'ini tutturur; gerçek tarihten ±1 gün
+// sapabilir. Ramazan Bayramı 3, Kurban Bayramı 4 gün; ikisinin de arifesi bayram sayılır.
 const FIXED={"01-01":"Yılbaşı","04-23":"23 Nisan","05-01":"1 Mayıs","05-19":"19 Mayıs","07-15":"15 Temmuz","08-30":"30 Ağustos",
   "10-29":"Cumhuriyet Bayramı"};
-const KNOWN={2024:{r:"04-10",k:"06-16"},2025:{r:"03-30",k:"06-06"},2026:{r:"03-20",k:"05-27"}};
+const KNOWN={2024:{r:"04-10",k:"06-16"},2025:{r:"03-30",k:"06-06"},2026:{r:"03-20",k:"05-27"},2027:{r:"03-09",k:"05-16"}};
 const DAY=864e5;
 const jdn=(y,m,d)=>{const a=Math.floor((14-m)/12),Y=y+4800-a,M=m+12*a-3;
   return d+Math.floor((153*M+2)/5)+365*Y+Math.floor(Y/4)-Math.floor(Y/100)+Math.floor(Y/400)-32045;};
-// tablolu (aritmetik) hicri takvim: Jülyen gün numarasından hicri yıl, ay, gün
+// tablolu (aritmetik) hicri takvim: Jülyen gün numarasından hicri ay ve gün (yalnızca ayı bulmak için; gerçekten 0–1 gün geç)
 function hijri(J){const z=J-1948440+10632,n=Math.floor((z-1)/10631),z2=z-10631*n+354;
   const j=Math.floor((10985-z2)/5316)*Math.floor((50*z2)/17719)+Math.floor(z2/5670)*Math.floor((43*z2)/15238);
   const z3=z2-Math.floor((30-j)/15)*Math.floor((17719*j)/50)-Math.floor(j/16)*Math.floor((15238*j)/43)+29;
   const m=Math.floor((24*z3)/709);return {m,d:z3-Math.floor((709*m)/24)};}
+// yeni ay (kavuşum) anı, ms UTC: Meeus, Astronomical Algorithms, 49. bölüm (birkaç dakika hassas)
+const RAD=Math.PI/180;
+function newMoon(k){const T=k/1236.85,E=1-0.002516*T-0.0000074*T*T,s=Math.sin;
+  const M=(2.5534+29.1053567*k-0.0000014*T*T)*RAD,Mp=(201.5643+385.81693528*k+0.0107582*T*T)*RAD,
+    F=(160.7108+390.67050284*k-0.0016118*T*T)*RAD,O=(124.7746-1.56375588*k+0.0020672*T*T)*RAD;
+  const J=2451550.09766+29.530588861*k+0.00015437*T*T-0.00000015*T**3+0.00000000073*T**4
+    -0.40720*s(Mp)+0.17241*E*s(M)+0.01608*s(2*Mp)+0.01039*s(2*F)+0.00739*E*s(Mp-M)-0.00514*E*s(Mp+M)+0.00208*E*E*s(2*M)
+    -0.00111*s(Mp-2*F)-0.00057*s(Mp+2*F)+0.00056*E*s(2*Mp+M)-0.00042*s(3*Mp)+0.00042*E*s(M+2*F)+0.00038*E*s(M-2*F)
+    -0.00024*E*s(2*Mp-M)-0.00017*s(O)-0.00007*s(Mp+2*M);
+  return (J-2440587.5)*DAY;}
+// hicri ayın ilk günü (UTC gece yarısı): t0'dan (tablolu tahmin) önceki 4 gün içindeki kavuşumdan
+export function monthStart(t0){
+  const k0=Math.round((t0/DAY-10957.5)/29.530588861);
+  for(const k of [k0-1,k0,k0+1]){const c=newMoon(k);if(c>t0-4*DAY&&c<t0+DAY){
+    const d=new Date(c),c0=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());return c0+(d.getUTCHours()<12?1:2)*DAY;}}
+  return t0;
+}
 const cache={};
 // bir takvim yılında başlayan bayramlar: [{k:"r"|"k", t: ilk günün zamanı (ms, UTC gece yarısı)}]
 function starts(y){
-  if(cache[y])return cache[y];const out=[];
-  if(KNOWN[y])for(const k of ["r","k"]){const [m,d]=KNOWN[y][k].split("-").map(Number);out.push({k,t:Date.UTC(y,m-1,d)});}
-  else for(let t=Date.UTC(y,0,1);t<Date.UTC(y+1,0,1);t+=DAY){const x=new Date(t),h=hijri(jdn(y,x.getUTCMonth()+1,x.getUTCDate()));
-    if(h.m===10&&h.d===1)out.push({k:"r",t});else if(h.m===12&&h.d===10)out.push({k:"k",t});}
-  return cache[y]=out;
+  if(cache[y])return cache[y];
+  return cache[y]=KNOWN[y]?["r","k"].map(k=>{const [m,d]=KNOWN[y][k].split("-").map(Number);return {k,t:Date.UTC(y,m-1,d)};}):calcStarts(y);
 }
+// hesapla (KNOWN'a bakmadan; test bilinen yıllarla karşılaştırır)
+export function calcStarts(y){const out=[];
+  for(let t=Date.UTC(y,0,1);t<Date.UTC(y+1,0,1);t+=DAY){const x=new Date(t),h=hijri(jdn(y,x.getUTCMonth()+1,x.getUTCDate()));
+    if(h.m===10&&h.d===1)out.push({k:"r",t:monthStart(t)});else if(h.m===12&&h.d===1)out.push({k:"k",t:monthStart(t)+9*DAY});}
+  return out;
+}
+export {KNOWN};
 const BAY={r:{n:"Ramazan Bayramı",len:3},k:{n:"Kurban Bayramı",len:4}};
 // tarih bir bayramın arifesi ya da günüyse {k, n, arife}
 export function bayramOf(d){

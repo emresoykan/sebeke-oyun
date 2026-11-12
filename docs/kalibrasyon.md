@@ -605,8 +605,11 @@ EPİAŞ PTF, saatlik, USD; 2024 ve 2025 (731 gün). Her gün, aynı ayın iş g�
 ## Model (`src/daytype.js`, `config.js` `REG.T.dt`)
 - **Gün tipi önceliği:** bayram, arife dahil (Ramazan 3, Kurban 4 gün) > resmî tatil > pazar > cumartesi > iş günü.
   - Sabit tatiller: 1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağustos, 29 Ekim.
-  - Bayramlar 2024–2026 için gerçek tarihlerle yazıldı.
-  - Sonraki yıllar tablolu (aritmetik) hicri takvimden hesaplanıyor. Bu algoritma 2024–2026'nın 6 bayramının 3'ünü doğru, 3'ünü bir gün geç verdi; yani sonraki yıllarda tarih ±1 gün sapabilir.
+  - Bayramlar 2024–2027 için gerçek tarihlerle yazıldı. 2027: Ramazan Bayramı 9–11 Mart (arife 8 Mart), Kurban Bayramı 16–19 Mayıs (arife 15 Mayıs). Kaynak: Diyanet'in Ağustos 2026'da açıkladığı 2027 dinî günler takvimi; Diyanet sitesine bu oturumdan erişilemedi, tarihler birbiriyle tutarlı haberlerden alındı (örneğin [Evrensel, 24.08.2026](https://www.evrensel.net/haber/5997565/diyanet-2027-takvimini-duyurdu-ramazan-ne-zaman-basliyor), [CNN Türk](https://www.cnnturk.com/turkiye/2027-resmi-tatiller-takvimi-dini-bayramlar-resmi-tatil-gunler-ne-zaman-2027-ramazan-ve-kurban-bayrami-tarihleri-3447415)).
+  - **Sonraki yıllar ay hesabından (12.11.2026).** Önceki tablolu (aritmetik) hicri takvim 2024–2027'nin 8 bayramının yalnızca 3'ünü tutturuyordu, 5'ini bir gün geç veriyordu. Diyanet ay başını gökbilimsel ölçütle belirler (hilal dünyanın bir yerinde görülebilir mi); takvim aritmetiği bunu izlemez.
+    - Yöntem: yeni ayın (kavuşum) anı Meeus'un algoritmasıyla (Astronomical Algorithms, 49. bölüm; birkaç dakika hassas) hesaplanır. Kavuşum 12:00 UTC'den önceyse hicri ay ertesi gün, sonraysa iki gün sonra başlar. Tablolu takvim yalnızca hangi ayın aranacağını bulmak için kullanılır.
+    - Doğrulama: 2024–2027'nin 12 ay başından (Ramazan, Şevval, Zilhicce) 11'i tuttu. Tutmayan 2024 Zilhicce'si: kavuşum 12:39 UTC, ay ertesi gün başladı. Eşik 12:00–12:40 arasında kesin değil (2026 Ramazan'ı 12:03'te iki gün sonra başladı); hilalin görünürlüğü yalnızca kavuşum saatine değil ayın konumuna da bağlı.
+    - Bayram olarak 8'in 7'si tuttu (tablolu takvim 3). Hesaplanan ilk bayram günleri: 2028 Ramazan 26 Şubat, Kurban 5 Mayıs; 2029 14 Şubat, 24 Nisan; 2030 4 Şubat, 13 Nisan. Diyanet bu yılları henüz açıklamadı; ±1 gün sapabilir.
 - **Fiyattaki talep terimi** gün tipine göre saat saat çarpılır: `a × (1 − d × w[saat])`.
   - `w`: gündüz ağırlığı; 07'de 0,3, 08–15'te 0,8–0,9, 16'da 0,6, 17'de 0,3, gece 0. Pazar deseninden alındı; öğle doymasın diye biraz yayvan.
   - `d` (gündüz derinliği): cumartesi 0,22, pazar 0,48, resmî tatil 0,30, bayram 0,6.
@@ -649,7 +652,7 @@ Parantezde EPİAŞ 2024–2025. Takvim her koşuda aynı olduğu için gün say�
 
 ## Sınırlamalar
 - **Tek günlük tatillerin etkisi çok oynak** (0,66–1,10). Oyun hepsine aynı derinliği verir.
-- **Bayram tarihleri 2027'den sonra ±1 gün sapabilir** (tablolu hicri takvim). Gerçek tarihler Diyanet takviminden eklenebilir.
+- **Bayram tarihleri 2028'den sonra ±1 gün sapabilir** (ay hesabı, 2024–2027'de 8 bayramın 7'sini tutturdu). Diyanet her yılın takvimini bir önceki yılın yazında açıklar; açıklanınca `KNOWN`'a eklenmeli.
 - **Köprü günleri ve yarım günler yok.** Bayramın hafta sonuna bitişik günleri, idari izinler ve 28 Ekim gibi yarım günler ayrıca modellenmedi; 28 Ekim veride de etkisiz.
 - **Gün tipi yalnızca Türkiye'de.** Avrupa ve Kuzey Amerika'da hafta sonu etkisi rastgele oynamanın içinde kaldı.
 
