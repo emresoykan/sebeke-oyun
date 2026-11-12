@@ -6,6 +6,8 @@
 // bir oyun simülasyonudur. Yeni sistemler tohumlu rastgele sayıyla doğar; böylece gün başındaki 24 saatlik tahmin,
 // gün içindeki gerçekleşmeyle aynı sistemleri izler. DOM'a bağımlı değildir (Node'da da çalışır).
 
+import { CLOUDK } from "./data/cloudk.js";
+
 const KM=111.2, RAD=Math.PI/180;
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
@@ -96,7 +98,7 @@ export function sampleWx(wx,lat,lon,base){
 }
 
 // Sahanın iklim tabanı: bulutluluk enleme ve güneş potansiyeline, ortalama rüzgâr hızı rüzgâr potansiyeline bağlı
-export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),speed:(4+8.5*(t.wind||0.4))*windSeason(t.lat,t.lon,t.mreg,t.a3)}); // ortalama rüzgâr hızı 4-12 m/s
+export const siteBase=t=>({cloud:clamp(0.5*climoCloud(t.lat)+0.5*(0.88-0.8*(t.solar||0.5)),0.04,0.85),k:cloudK(t.lat,t.lon),speed:(4+8.5*(t.wind||0.4))*windSeason(t.lat,t.lon,t.mreg,t.a3)}); // ortalama rüzgâr hızı 4-12 m/s
 // Mevsimsel rüzgâr: orta enlemlerde kış rüzgârlı, yaz sakin; Ege'de yaz poyrazı (meltem/etezyen) tersine yazın güçlenir
 // Aylık rüzgâr hızı çarpanı (Ocak…Aralık, ay ortası; arada doğrusal; yıllık ortalama 1). Her ülkenin 2025 aylık rüzgâr
 // üretimi ve kurulu gücünden hesaplanan aylık kapasite faktörüne göre ayarlandı (docs/kalibrasyon.md):
@@ -119,7 +121,18 @@ export function windSeason(lat,lon,m,a3){
 export const isCold=(lat,mountain)=>{const w=(Math.sign(lat)||1)*DECL/23.44,a=Math.abs(lat);return w<-0.35&&(a>39.5||(mountain&&a>33))||(mountain&&w<0.1&&a>38);};
 // Güneş: sahanın güneş potansiyeli zaten iklimi içerir; hava bu ortalamanın etrafında dalgalanma yaratır.
 // Göreli açıklık = o anki açık gökyüzü oranı / sahanın ortalama açıklığı (en fazla %25 üstü)
-export const sunRel=(w,b)=>Math.min(1.25,clearFactor(w.c)/clearFactor(b.cloud));
+export const sunRelRaw=(w,b)=>Math.min(1.25,clearFactor(w.c)/clearFactor(b.cloud));
+// Güneş paneli üretimi için: göreli açıklık, hava modelinin o noktadaki uzun dönem ortalamasına bölünür (b.k, data/cloudk.js).
+// Geçen sistemler bulutu iklim değerinin etrafında simetrik değiştirmez: alçak basınçların sık geçtiği orta enlemlerde
+// (Avrupa) ortalama açıklık ~%30 düşük, yüksek basınçların hâkim olduğu çöl kuşağında ~%10 yüksek kalır. Yıllık ışınım
+// zaten haritadan geldiği için bölmeden yıllık üretim haritayı izler, hava yalnızca gün gün dalgalanma yaratır
+export const sunRel=(w,b)=>sunRelRaw(w,b)/(b.k||1);
+// hava modelinin üretim ağırlıklı ortalama açıklığı (CLOUDK ızgarası, çift doğrusal ara değer; boylam çevrimli)
+export function cloudK(lat,lon){
+  const G=CLOUDK,n=G.k.length,m=G.k[0].length,y=clamp((lat-G.lat0)/G.dlat,0,n-1),x=(((lon-G.lon0)/G.dlon)%m+m)%m;
+  const i=Math.min(n-2,Math.floor(y)),j=Math.floor(x),fy=y-i,fx=x-j,j2=(j+1)%m,r=G.k[i],s=G.k[i+1];
+  return (r[j]*(1-fx)+r[j2]*fx)*(1-fy)+(s[j]*(1-fx)+s[j2]*fx)*fy;
+}
 // Açık gökyüzü oranı: tam kapalı havada panel üretimi ~%20'ye iner
 export const clearFactor=c=>1-0.8*c;
 // Türbin güç eğrisi: 3 m/s'de başlar, 12 m/s'de tam güç, 25 m/s üstünde güvenlik için durur (kesme hızı)

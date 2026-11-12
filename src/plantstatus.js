@@ -5,7 +5,7 @@ import { eqOf } from "./equipment.js";
 import { siteWx } from "./wxsite.js";
 import { sunRel, powerCurve } from "./weather.js";
 import { production, PV } from "./market.js";
-import { PHS_H, CSP, PV_GAIN } from "./config.js";
+import { PHS_H, CSP, PV_GAIN, PV_K } from "./config.js";
 import { CAL, noonAmp } from "./calendar.js";
 
 export function plantStatus(id){
@@ -19,7 +19,7 @@ export function plantStatus(id){
     if(p.down){out[p.k]={f:0,down:true};return;}
     const q=eqOf(p).perf;
     if(p.k==="res"||p.k==="off"||p.k==="flo"){const v=w.hub;out[p.k]={f:clamp(powerCurve(v)*q,0,1),cut:v>25};}
-    else if(PV.includes(p.k)){const sn=o.snowDays>0,f=clamp((o.solar||0)*shape(h)*noonAmp(o.lat,CAL.decl)*sunRel(w,w.base)*1.24*q*(sn?0.25:1)*(PV_GAIN[p.k]||1),0,1);out[p.k]={f,curt:f>0&&M.price[h]<=0,snow:sn};}
+    else if(PV.includes(p.k)){const sn=o.snowDays>0,f=clamp((o.solar||0)*shape(h)*noonAmp(o.lat,CAL.decl)*sunRel(w,w.base)*PV_K*q*(sn?0.25:1)*(PV_GAIN[p.k]||1),0,1);out[p.k]={f,curt:f>0&&M.price[h]<=0,snow:sn};}
     else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;out.hes={run:e>0,f:e/p.mw};}
     else if(p.k==="jes")out.jes={f:Math.min(0.96,(o.well??1)*q*0.92)};
     else if(p.k==="bes"){const e=p.plan?p.plan[h]:0;out.bes={run:e>0};}
