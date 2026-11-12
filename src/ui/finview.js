@@ -25,7 +25,7 @@ function rows(){
     const batt=NET.includes(p.k),short=f.days<SHORT_DAYS;
     return `<tr><td>${name}</td>
       <td>${batt?"—":pct(f.cf)}${short?' <small class="mut" title="Kısa veri dönemi: mevsimsellik yıllık değeri saptırabilir">*</small>':""}</td>
-      <td>${batt?`${M$(f.net1)}/yıl`:`${nf(f.price,0)} $/MWh`}${f.prem!=null?`<br><small class="mut" title="Almanya piyasa primi (EEG), MWh başına; ${EEG_Y} yıl">+${nf(f.prem,1)} prim</small>`:""}</td>
+      <td>${batt?`${M$(f.net1)}/yıl`:`${nf(f.price,0)} $/MWh`}${f.prem!=null?`<br><small class="mut" title="Piyasa primi (Almanya EEG; Fransa'da iki yönlü tamamlayıcı ödeme), MWh başına; ${EEG_Y} yıl">${f.prem<0?"−"+nf(-f.prem,1)+" geri ödeme":"+"+nf(f.prem,1)+" prim"}</small>`:""}</td>
       <td>${M$(f.capex)}</td>
       <td>${f.lcoe==null?"—":nf(f.lcoe,0)+" $/MWh"}</td>
       <td class="${f.npv<0?"neg":"pos"}">${M$(f.npv)}</td>

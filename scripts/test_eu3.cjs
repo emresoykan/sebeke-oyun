@@ -38,9 +38,9 @@ const r=await p.evaluate(async(u)=>{const imp=n=>import(u.find(x=>new URL(x).pat
   const irr=(q,m)=>{const x=fin.projectFinance(q,"spot",m);return x.wait?null:x.projIrr;};
   const r0=irr(gR,"R"),e0=irr(gE,"E");fin.setPf("taxE",0);const r1=irr(gR,"R");fin.setPf("taxR",0);const r2=irr(gR,"R");fin.resetPf();
   out.tax={def:["R","L","K"].map(k=>fin.PF_DEFAULT["tax"+k]),src:["R","L","K"].every(k=>!!fin.PF_SRC["tax"+k]),r0,r1,r2,e0};
-  // panel: Fransa GES sekmesinde Almanya'nın primi yok, "tanımlı değil" notu
+  // panel: Fransa GES sekmesinde Almanya'nın primi yok; Fransa'nın kendi (isteğe bağlı) tamamlayıcı ödemesi
   S.sel={id:"FR",lat:S.sites.FR.lat,lon:S.sites.FR.lon};pn.renderPanel();const bt=document.querySelector('#panel button[data-a="tab"][data-k="ges"]');if(bt)bt.click();
-  out.panel=document.getElementById("panel").innerText.includes("Fransa için oyunda kara GES desteği tanımlı değil");
+  out.panel=document.getElementById("panel").innerText;out.panel=out.panel.includes("Tamamlayıcı ödeme (Fransa)")&&!out.panel.includes("Piyasa primi (Almanya)");
   out.gloss=(gl.TERMS.find(t=>t.k==="tbolge")||{}).g||"";
   // eski kayıt (piyasa v1): Fransa, İtalya ve İsveç'teki sahalar, santraller ve rakip sahaları Avrupa'dan taşınır; Almanya kalır
   const old=JSON.parse(JSON.stringify(S));old.mktV=1;["R","L","K"].forEach(k=>delete old.mSolar[k]);
@@ -60,7 +60,7 @@ ok(r.cfg.floor.L===0&&r.cfg.floor.K5>=0&&r.cfg.floor.K40<0&&r.cfg.floor.R0<0&&r.
 ok(r.wind.land&&r.wind.season,"rüzgâr: Fransa ve İtalya Avrupa'nın katsayısında, İskandinavya 1,3 (İsveç filosu); deniz katsayısı ve aylık desen Avrupa'yla aynı");
 ok(r.day.R&&r.day.L&&r.day.K&&r.day.last&&r.day.m.join("")==="RLK",`bir gün: fiyatlar hesaplandı (ortalama R ${f1(r.day.avg[0])}, L ${f1(r.day.avg[1])}, K ${f1(r.day.avg[2])} $/MWh), santrallerin piyasası ${r.day.m.join("")}`);
 ok(r.tax.def.join()==="25,27.8,20.6"&&r.tax.src&&(r.tax.r0==null||(r.tax.r1===r.tax.r0&&r.tax.r2>=r.tax.r0)),`kurumlar vergisi: Fransa %25, İtalya %27,8, İskandinavya %20,6; Fransa santrali yalnızca Fransa vergisinden etkilenir (IRR ${pc(r.tax.r0)} → taxE 0: ${pc(r.tax.r1)} → taxR 0: ${pc(r.tax.r2)})`);
-ok(r.panel,"panel: Fransa'da kara GES desteği tanımlı değil (Almanya'nın primi yalnızca Almanya'da)");
+ok(r.panel,"panel: Fransa'da Almanya'nın primi yok, kendi tamamlayıcı ödemesi var");
 ok(/Fransa/.test(r.gloss)&&/İskandinavya/.test(r.gloss),"sözlükte teklif bölgesi açıklaması güncel");
 ok(r.mig.sites==="RLKE"&&r.mig.reg==="RLK"&&r.mig.plants==="RLK"&&r.mig.riv==="RLE"&&r.mig.ms&&r.mig.v===3&&r.mig.log&&r.mig.fresh===3&&r.mig.wind[0]===r.mig.wind[1]&&r.mig.windLog,`eski kayıt taşındı, İskandinavya sahasının rüzgârı yeniden hesaplandı: ${JSON.stringify(r.mig)}`);
 ok(!errs.length,"sayfa hatası yok"+(errs.length?": "+errs.join(" | "):""));

@@ -52,6 +52,29 @@
 //  Yalnızca Almanya'daki sahalar (saha ülkesi DEU). Rüzgârda saha kalitesine göre düzeltme (Referenzertragsmodell)
 //   uygulanmaz. Gerçekte ihaleyle kazanılır; oyunda ortalama ödül değeriyle kazanılmış sayılır. Başlangıç desteği (alım
 //   garantisi) sürerken prim birikmez: iki destek üst üste binmez.
+//
+// Fransa tamamlayıcı ödemesi (complément de rémunération; arazi GES ve kara RES, 20 ekonomik yıl; katılım isteğe bağlı):
+//  Ödül değeri (tarif): CRE PPE2 ihaleleri. Arazi GES: 2025 turlarının ağırlıklı ortalaması ~79,3 €/MWh (basın özeti; CRE
+//   kararlarında 7. tur 79,31, 8. tur 77,99–79,48 €/MWh: kapsam farkı, dosyalar ya da kazananlar). Kara rüzgârı: 11. tur
+//   (Mayıs 2026 kapanış, CRE kararı 24.06.2026) 808 MW, ortalama 77,08 €/MWh (AFP; CRE kararındaki 82,99 bütün tekliflerin
+//   ortalaması). CRE sitesi bu oturumdan açılamadı; değerler ikincil kaynaklardan ve CRE belgelerinin arama özetlerinden.
+//   79,3 €/MWh ≈ 88,8 $/MWh; 77,08 €/MWh ≈ 86,3 $/MWh.
+//  İki yönlü, aylık: tamamlayıcı ödeme = üretim × (tarif − M0). M0, teknolojinin o ayki piyasa değeridir (spot fiyatların
+//   ülkedeki güneş ya da rüzgâr üretim profiliyle ağırlıklı ortalaması; Almanya'daki gibi). M0 tarifin üstündeyse üretici
+//   farkı geri öder (eksi tamamlayıcı ödeme; 2022'de üreticiler devlete milyarlarca avro geri ödedi; LF2024 ile üst sınır
+//   kaldırıldı). Gerçekte yıllık mahsup ve negatif fiyatlı saatler için ayrı prim var; oyunda aylık ödenir, negatif saatlerin
+//   üretimi sayılmaz (santral o saatte üretmez), ayrı prim yok.
+//
+// İtalya FER X (arazi GES ve kara RES, 20 ekonomik yıl; katılım isteğe bağlı):
+//  GSE FER X geçiş dönemi ilk ihalesi (sonuç Aralık 2025): güneş 7,7 GW, ortalama 56,825 €/MWh (tavan 62,675); rüzgâr 0,94
+//   GW, 72,851 €/MWh (tavan 77,738) (pv magazine, Argus, Mercom). Aynı ay sonuçlanan ikinci güneş turu (1,1 GW, 66,37 €/MWh)
+//   Çin dışı modül şartlı (NZIA) özel bir turdu; alınmadı. 56,825 €/MWh ≈ 63,6 $/MWh; 72,851 €/MWh ≈ 81,6 $/MWh.
+//  İki yönlü, saatlik fark sözleşmesi: referans saatlik bölgesel gün öncesi fiyatı (oyunda İtalya piyasasının saatlik fiyatı),
+//   sıfırın altına inerse sıfır sayılır. Offshore fark sözleşmesiyle aynı uzlaştırma. Alım garantisi sürerken uzlaştırılmaz.
+//
+// Katılım (Fransa ve İtalya): sahada o teknolojinin ilk bloğundan önce seçilir, sonra 20 yıl değişmez. Gerçekte ihaleye
+// teklif vermek isteğe bağlıdır; oyunda ortalama ihale fiyatıyla kazanılmış sayılır. Almanya'nın primi tek yönlü olduğu için
+// kendiliğinden verilir.
 import { S } from "./state.js";
 import { CAL } from "./calendar.js";
 import { ECON_YEAR } from "./loans.js";
@@ -90,24 +113,58 @@ export function cfdMigrate(){S.plants.forEach(p=>{if(p.cfd===undefined&&p.k==="o
 export const EEG={years:20,
   ges:{aw:Math.round(47.9*FX.eur*10)/10,src:"BNetzA güneş ihalesi (1 Temmuz 2026), ortalama ödül 4,79 ct/kWh"},
   res:{aw:Math.round(47.9*FX.eur*10)/10,src:"BNetzA kara rüzgârı ihalesi (1 Ağustos 2026), ortalama ödül 4,79 ct/kWh"}};
-// kurulumda piyasa primi hakkı: {aw: ödül değeri $/MWh, until: son oyun günü} ya da null (Almanya dışı ya da bu teknolojide yok)
-export function eegGrant(t,k){if(!t||t.mreg!=="E"||t.a3!=="DEU"||!EEG[k])return null;return {aw:EEG[k].aw,until:S.dayNo+Math.round(EEG.years*ECON_YEAR)};}
+// aylık piyasa primi olan ülkeler (saha ülkesi → piyasa, ad, yön, katılım). two: iki yönlü (piyasa değeri üstteyse geri ödeme);
+// opt: katılım oyuncunun seçimi (sahada ilk bloktan önce)
+export const PREM={
+  DEU:{m:"E",n:"Piyasa primi",cn:"Almanya",years:EEG.years,ges:EEG.ges,res:EEG.res},
+  FRA:{m:"R",n:"Tamamlayıcı ödeme",cn:"Fransa",two:true,opt:true,years:20,
+    ges:{aw:Math.round(79.3*FX.eur*10)/10,src:"CRE PPE2 arazi GES ihaleleri, 2025 turları ortalaması ~79,3 €/MWh"},
+    res:{aw:Math.round(77.08*FX.eur*10)/10,src:"CRE PPE2 kara rüzgârı 11. tur (Haziran 2026), ortalama 77,08 €/MWh"}}};
+// İtalya FER X: iki yönlü saatlik fark sözleşmesi (offshore CfD ile aynı uzlaştırma; z: referans sıfırın altına inmez)
+export const FERX={a3:"ITA",m:"L",cn:"İtalya",years:20,opt:true,
+  ges:{p:Math.round(56.825*FX.eur*10)/10,src:"GSE FER X ilk ihalesi (Aralık 2025), güneş ortalama 56,825 €/MWh"},
+  res:{p:Math.round(72.851*FX.eur*10)/10,src:"GSE FER X ilk ihalesi (Aralık 2025), rüzgâr ortalama 72,851 €/MWh"}};
+// sahanın bu teknoloji için destek sözleşmesine katılımı (Fransa, İtalya; sim dışı: panel düğmesi). İlk bloktan sonra değişmez
+export const supJoined=(t,k)=>!!(t&&t.supJ&&t.supJ[k]);
+export function supToggle(id,k){const o=S.sites[id];if(!o||S.plants.some(p=>p.t===id&&p.k===k))return false;
+  o.supJ=o.supJ||{};if(o.supJ[k])delete o.supJ[k];else o.supJ[k]=1;return true;}
+// sahada hangi destek seçilebilir: {kind:"prem"|"ferx", s: tablo} ya da null
+export function supScheme(t,k){if(!t||(k!=="ges"&&k!=="res"))return null;
+  const s=PREM[t.a3];if(s&&s.m===t.mreg&&s[k])return {kind:"prem",s};
+  if(t.a3===FERX.a3&&t.mreg===FERX.m&&FERX[k])return {kind:"ferx",s:FERX};return null;}
+// kurulumda piyasa primi hakkı: {aw: ödül değeri $/MWh, until: son oyun günü, two?, m: piyasa} ya da null (ülkede yok, bu
+// teknolojide yok, katılım seçilmedi)
+export function eegGrant(t,k){const c=supScheme(t,k);if(!c||c.kind!=="prem"||(c.s.opt&&!supJoined(t,k)))return null;
+  return {aw:c.s[k].aw,until:S.dayNo+Math.round(c.s.years*ECON_YEAR),m:c.s.m,...(c.s.two?{two:1}:{})};}
+// kurulumda FER X fark sözleşmesi: {p, until, z:1} ya da null
+export function ferxGrant(t,k){const c=supScheme(t,k);if(!c||c.kind!=="ferx"||!supJoined(t,k))return null;
+  return {p:FERX[k].p,until:S.dayNo+Math.round(FERX.years*ECON_YEAR),z:1};}
 export const eegOn=p=>!!(p.eeg&&S.dayNo<=p.eeg.until);
-// eski kayıtlar (sim.js newDay): hakkı hiç belirlenmemiş uygun santral bugünden başlar
+// primin bu piyasa değerindeki tutarı ($/MWh; iki yönlüde eksi olabilir)
+export const premOf=(g,v)=>g.two?g.aw-v:Math.max(0,g.aw-v);
+// eski kayıtlar (sim.js newDay): hakkı hiç belirlenmemiş uygun santral bugünden başlar (katılım seçimli ülkelerde seçim yoksa almaz)
 export function eegMigrate(){S.plants.forEach(p=>{if(p.eeg===undefined&&EEG[p.k]&&S.sites[p.t])p.eeg=eegGrant(S.sites[p.t],p.k);});}
 const monthKey=()=>CAL.date.getUTCFullYear()*12+CAL.date.getUTCMonth();
-const eegAcc=()=>S.eeg&&S.eeg.mo!=null?S.eeg:(S.eeg={mo:monthKey(),s:[0,0],w:[0,0]});
-// gün sonu: Avrupa piyasasının bugünkü saatlik fiyatları ayın piyasa değeri birikimine eklenir (güneş profili ve rüzgâr filosu ağırlığı)
-export function eegDay(M){const z=eegAcc();M.price.forEach((x,h)=>{const s=M.sunP?M.sunP[h]||0:0,w=M.fleet?M.fleet[h]||0:1;z.s[0]+=x*s;z.s[1]+=s;z.w[0]+=x*w;z.w[1]+=w;});}
-// teknolojinin piyasa değeri ($/MWh): biriken ay (varsayılan) ya da verilen birikim; veri yoksa null
-export const eegMV=(k,z=S.eeg)=>{const a=z&&(k==="ges"?z.s:z.w);return a&&a[1]>0?a[0]/a[1]:null;};
-// ay değiştiyse biten ayı kapatır: her santralin biriken uygun üretimine prim. Dönüş: [{p,q: MWh,mv,x: $}] (ödeme sim.js'te)
-// ya da null (ay sürüyor). Son ayın özeti S.eegLast'te (panel)
+// ayın piyasa değeri birikimleri piyasa başına: S.eeg[m]={mo,s,w}; son kapanan ay S.eegLast[m]={mo,mv}. Eski kayıtta tek
+// birikim (Avrupa) vardı
+export const PM_MK=["E","R","L"];
+function eegAll(){
+  if(!S.eeg||S.eeg.mo!=null)S.eeg=S.eeg?{E:S.eeg}:{};
+  if(S.eegLast&&S.eegLast.mo!=null)S.eegLast={E:S.eegLast};
+  PM_MK.forEach(m=>{if(!S.eeg[m])S.eeg[m]={mo:monthKey(),s:[0,0],w:[0,0]};});return S.eeg;}
+// gün sonu: piyasanın bugünkü saatlik fiyatları ayın piyasa değeri birikimine eklenir (güneş profili ve rüzgâr filosu ağırlığı)
+export function eegDay(M,m="E"){const z=eegAll()[m];if(!z||!M)return;M.price.forEach((x,h)=>{const s=M.sunP?M.sunP[h]||0:0,w=M.fleet?M.fleet[h]||0:1;z.s[0]+=x*s;z.s[1]+=s;z.w[0]+=x*w;z.w[1]+=w;});}
+// teknolojinin piyasa değeri ($/MWh): piyasanın biriken ayı (varsayılan) ya da verilen birikim; veri yoksa null
+export const eegMV=(k,z="E")=>{if(typeof z==="string")z=S.eeg&&S.eeg.mo==null?S.eeg[z]:z==="E"?S.eeg:null;const a=z&&(k==="ges"?z.s:z.w);return a&&a[1]>0?a[0]/a[1]:null;};
+// son kapanan ayın özeti: {mo, mv:{ges,res}} ya da null
+export const eegLastOf=m=>{const L=S.eegLast;if(!L)return null;return L.mo!=null?(m==="E"?L:null):L[m]||null;};
+// ay değiştiyse biten ayı kapatır: her santralin biriken uygun üretimine prim (iki yönlüde eksi olabilir). Dönüş:
+// [{p,q: MWh,mv,x: $,m}] (ödeme sim.js'te) ya da null (ay sürüyor). Son ayın özeti S.eegLast[m]'de (panel)
 export function eegSettle(){
-  const z=eegAcc();if(z.mo===monthKey())return null;
-  const mv={ges:eegMV("ges",z),res:eegMV("res",z)},out=[];
-  S.plants.forEach(p=>{const q=p.eegE||0;if(!q)return;p.eegE=0;const v=mv[p.k];if(v==null||!p.eeg)return;
-    out.push({p,q,mv:v,x:q*Math.max(0,p.eeg.aw-v)});});
-  S.eegLast={mo:z.mo,mv};S.eeg={mo:monthKey(),s:[0,0],w:[0,0]};
+  const all=eegAll();if(all.E.mo===monthKey())return null;
+  const mv={},out=[];PM_MK.forEach(m=>{const z=all[m];mv[m]={ges:eegMV("ges",z),res:eegMV("res",z)};});
+  S.plants.forEach(p=>{const q=p.eegE||0;if(!q)return;p.eegE=0;if(!p.eeg)return;const m=p.eeg.m||"E",v=mv[m]&&mv[m][p.k];if(v==null)return;
+    out.push({p,q,mv:v,x:q*premOf(p.eeg,v),m});});
+  const L={};PM_MK.forEach(m=>{L[m]={mo:all[m].mo,mv:mv[m]};all[m]={mo:monthKey(),s:[0,0],w:[0,0]};});S.eegLast=L;
   return out;
 }

@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-12.5",t:"Fransa ve İtalya'da destek",items:[
+    "Fransa ve İtalya'daki GES ve kara RES artık isteğe bağlı, iki yönlü bir destek sözleşmesine katılabilir. Saha panelinde, o teknolojinin ilk bloğundan önce \"Sözleşmeye katıl\" seç; sonra 20 ekonomik yıl değişmez.",
+    "Fransa (tamamlayıcı ödeme, CRE ihaleleri): tarif güneşte 88,8, rüzgârda 86,3 $/MWh. Ay sonunda güneşin ya da rüzgârın o ayki piyasa değeri tarifin altındaysa farkı alırsın, üstündeyse geri ödersin.",
+    "İtalya (FER X, GSE ilk ihalesi): güneş 63,6, rüzgâr 81,6 $/MWh, saatlik fark sözleşmesi. Bugünkü İtalya fiyatlarıyla geri ödetir ama fiyat düşerse korur; karar senin. Panel geçen ayın piyasa değerini ve MWh başına farkı gösterir."]},
   {id:"2026-11-12.4",t:"2027 bayramları",items:[
     "2027 bayram tarihleri Diyanet takvimine göre: Ramazan Bayramı 9–11 Mart, Kurban Bayramı 16–19 Mayıs (arifeler dahil Türkiye'de fiyat düşük). Oyun bunları önceden bir gün geç gösteriyordu.",
     "Sonraki yıllarda bayramlar ay evresinden hesaplanır: 2024–2027'nin 8 bayramının 7'sini doğru veriyor (önceki hesap 3'ünü)."]},

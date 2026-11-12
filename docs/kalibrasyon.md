@@ -1139,3 +1139,68 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
 - **İskandinavya'da hiçbiri yatırımını geri ödemiyor.** Ortalama fiyat düşük, güneş ve rüzgâr bunun altında satıyor.
 - **İskandinavya RES sahası:** Rüzgâr filosunun ortalamasına (%25) en yakın bölge seçildi. Kuzey İsveç (Norrbotten) ve güneydoğu kıyısı (Skåne–Kalmar) oyunda %40–49 verir; ama fiyat bütün İsveç için SE3'ünkü.
 
+
+# Fransa ve İtalya destekleri (12.11.2026)
+
+## Neden
+Fransa ve İtalya ayrı piyasa olunca Avrupa'da destek alan yalnızca Almanya (EEG piyasa primi) ve Britanya'nın offshore fark sözleşmesi kaldı. İki ülkenin de güncel ihale sonuçları kamuya açık.
+
+## Veri
+**Fransa: CRE PPE2 ihaleleri, tamamlayıcı ödeme (complément de rémunération), 20 yıl.**
+- **Arazi GES:** 2025 turlarının ağırlıklı ortalaması ~79,3 €/MWh (basın özeti, [les-energies-renouvelables.eu](https://www.les-energies-renouvelables.eu/article/actualites/energies/eolien-europeen-solaire-asiatique-le-vrai-bilan-des-aides-detat-913/)).
+  - CRE kararlarının arama özetlerinde 7. tur (Şubat 2025) 79,31, 8. tur (Temmuz 2025) 77,99 €/MWh ("dosyalar"). Kasım 2025 kararı 8. tur için 79,48 veriyor.
+  - Fark büyük olasılıkla kapsamdan (bütün geçerli dosyalar ya da kazananlar); doğrulanamadı.
+- **Kara rüzgârı:** 11. tur (Mayıs 2026 kapanış, CRE kararı 24.06.2026), 808 MW, 39 kazanan, ortalama 77,08 €/MWh (AFP, [Connaissance des Énergies](https://www.connaissancedesenergies.org/afp/eolien-terrestre-competitif-le-renouvellement-des-parcs-risque-de-vite-trouver-ses-limites-260708)).
+  - CRE kararındaki 82,99 €/MWh bütün tekliflerin ortalaması.
+  - Önceki turlar ~86–88 €/MWh.
+- **Mekanizma:** Ödeme aylık hesaplanır: üretim × (tarif − M0). M0, teknolojinin o ayki piyasa değeridir: spot fiyatların ulusal üretim profiliyle ağırlıklı ortalaması ([photovoltaique.info](https://www.photovoltaique.info/fr/tarifs-dachat-et-autoconsommation/dispositifs-de-soutien-public/complement-de-remuneration/)).
+  - M0 tarifin üstündeyse ödeme eksiye döner ve üretici farkı geri öder.
+  - 2022'de üreticilerin devlete milyarlarca avro geri ödeyeceği tahmin edildi. Eksi ödemelerin üst sınırı LF2024 ile kalktı ([EDF OA](https://www.edf-oa.fr/sites/oa/files/2025-08/fr_lf2024_fiche_accompagnement.pdf)).
+  - Negatif fiyatlı saatler için ayrı bir prim ve yıllık mahsup var.
+
+**İtalya: GSE FER X, iki yönlü fark sözleşmesi, 20 yıl.**
+- **İlk ihale (geçiş dönemi, sonuç Aralık 2025):**
+  - Güneş: 7,7 GW, ortalama 56,825 €/MWh (tavan 62,675).
+  - Rüzgâr: 0,94 GW, ortalama 72,851 €/MWh (tavan 77,738).
+  - Kaynaklar: [pv magazine](https://www.pv-magazine.com/2025/12/03/italys-first-fer-x-solar-auction-allocates-7-7-gw-at-average-price-of-e0-05682-kwh/), [Argus](https://www.argusmedia.com/pt/news-and-insights/latest-market-news/2760935-italy-awards-8.6gw-res-capacity-in-first-fer-x-tender).
+- **İkinci güneş turu alınmadı:** 1,1 GW, 66,37 €/MWh ([pv magazine, 12.12.2025](https://www.pv-magazine.com/2025/12/12/italy-assigns-1-1-gw-in-pv-auction-open-to-projects-with-non-chinese-modules/)). Çin dışı modül şartlı (NZIA) bir turdu.
+- **Mekanizma:** Referans saatlik bölgesel gün öncesi fiyatıdır. Geçiş dönemi metnine göre sıfırın altına inmez.
+- **Kaynaklara erişim:** CRE ve GSE sitelerine bu oturumdan erişilemedi. Değerler ikincil kaynaklardan ve CRE belgelerinin arama özetlerinden alındı.
+
+Kur: 1 € = 1,1199 $ (FRED, 23.10.2026; diğer desteklerle aynı).
+
+| | Fransa GES | Fransa RES | İtalya GES | İtalya RES |
+|---|---|---|---|---|
+| Tarif / sözleşme fiyatı ($/MWh) | 88,8 | 86,3 | 63,6 | 81,6 |
+| Oyunda teknolojinin piyasa değeri (tahmin*) | ~39 | ~62 | ~106 | ~126 |
+| MWh başına (+ ödeme, − geri ödeme) | ~+50 | ~+24 | ~−43 | ~−44 |
+
+\* Tahmin: "Avrupa'nın kalanı" kalibrasyonunun ortalama fiyatı × yakalama oranı. Fransa 68,2 $/MWh (güneş 0,573, rüzgâr 0,905), İtalya 130,1 $/MWh (güneş 0,818, rüzgâr 0,965). Gerçek ödeme aya ve yıla göre değişir.
+
+## Model (`src/support.js` `PREM`, `FERX`)
+- **Katılım isteğe bağlı:**
+  - Saha panelinde "Sözleşmeye katıl" düğmesi var. Seçim, o teknolojinin ilk bloğundan önce yapılır; sonra 20 ekonomik yıl değişmez. Varsayılan seçim katılmamak.
+  - Gerçekte de ihaleye teklif vermek üreticinin kararıdır.
+  - İki yönlü sözleşme her zaman kazandırmaz. İtalya'da bugünkü oyun fiyatlarıyla geri ödetir, karşılığında fiyat düşüşüne karşı korur.
+  - Panel, piyasanın geçen ayki teknoloji değerini ve bu değerle MWh başına ödemeyi ya da geri ödemeyi gösterir.
+- **Fransa:**
+  - Hesap Almanya'nın primiyle aynı: piyasa değeri Fransa piyasasının saatlik fiyatlarından, güneşte piyasanın güneş profili, rüzgârda rüzgâr filosuyla hesaplanır.
+  - Ödeme iki yönlüdür: üretim × (tarif − piyasa değeri).
+  - Negatif fiyatlı saatlerin ve alım garantisi süresinin üretimi sayılmaz.
+  - Ödeme ay değişince yapılır; günlük raporda "Piyasa primi" satırına yazılır, eksi olabilir.
+- **İtalya:**
+  - Offshore fark sözleşmesinin saatlik uzlaştırması kullanılır: üretim × (sözleşme fiyatı − max(0, fiyat)).
+  - Alım garantisi sürerken uzlaştırma yapılmaz; iki destek üst üste binmez.
+- **Proje ekonomisi:**
+  - Fransa'da ilk 20 yıl tarif − ortalama piyasa değeri eklenir. Bu değer eksi olabilir; fiyat stresinde artar.
+  - İtalya'da ilk 20 yıl sözleşme fiyatı geçerlidir (offshore gibi).
+  - PPA yıllarında destek yoktur.
+- **Kayıt formatı:** Piyasa değeri birikimleri artık piyasa başına tutuluyor (`S.eeg.E/R/L`). Eski kayıttaki tek birikim Avrupa'ya taşınır.
+- **Vaka çalışması değişmedi:** Vaka santralleri katılmaz (piyasa satışı).
+
+## Sınırlamalar
+- **Teklif usulü ve ihale riski yok.** Ödeme oyunda ortalama ihale fiyatıyla kazanılmış sayılır.
+- **Fransa'da yıllık mahsup, negatif saat primi ve üretim saati üst sınırları yok.**
+- **İtalya bölgesel fiyatları yok.** Referans, İtalya piyasasının tek fiyatı.
+- **Tarifler enflasyona endekslenmez.** Gerçekte Fransa'da kısmi endeksleme var.
+- **Fransa'nın güneş değeri doğrulanamadı.** CRE kararlarında 77,99–79,48 €/MWh arasında kapsam farkı var.

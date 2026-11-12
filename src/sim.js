@@ -25,7 +25,7 @@ import { acc } from "./finance.js";
 import { rivalsDay, rivalCap } from "./rivals.js";
 import { news, realNews } from "./news.js";
 import { leagueDay } from "./league.js";
-import { capDay, DERATE, h2Rate, cfdRate, cfdMigrate, EEG, eegOn, eegMigrate, eegDay, eegSettle } from "./support.js";
+import { capDay, DERATE, h2Rate, cfdRate, cfdMigrate, EEG, PREM, eegOn, eegMigrate, eegDay, eegSettle } from "./support.js";
 import { yekYear, yekOn, yekSettle, yekBatt, yekDay } from "./yekdem.js";
 import { hydDay, hydShift, hydVol } from "./hydro.js";
 import { dayFactor, dayNews } from "./daytype.js";
@@ -125,7 +125,8 @@ export function tick(){
       if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;ac.r+=x;} // yenilik desteği gerçekleşen üretime ödenir
       // fark sözleşmesi (support.js, deniz üstü RES): gerçekleşen üretim sözleşme fiyatıyla satış fiyatı arasındaki farkı alır ya da
       // öder; proje gelirine (ac) katılır
-      const cf=cfdRate(p);if(cf!=null&&e>0){const x=e*(cf-sp);cash+=x;st.cfd+=x;ac.r+=x;ac.cf=(ac.cf||0)+x;live(p.t,0,x);}
+      // İtalya FER X (z): referans sıfırın altına inmez; alım garantisi sürerken uzlaştırılmaz (iki destek üst üste binmez)
+      const cf=cfdRate(p);if(cf!=null&&e>0&&!(p.cfd.z&&t.fit&&S.dayNo<=t.fit.until)){const x=e*(cf-(p.cfd.z?Math.max(0,sp):sp));cash+=x;st.cfd+=x;ac.r+=x;ac.cf=(ac.cf||0)+x;live(p.t,0,x);}
       // piyasa primi (support.js EEG, Almanya): uygun üretim ay boyunca birikir, prim ay sonunda ödenir (eegPay). Negatif fiyatlı
       // saat ve başlangıç desteği (alım garantisi) süresi sayılmaz
       if(e>0&&pr>=0&&eegOn(p)&&!(t.fit&&S.dayNo<=t.fit.until))p.eegE=(p.eegE||0)+e;
@@ -186,7 +187,7 @@ export function endDay(){
   const sRate=E.ges>0?(R.ges/E.ges)/(st.sBase/E.ges):(()=>{const M=D.T;let a=0,b=0;M.price.forEach((p,h)=>{a+=p*shape(h);b+=shape(h);});return(a/b)/M.avg;})();
   S.last={dayNo:S.dayNo,E:{...E},R:{...R},fuel:st.fuel,imb:st.imb,bNet:st.bNet,pNet:st.pNet,cap:st.cap,h2:{kg:st.h2kg,r:st.h2R,c:st.h2C,z:st.h2Z,s:st.h2Sub,g:st.h2G},curt:st.curt,opex:st.opex,net,sRate,da:st.da,short:st.short,surp:st.surp,bBal:st.bBal,fee:st.fee,fit:st.fit,yek:st.yek,yeka:st.yeka,cfd:st.cfd,mp:st.mp,err:st.fcE>0?st.fcErr/st.fcE:0};
   S.hist.push(sRate);if(S.hist.length>14)S.hist.shift();
-  eegDay(D.E); // Avrupa piyasasının bugünkü fiyatları ayın teknoloji piyasa değerine (support.js EEG)
+  eegDay(D.E,"E");eegDay(D.R,"R");eegDay(D.L,"L"); // Avrupa, Fransa, İtalya: bugünkü fiyatlar ayın teknoloji piyasa değerine (support.js)
   MARKETS.forEach(k=>S.mSolar[k]=Math.min(solarCap(k),S.mSolar[k]+PRICE.grow));
   // izin süreçleri
   Object.values(S.sites).forEach(o=>{
@@ -249,10 +250,13 @@ export function siteMW(id){return S.plants.filter(p=>p.t===id).reduce((a,p)=>a+p
 // Almanya piyasa primi (support.js EEG): ay değişince biten ayın uygun üretimine prim = max(0, ödül değeri − teknolojinin
 // piyasa değeri) ödenir; proje gelirine (ac) katılır. ac.mq ve ac.mv (uygun üretim ve piyasa değeriyle çarpımı) proje
 // ekonomisinin fiyat stresinde primi yeniden hesaplaması için (finance.js)
+// Fransa'nın tamamlayıcı ödemesi aynı yolla, iki yönlü: piyasa değeri tarifin üstündeyse fark geri ödenir (eksi)
 function eegPay(){const r=eegSettle();if(!r||!r.length)return;let tot=0;
   r.forEach(({p,q,mv,x})=>{const ac=acc(p);ac.mp=(ac.mp||0)+x;ac.mq=(ac.mq||0)+q;ac.mv=(ac.mv||0)+q*mv;ac.r+=x;tot+=x;});
-  S.money+=tot;D.st.mp+=tot;const L=S.eegLast,ks=[...new Set(r.map(o=>o.p.k))];
-  addLog(`Piyasa primi (Almanya), ${AYLAR[L.mo%12]}: ${ks.map(k=>`${k==="ges"?"güneşin":"rüzgârın"} piyasa değeri ${fmtP(L.mv[k])}, ödül değeri ${String(EEG[k].aw).replace(".",",")} $/MWh`).join("; ")}. ${tot>0?`${fmt$(tot)} prim ödendi.`:"Piyasa değeri ödülün üstünde: prim yok."}`);}
+  S.money+=tot;D.st.mp+=tot;
+  Object.values(PREM).forEach(s=>{const rs=r.filter(o=>(o.m||"E")===s.m&&o.p.eeg&&(s.two?o.p.eeg.two:!o.p.eeg.two));if(!rs.length)return;
+    const L=S.eegLast[s.m],ks=[...new Set(rs.map(o=>o.p.k))],x=rs.reduce((a,o)=>a+o.x,0);
+    addLog(`${s.n} (${s.cn}), ${AYLAR[L.mo%12]}: ${ks.map(k=>`${k==="ges"?"güneşin":"rüzgârın"} piyasa değeri ${fmtP(L.mv[k])}, ${s.two?"tarif":"ödül değeri"} ${String(s[k].aw).replace(".",",")} $/MWh`).join("; ")}. ${x>0?`${fmt$(x)} ${s.two?"ödendi":"prim ödendi"}.`:x<0?`Piyasa değeri tarifin üstünde: ${fmt$(-x)} geri ödendi.`:"Piyasa değeri ödülün üstünde: prim yok."}`);});}
 
 // Günün net kazancı: satış gelirleri (destek primleri dahil) − dengesizlik + batarya ve pompaj − işletme − tahmin servisi
 // − yakıt + hidrojen geliri − elektrolizörün elektriği + kapasite ödemesi + hidrojen desteği

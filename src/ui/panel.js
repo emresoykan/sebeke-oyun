@@ -23,7 +23,7 @@ import { rivalNear } from "../rivals.js";
 import { km } from "../world.js";
 import { loanTerms, NEW_GEAR } from "../loans.js";
 import { pf } from "../finance.js";
-import { CAP, DERATE, H2SUB, CFD, EEG, capDay, h2Grant, cfdGrant, cfdRate, eegGrant, eegOn, eegMV } from "../support.js";
+import { CAP, DERATE, H2SUB, CFD, EEG, PREM, FERX, capDay, h2Grant, cfdGrant, cfdRate, eegGrant, eegOn, eegMV, eegLastOf, supScheme, supJoined, supToggle, premOf } from "../support.js";
 import { yekEligible, yekStatus, yekApplyNext, yekJoinNow, yekYear } from "../yekdem.js";
 import { hydText, hydOdds } from "../hydro.js";
 import { yekaStatus } from "../yeka.js";
@@ -101,21 +101,36 @@ function supportNote(t,k){
     return `<div class="eqnote support"><b>Hidrojen desteği:</b> ${g?`${s.src}: kg başına ${g.kg.toFixed(2).replace(".",",")} $, ${s.years} ekonomik yıl. Yalnızca sahadaki rüzgâr ve güneşin o saatteki üretimiyle karşılanan elektrikten üretilen (yeşil) hidrojene ödenir: elektrolizörü güneş ya da rüzgârla aynı sahaya kur.`:s?`${s.src}; süresi geçti, yeni kurulum almaz.`:`${nm} piyasasında yürürlükte bir hidrojen üretim desteği yok${m==="T"?" (hidrojen stratejisinde hedefler var, destek mekanizması henüz yok)":""}. Avrupa ve Kuzey Amerika'da var.`}</div>`;}
   if(k==="off"){const g=cfdGrant(m,k),s=CFD[m];
     return `<div class="eqnote support"><b>Fark sözleşmesi:</b> ${g?`${s.src}: ${dec(g.p)} $/MWh, ${s.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Piyasa fiyatı altındaysa fark ödenir, üstündeyse sen geri ödersin. Gerçekte ihaleyle kazanılır; oyunda ihale fiyatıyla kazanılmış sayılır.`:`${nm} piyasasında deniz üstü RES'e destek yok; Avrupa'da Britanya'nın fark sözleşmesi fiyatı var.${m==="T"?" Türkiye'nin ilk deniz üstü YEKA'sı 2027'nin ilk çeyreğine planlandı.":""}`}</div>`;}
+  const sc=supScheme(t,k);if(sc&&sc.s.opt)return optNote(t,k,sc);
   if(EEG[k]&&EU.has(m)){const g=eegGrant(t,k);
-    return `<div class="eqnote support"><b>Piyasa primi${g?" (Almanya)":""}:</b> ${g?`${EEG[k].src}: ödül değeri ${dec(g.aw)} $/MWh, ${EEG.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Elektriğini piyasada satarsın; ay sonunda ${k==="ges"?"güneşin":"rüzgârın"} o ayki piyasa değeri (fiyatların ${k==="ges"?"güneş":"rüzgâr"} üretimiyle ağırlıklı ortalaması) ödülün altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Negatif fiyatlı saatlerin üretimine prim ödenmez. Gerçekte ihaleyle kazanılır; oyunda ortalama ödül değeriyle kazanılmış sayılır.`:`${t.country||nm} için oyunda kara ${TECH[k].n} desteği tanımlı değil (veri toplanmadı). Almanya'daki sahalar piyasa primi alır.`}</div>`;}
+    return `<div class="eqnote support"><b>Piyasa primi${g?" (Almanya)":""}:</b> ${g?`${EEG[k].src}: ödül değeri ${dec(g.aw)} $/MWh, ${EEG.years} ekonomik yıl (~${g.until-S.dayNo+1} gün), ilk blokla başlar. Elektriğini piyasada satarsın; ay sonunda ${k==="ges"?"güneşin":"rüzgârın"} o ayki piyasa değeri (fiyatların ${k==="ges"?"güneş":"rüzgâr"} üretimiyle ağırlıklı ortalaması) ödülün altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Negatif fiyatlı saatlerin üretimine prim ödenmez. Gerçekte ihaleyle kazanılır; oyunda ortalama ödül değeriyle kazanılmış sayılır.`:`${t.country||nm} için oyunda kara ${TECH[k].n} desteği tanımlı değil (veri toplanmadı). Almanya'daki sahalar piyasa primi alır; Fransa ve İtalya'da iki yönlü sözleşmeye katılabilirsin.`}</div>`;}
   if(k==="flo")return `<div class="eqnote support"><b>Fark sözleşmesi yok:</b> Britanya'da yüzer RES £216,49/MWh'ten sözleşme aldı (Ocak 2026), ama bu fiyat iki küçük, erken proje içindi; oyundaki yüzer RES maliyeti ticari ölçek tahmini olduğu için bu fiyat gerçekte olmayan bir kâr verirdi.</div>`;
   return "";
+}
+// Fransa ve İtalya: iki yönlü, katılımı isteğe bağlı destek (support.js PREM.FRA, FERX). Seçim sahada o teknolojinin ilk
+// bloğundan önce yapılır; karar için bu piyasada teknolojinin geçen ayki (yoksa bu ayki) piyasa değeri gösterilir
+function optNote(t,k,sc){
+  const s=sc.s,ferx=sc.kind==="ferx",p=ferx?s[k].p:s[k].aw,id=S.sel.id,o=S.sites[id],built=o&&S.plants.some(q=>q.t===id&&q.k===k),
+    j=supJoined(o,k),tk=k==="ges"?"güneşin":"rüzgârın",L=eegLastOf(s.m),lv=L&&L.mv?L.mv[k]:null,v=lv!=null?lv:eegMV(k,s.m);
+  const ref=v!=null?` ${lv!=null?"Geçen ay":"Bu ay şimdiye kadar"} bu piyasada ${tk} piyasa değeri ${fmtP(v)}: bu değerle sözleşme MWh başına ${v<p?`${dec(p-v)} $ öder`:`${dec(v-p)} $ geri ödetir`}.`:"";
+  const how=ferx?`Saatlik fark sözleşmesi: üretimin her saat ${dec(p)} $/MWh'ten satılmış sayılır; fiyat altındaysa fark ödenir, üstündeyse sen geri ödersin (referans sıfırın altına inmez).`
+    :`Aylık, iki yönlü: ay sonunda ${tk} piyasa değeri (fiyatların ${k==="ges"?"güneş":"rüzgâr"} üretimiyle ağırlıklı ortalaması) tarifin altındaysa farkı üretimine alırsın, üstündeyse farkı geri ödersin. Negatif fiyatlı saatlerin üretimi sayılmaz.`;
+  const btn=o&&!built?`<div class="actions"><button data-a="supJ" data-k="${k}">${j?"Katılımı geri al (piyasada sat)":"Sözleşmeye katıl"}</button></div>`:"";
+  const state=built?(j?"Bu sahada katıldın; sözleşme ilk blokla başladı.":"Bu sahada katılmadın: üretim piyasa fiyatından satılıyor (karar ilk bloktan önce verilir)."):
+    j?`Katılıyorsun: ilk blokla ${s.years} ekonomik yıl başlar.`:"Katılmıyorsun: üretim piyasa fiyatından satılır. Karar ilk bloktan önce; sonra değişmez.";
+  return `<div class="eqnote support"><b>${ferx?"Fark sözleşmesi (FER X, İtalya)":`${s.n} (${s.cn})`}:</b> ${s[k].src}: ${ferx?"sözleşme fiyatı":"tarif"} ${dec(p)} $/MWh, ${s.years} ekonomik yıl, isteğe bağlı. ${how}${ref} Gerçekte ihaleyle kazanılır; oyunda ortalama ihale fiyatıyla kazanılmış sayılır. <b>${state}</b>${btn}</div>`;
 }
 // fark sözleşmesi olan santraller (support.js): fiyat ve kalan süre
 function cfdHtml(id){
   const ps=S.plants.filter(p=>p.t===id&&p.cfd);if(!ps.length)return "";
-  return ps.map(p=>{const on=cfdRate(p)!=null;return `<div class="status${on?" ok":""}"><b>Fark sözleşmesi:</b> ${TECH[p.k].n} ${p.mw} MW, ${dec(p.cfd.p)} $/MWh; ${on?`${p.cfd.until-S.dayNo+1} gün kaldı. Fark günlük raporda.`:"süresi doldu, üretim piyasa fiyatından satılıyor."}</div>`;}).join("");
+  return ps.map(p=>{const on=cfdRate(p)!=null;return `<div class="status${on?" ok":""}"><b>Fark sözleşmesi${p.cfd.z?" (FER X)":""}:</b> ${TECH[p.k].n} ${p.mw} MW, ${dec(p.cfd.p)} $/MWh; ${on?`${p.cfd.until-S.dayNo+1} gün kaldı. Fark günlük raporda.`:"süresi doldu, üretim piyasa fiyatından satılıyor."}</div>`;}).join("");
 }
 // piyasa primi olan santraller (support.js EEG): ödül değeri, kalan süre, bu ayın ve geçen ayın piyasa değeri
 function eegHtml(id){
-  const ps=S.plants.filter(p=>p.t===id&&p.eeg);if(!ps.length)return "";const o=S.sites[id],fit=o.fit&&S.dayNo<=o.fit.until,L=S.eegLast;
-  return ps.map(p=>{const on=eegOn(p),v=eegMV(p.k),lv=L&&L.mv?L.mv[p.k]:null,pr=x=>`${fmtP(x)}${x<p.eeg.aw?` (prim ${dec(p.eeg.aw-x)})`:" (prim yok)"}`;
-    return `<div class="status${on?" ok":""}"><b>Piyasa primi:</b> ${TECH[p.k].n} ${p.mw} MW, ödül değeri ${dec(p.eeg.aw)} $/MWh; ${on?`${p.eeg.until-S.dayNo+1} gün kaldı.${fit?" Alım garantisi sürerken prim birikmez.":""}${v!=null?` Bu ay şimdiye kadar piyasa değeri ${pr(v)}.`:""}${lv!=null?` Geçen ay (${AYLAR[L.mo%12]}) ${pr(lv)}.`:""} Prim ay sonunda ödenir.`:"süresi doldu, üretim yalnızca piyasa fiyatından satılıyor."}</div>`;}).join("");
+  const ps=S.plants.filter(p=>p.t===id&&p.eeg);if(!ps.length)return "";const o=S.sites[id],fit=o.fit&&S.dayNo<=o.fit.until;
+  return ps.map(p=>{const m=p.eeg.m||"E",L=eegLastOf(m),on=eegOn(p),v=eegMV(p.k,m),lv=L&&L.mv?L.mv[p.k]:null,two=p.eeg.two,
+      pr=x=>{const d=premOf(p.eeg,x);return `${fmtP(x)}${d>0?` (prim ${dec(d)})`:d<0?` (geri ödeme ${dec(-d)})`:" (prim yok)"}`;};
+    return `<div class="status${on?" ok":""}"><b>${two?"Tamamlayıcı ödeme":"Piyasa primi"}:</b> ${TECH[p.k].n} ${p.mw} MW, ${two?"tarif":"ödül değeri"} ${dec(p.eeg.aw)} $/MWh; ${on?`${p.eeg.until-S.dayNo+1} gün kaldı.${fit?" Alım garantisi sürerken prim birikmez.":""}${v!=null?` Bu ay şimdiye kadar piyasa değeri ${pr(v)}.`:""}${lv!=null?` Geçen ay (${AYLAR[L.mo%12]}) ${pr(lv)}.`:""} ${two?"Fark ay sonunda ödenir ya da geri alınır.":"Prim ay sonunda ödenir."}`:"süresi doldu, üretim yalnızca piyasa fiyatından satılıyor."}</div>`;}).join("");
 }
 // Sahayı sat (sale.js): alıcı teklifinin dökümü (defter değeri ve teklif), kredi kapama, nakde geçecek tutar ve kâr/zarar.
 // Kutu kapalı gelir; açıkken yeniden çizimde açık kalır (sellOpen: açık kutunun sahası). Eğitim bitince görünür.
@@ -284,7 +299,7 @@ function renderPanelImpl(){
   if(o&&fullOn())html+=sellHtml(id,o);
   el.innerHTML=html;
   const sd=el.querySelector("details.sell");if(sd)sd.ontoggle=()=>{sellOpen=sd.open?id:null;};
-  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);else if(a==="sell")askSell(S.sel.id);else if(a==="yekNow"){yekJoinNow(S.sel.id);renderPanel();}else if(a==="yekNext"){yekApplyNext(S.sel.id);renderPanel();}
+  el.querySelectorAll("button[data-a]").forEach(b=>{b.onclick=()=>{const a=b.dataset.a;if(a==="fly")flyToSite(S.sel.id);else if(a==="cine")orbitSite(S.sel.id);else if(a==="land")buyLand();else if(a==="undo")undoLast();else if(a==="permit")applyPermit(S.sel.id,b.dataset.o);else if(a==="sell")askSell(S.sel.id);else if(a==="supJ"){supToggle(S.sel.id,b.dataset.k);renderPanel();}else if(a==="yekNow"){yekJoinNow(S.sel.id);renderPanel();}else if(a==="yekNext"){yekApplyNext(S.sel.id);renderPanel();}
     else if(a==="tab"){tab=b.dataset.k;if(o&&o.permit==="ok"&&!ob().tech){ob().tech=1;checkMissions();}renderPanel();}else build(S.sel.id,b.dataset.k,b.dataset.q,b.dataset.loan==="1");};});
   updateButtons();
 }

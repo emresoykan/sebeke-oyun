@@ -13,7 +13,7 @@ import { sfx } from "./ui/fx.js";
 import { fmt$ } from "./utils.js";
 import { siteWx } from "./wxsite.js";
 import { dirName } from "./weather.js";
-import { h2Grant, cfdGrant, eegGrant, EEG } from "./support.js";
+import { h2Grant, cfdGrant, eegGrant, ferxGrant, EEG, FERX } from "./support.js";
 import { rivalNear } from "./rivals.js";
 import { loanTerms, openLoan, dropLoan, ECON_YEAR } from "./loans.js";
 import { saleOffer } from "./sale.js";
@@ -86,7 +86,8 @@ export function build(id,k,q="std",loan=false){const lt=loan?loanTerms(id,k,q):n
   // hidrojen desteği hakkı ilk kurulumda belirlenir (piyasa ve tarih; support.js)
   if(k==="h2"&&p.h2s===undefined)p.h2s=h2Grant(o.mreg);
   if(k==="off"&&p.cfd===undefined)p.cfd=cfdGrant(o.mreg,k); // fark sözleşmesi (support.js): ilk blokta belirlenir
-  if(EEG[k]&&p.eeg===undefined)p.eeg=eegGrant(o,k); // Almanya piyasa primi (support.js): ilk blokta belirlenir
+  if(EEG[k]&&p.eeg===undefined)p.eeg=eegGrant(o,k); // Almanya piyasa primi, Fransa tamamlayıcı ödemesi (support.js): ilk blokta belirlenir
+  if(FERX[k]&&p.cfd===undefined)p.cfd=ferxGrant(o,k); // İtalya FER X fark sözleşmesi (support.js; katılım seçildiyse): ilk blokta
   if(k==="h2")planH2(p,S.hour);
   if(k==="csp")planCSP(p,S.hour);
   sfx("build");
