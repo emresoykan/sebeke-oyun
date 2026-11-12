@@ -2,6 +2,10 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-12",t:"Avrupa'da güneş üretimi",items:[
+    "Almanya ve Kuzey Avrupa'daki güneş santralleri gerçeğe göre çok az üretiyordu. Oyunun havası bu bölgelerde ortalama bulutu iklim değerinin üstünde tutuyordu; yıllık ışınım zaten haritadan geldiği için bulut iki kez sayılıyordu. Artık yıllık üretim ışınım haritasını izliyor, hava yalnızca gün gün dalgalanma yaratıyor.",
+    "Almanya'daki GES'in kapasite faktörü (kısıntı öncesi) %7–8'den ~%12–14'e çıktı; negatif fiyatlı saatlerde kısılan üretim ~%35'ten ~%30'a indi. Fransa'nın güneyinde üretim ~%17, İspanya'da ~%3 arttı. Türkiye'de değişiklik yok (Konya ~%21; Türkiye güneş filosu 2025'te %21,5).",
+    "Almanya'da bir GES yine de yalnızca spot satışla zor: kısıntı sonrası kapasite faktörü ~%9, sermaye maliyeti %10'da IRR ~%3 (piyasa primiyle ~%4–5)."]},
   {id:"2026-11-11.4",t:"Almanya'da piyasa primi",items:[
     "Almanya'daki GES ve kara RES artık piyasa primi alıyor (Almanya'nın yenilenebilir enerji yasası EEG). Elektriğini piyasada satarsın; ay sonunda güneşin ya da rüzgârın o ayki piyasa değeri ödül değerinin altındaysa farkı üretimine prim olarak alırsın, üstündeyse prim yok, geri ödeme de yok. Ödül değeri 53,6 $/MWh: BNetzA'nın 2026 ihalelerinde güneşte ve kara rüzgârında ortalama 4,79 ct/kWh. Süre 20 ekonomik yıl, ilk blokla başlar.",
     "Oyunda bir yıllık ölçümde Kuzey Almanya'daki rüzgâr santrali neredeyse hiç prim almadı (rüzgârın piyasa değeri ~90 $/MWh, ödülün üstünde); güneş santrali MWh başına 8–15 $ aldı (yaz aylarında güneşin piyasa değeri düşük). Negatif fiyatlı saatlerin üretimine prim ödenmez.",

@@ -176,6 +176,11 @@ export const FPV_COOL=1.04;
 export const SPV_GAIN=1.04, SPV_KM=20;
 // GES türlerinin üretim çarpanı (aynı panele göre)
 export const PV_GAIN={fpv:FPV_COOL,spv:SPV_GAIN};
+// Güneş paneli üretim çarpanı (market.js production): ışınım potansiyeli × gün eğrisi × öğle yüksekliği × göreli açıklık × PV_K.
+// Göreli açıklık hava modelinin yerel ortalamasına bölünür (weather.js sunRel, data/cloudk.js). Önceki çarpan 1,24'tü; Konya'nın
+// düzeltmesiyle (1,067) çarpıldı ki Türkiye'nin üretimi değişmesin: Konya GES kapasite faktörü ~%21, TEİAŞ 2025 Türkiye güneş
+// filosu %21,5 (43.520 GWh, ortalama kurulu güç 23,1 GW)
+export const PV_K=1.323;
 // Pompaj HES: depo süresi (saat, kurulu güçte); NREL ATB sınıfları 8–12 saat, oyunda 10
 export const PHS_H=10;
 // Yeşil hidrojen (varsayımlar, kaynakla doğrulanmadı): elektrolizör sistemi kg başına 55 kWh elektrik harcar (standart

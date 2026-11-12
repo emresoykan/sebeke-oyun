@@ -914,14 +914,11 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
 ## Ölçüm (`EEG=1 node scripts/sim_year.cjs 120 52.3,13.9 53.8,9.5 <adres>`, 2 koşu, başlangıç desteği kapalı)
 | Santral | Prim ($/MWh üretim) | Not |
 |---|---|---|
-| GES, Brandenburg | 7,9–15,0 | Yaz aylarında güneşin piyasa değeri ödülün altında |
-| RES, Kuzey Almanya | 0–0,2 | Rüzgârın piyasa değeri (~90 $/MWh) neredeyse her ay ödülün üstünde |
+| GES, Brandenburg | 7,9–15,0 (12.11.2026 bulut düzeltmesinden sonra 6,0–9,1) | Yaz aylarında güneşin piyasa değeri ödülün altında |
+| RES, Kuzey Almanya | 0–0,2 (sonra 0) | Rüzgârın piyasa değeri (~90 $/MWh) neredeyse her ay ödülün üstünde |
 
 - **Vaka çalışması değişmedi.** `sim_year` varsayılan olarak primi kapatır, çünkü vaka çalışması piyasa satışıdır (merchant). Kuzey Almanya RES'inin primi zaten ~0.
-- **Yan bulgu: Almanya'daki GES'in üretimi düşük.** Brandenburg'daki GES'in kapasite faktörü kısıntı sonrası %5–6, kısıntı öncesi ~%8–10; kısıntı %34–39.
-  - Gerçek Alman arazi GES'i ~%10–12 kapasite faktörüyle çalışır. Bu, yaygın verim aralığından bir tahmin; bu oturumda doğrulanmadı.
-  - Kısıntının yüksek olmasının olası nedeni: piyasa fiyatı temsilî noktanın güneşine göre negatife iner ve bu saatler santralin güneşli saatleriyle çakışır.
-  - Bu değişiklikte ele alınmadı; ayrı bir kalibrasyon işi.
+- **Yan bulgu: Almanya'daki GES'in üretimi düşüktü.** Brandenburg'daki GES'in kapasite faktörü kısıntı sonrası %5–6, kısıntı %34–39 çıkıyordu. Neden ve düzeltme: aşağıda "Güneş üretimi: bulut düzeltmesi (12.11.2026)".
 
 ## Sınırlamalar
 - **Yalnızca Almanya.** Fransa, İtalya ve diğer Avrupa ülkelerinin destekleri (ör. Fransa'nın complément de rémunération mekanizması) için veri toplanmadı.
@@ -931,4 +928,90 @@ Aralıklardaki diğer farklar (örneğin İspanya GES'inin kısıntısı %22–2
 - **Piyasa değeri oyunun Avrupa piyasasından.** Gerçek Alman güneş ve rüzgâr filosunun saatlik üretimi değil, oyunun güneş profili ve rüzgâr filosu kullanılır.
 - **Prim çeyrek saatlik değil saatlik.** Oyun saatlik çalışır.
 - **Proje ekonomisinde prim süresi** santralin yaşından bağımsız olarak ilk 20 yıl sayılır (fark sözleşmesiyle aynı basitleştirme).
+
+# Güneş üretimi: bulut düzeltmesi (12.11.2026)
+
+## Neden
+- **Almanya'daki GES'in üretimi düşüktü.** Kısıntı öncesi kapasite faktörü Brandenburg'da %7,3–8,3, Bavyera'da %10,1–10,6. Gerçek Alman güneş filosu %8,9 (aşağıda); filonun çoğu çatı üstü olduğu için arazi GES'i daha yüksek çalışır.
+- **Kök neden: bulut iki kez sayılıyordu.**
+  - Üretim formülü sahanın ışınım potansiyelini (yıllık GHI haritası) zaten içerir.
+  - Hava modeli buna bir "göreli açıklık" çarpanı ekler: o anki açık gökyüzü oranının sahanın iklim değerine oranı.
+  - Geçen sistemler bulutu iklim değerinin etrafında simetrik değiştirmez. Alçak basınçlar 34–61° enlemde ve oyunun odak bölgesinde (Avrupa) daha sık doğar; yüksek basınçlar 20–42° enlemde.
+  - Sonuç: orta enlemlerde çarpanın uzun dönem ortalaması ~0,65–0,75, çöl kuşağında ~1,1. Yıllık ışınım haritadan geldiği hâlde Almanya'nın üretimi ~%30 düşüyordu.
+- **Ölçüm** (`scripts/calib_pv.cjs`, 120 gün × 2 koşu): üretim ağırlıklı ortalama çarpan Brandenburg 0,64–0,71, Bavyera 0,76–0,79, İspanya 1,01–1,06, Konya 1,05–1,08. Tavana (1,25) takılma Almanya'da saatlerin %0–7'si: neden tavan değil, hava modelinin ortalaması.
+
+## Gerçek veri
+| | Üretim 2025 | Kurulu güç | Filo kapasite faktörü | Kaynak |
+|---|---|---|---|---|
+| Almanya (DE_LU) | 74.212 GWh | 86,95 GW (Ocak 2025) → 104,03 GW (Ocak 2026); ortalama 95,5 | %8,9 | ENTSO-E (MCP: güneş üretimi A75, kurulu güç) |
+| İspanya | 52.387 GWh (kapsam %99,6) | 29,0 → 41,4 GW; ortalama 35,2 | %17,0 (başlangıç gücüyle %20,6) | ENTSO-E |
+| Türkiye | 43.520 GWh | 20,2 → 25,9 GW; ortalama 23,1 | %21,5 | TEİAŞ yıllık istatistikleri (2025) |
+
+- **Filo ortalaması bir alt sınır.** Almanya'nın filosunun çoğu çatı üstü (doğu–batı yönlü, gölgeli, eski); arazi GES'i daha yüksek çalışır. İkincil kaynaklar Almanya'da güneye bakan, en iyi açılı sistem için ~935 (kuzey) – 1.105 (orta/doğu) – 1.280 (güney) kWh/kWp veriyor (Fraunhofer ISE'ye dayandırılmış; birincil kaynak bu oturumdan açılamadı: pv-fakten.de, PVGIS ve energy-charts erişime kapalı). Bu, kapasite faktörü olarak ~%10,7–14,6.
+- **Kurulu güç tabanları farklı olabilir** (AC/DC). Türkiye'deki TEİAŞ kurulu gücü elektriksel (AC) güçtür; bu yüzden filo kapasite faktörü yüksektir. Oyunda MW sahanın bağlantı gücü gibi kullanılır.
+
+## Değişiklik (`weather.js` `sunRel`, `cloudK`; `data/cloudk.js`; `config.js` `PV_K`)
+- **Düzeltme tablosu:** `scripts/gen_cloudk.cjs` hava modelini 240 oyun günü (iki takvim yılı) × 3 tohum çalıştırır. 5°×10° ızgarada üretim ağırlıklı (gün eğrisi × öğle yüksekliği) ortalama göreli açıklığı ölçer.
+- **Güneş paneli üretimi** (GES, yüzer GES, deniz GES'i; saha paneli durumu da) göreli açıklığı bu değere böler. Ara değer çift doğrusal, boylam çevrimli. Uzun dönemde ortalama 1 olur: yıllık üretim ışınım haritasını izler, hava gün gün dalgalanma yaratır.
+- **Türkiye sabit kaldı:** Üretim çarpanı 1,24 × Konya'nın düzeltmesi (1,067) = 1,323. Konya'nın beklenen üretimi değişmez; Konya ~%21, TEİAŞ 2025 filosu %21,5.
+- **CSP değişmedi:** Güneş çarpanı (`CSP.sm`) ham açıklıkla ayarlandı (`sunRelRaw`).
+- **Fiyat modeli değişmedi:** Piyasanın güneş etkisi temsilî noktanın kendi açıklık ölçeğini kullanır.
+- **Üretim değişimi** (Konya'ya göre; düzeltme oranı):
+
+| Bölge | Değişim |
+|---|---|
+| Türkiye (Konya, Şanlıurfa / İzmir / Antalya) | 0 / +%1 / −%2 |
+| İspanya iç kesim / Portekiz | +%3 / +%1 |
+| Almanya (Bavyera / Brandenburg / Kuzey) | +%40 / +%60 / +%64 |
+| Fransa güney / İtalya güney | +%17 / +%6 |
+| ABD (Teksas, Kaliforniya) | +%4 |
+| Şili, Brezilya, Güney Afrika, Avustralya | +%5 |
+| Çin / Hindistan / Suudi Arabistan / Fas | +%7 / +%2 / −%2 / −%6 |
+
+## Sonuç (`calib_pv`, 120 gün × 2 koşu, önce / sonra aynı koşu sayısıyla)
+| Saha | Kısıntı öncesi KF, önce | Sonra | Kısıntı sonrası KF, sonra | Kısıntı, önce → sonra |
+|---|---|---|---|---|
+| Konya | %22,6–23,2 | %21,7–22,5 | %21,2–22,0 | %1–2 → %2 |
+| İspanya iç kesim | %21,8–22,9 | %22,1–23,3 | %16,5–18,0 | %21–24 → %23–25 |
+| Brandenburg | %7,3–8,3 | %11,5–12,3 | %8,3–8,4 | %35–37 → %28–32 |
+| Bavyera | %10,1–10,6 | %12,2–14,6 | %8,6–9,6 | %36–39 → %30–34 |
+| Kuzey Almanya (53,8°K) | %6,9–8,0 | %12,0–12,5 | %8,7–8,8 | %33–36 → %27–31 |
+
+- **Konya'daki fark hava yılından.** Göreli açıklık iki koşuda 1,00 ve 1,05; beklenen üretim değişmedi.
+- **Almanya'daki kısıntı azaldı:** Bulutlu günlerde fiyat pozitifken üretim arttı.
+
+## Kısıntı (değişmedi; açık konu)
+- **Oyunda Almanya'da güneş üretiminin sıfır ve altı fiyatlı saatlere düşen payı ~%28–36.** Piyasanın kendi güneş profiliyle de ~%28–38.
+- **Gerçek 2025 için kaynaklar tutarsız:**
+  - pv magazine'e dayandırılan ikincil kaynak (logicenergy): tam yıl %16.
+  - ZfK: "2025'te her üç MWh'den biri"; grafik büyük olasılıkla ilk yarıyı karşılaştırıyor.
+  - Aylık: LfL Bayern Mart 2025 %13,7; pv magazine Nisan 2025 %29,2 (başka bir yerde %32,6).
+  - Aylık değerlerin üretimle ağırlıklı kaba toplamı ~%25 (tahmin).
+- **Doğrulanamadı:** Saatlik güneş üretimi bu oturumdaki araçlarla alınamadı. ENTSO-E MCP günlük toplam veriyor; energy-charts erişime kapalı. Kesin pay olmadan fiyat modelinin negatif saat dağılımı yeniden ayarlanmadı.
+- **Ayar yapılırsa yön:** Pay %16'ya yakınsa oyunda negatif saatler fazla güneş saatlerinde yoğunlaşıyor. Gerçekte kış rüzgârlı geceleri ve tatillerde de negatif saat var (Ocak 2025 %1,9). Oyunun negatif saat payı (%6,5) ve güneş fiyat oranı (0,514) hedefte kalacak biçimde dağılım değiştirilmeli.
+
+## Ölçüm düzeltmesi (`scripts/sim_year.cjs`)
+- **GES kısıntısı tüm santrallerin toplamıydı.** Negatif fiyat (11.11.2026) eklenince aynı koşudaki Kuzey Almanya RES'inin negatif fiyatlı saatlerdeki kısıntısı İspanya GES'inin kısıntısına karışıyordu. Vaka çalışmasındaki "%23–35" bu yüzden fazlaydı.
+- **Artık yalnızca GES'in kendi kısıntısı sayılır:** Fiyat ≤ 0 saatte üretilmeyen enerji. Kısılan üretim dahil fiyat oranı da buna göre.
+
+## Vaka çalışması (`sim_year` 8 yeni koşu, İspanya GES + Kuzey Almanya RES)
+| Santral | KF | Kısıntı | Satış fiyatı ($/MWh) | IRR (vergisiz) | Spot: borç / özsermaye IRR'ı | PPA: borç / özsermaye IRR'ı |
+|---|---|---|---|---|---|---|
+| GES, İberya | %16,2–18,4 (önce %14,8–17,8) | %19–30 (önce %23–35, hatalı ölçüm) | 53,1–56,9 | %6,5–8,1 (önce %5,4–7,8) | %46–53 / %5,5–7,5 | %48–55 / %4,5–6,3 |
+| RES, Avrupa | %19,6–26,6 | – | 83,8–95,8 | %10,4–15,7 | %46–65 / %10,2–21,1 | %65–75 / %9,1–20,5 |
+
+- **RES modeli değişmedi;** aralık farkları koşudan koşuya hava değişimidir.
+- **Piyasa ortalamaları:** İberya 75,0 (73,8–76,6), Avrupa 101,9 (97,3–104,1) $/MWh.
+- **Türkiye** (2 koşu): GES KF %21,3–22,1, IRR %12,2–12,6; vaka çalışmasının aralıklarında (%10,9–12,7) kaldı.
+- **Almanya GES** (Brandenburg, 2'şer koşu):
+  - Kısıntı sonrası KF %8,6–8,9, kısıntı %29–35, LCOE 130–134 $/MWh (satılan üretimle).
+  - Piyasa satışıyla IRR %2,5–3,7.
+  - Piyasa primiyle (EEG) IRR %4,6; prim 6,0–9,1 $/MWh.
+  - Gerçekte de Alman arazi GES'i %10 sermaye maliyetinde, yalnızca spot satışla zor: gerçek projeler ihaleli prim, PPA ve daha düşük sermaye maliyetiyle yapılır.
+
+## Sınırlamalar
+- **Tablo hava modelinin uzun dönem ortalaması** (3 tohum × 2 yıl). Tek bir oyun yılı ±%5 sapabilir; bu hava yılı riskidir.
+- **Kaba ızgara.** 5°×10° ızgara bölge içi farkı (ör. Türkiye'de batı–doğu) kaba yakalar.
+- **Hava modeli değişirse tablo yeniden üretilmeli** (`gen_cloudk.cjs`).
+- **Gün uzunluğu enleme göre değişmez.** Gün eğrisi (`CAL.rise`, `CAL.len`) tek bir takvimden gelir; yüksek enlemde yaz günü kısa, kış günü uzun sayılır. Öğle yüksekliği enleme göre değiştiği için yıllık toplam etkisi sınırlı; ayrı modellenmedi.
 

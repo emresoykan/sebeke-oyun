@@ -1,5 +1,5 @@
 // Oyunu tarayıcıda ekransız çalıştırıp bir piyasada bir GES ve bir RES ile N gün simüle eder; kalibrasyon ve vaka
-// çalışmasındaki göstergeleri yazdırır: ortalama fiyat, güneş ve rüzgâr fiyat oranı (capture rate), kısıntı, kapasite
+// çalışmasındaki göstergeleri yazdırır: ortalama fiyat, güneş ve rüzgâr fiyat oranı (capture rate), GES'in kısıntısı, kapasite
 // faktörü, öğle fiyatı (11–14), WACC %8/%10/%12'de proje ekonomisi ve proje finansmanı (spot / PPA, baz / fiyat stresi;
 // src/finance.js). Oyun normal (rakipler yatırım yapar), olay kartları kapalı, Türkiye'de normal hidrolojik yıl (hydro.js).
 // 120 oyun günü = bir takvim yılı.
@@ -20,7 +20,7 @@ const [DAYS, G, W, URL] = [+process.argv[2] || 120, (process.argv[3] || "37.9,32
   await p.addInitScript(() => { localStorage.clear(); localStorage.setItem("sebeke-profile-v1", JSON.stringify({ name: "Sim", company: "Sim", color: "#1F9D74", spec: "eng", created: 1 })); });
   await p.goto(URL); await p.waitForTimeout(5000);
   const r = await p.evaluate(async ([DAYS, G, W, EEGON]) => {
-    const cfg = await import("/src/config.js"), st = await import("/src/state.js"), ac = await import("/src/actions.js"), sim = await import("/src/sim.js"), sl = await import("/src/slope.js"), F = await import("/src/finance.js");
+    const cfg = await import("/src/config.js"), mkt = await import("/src/market.js"), st = await import("/src/state.js"), ac = await import("/src/actions.js"), sim = await import("/src/sim.js"), sl = await import("/src/slope.js"), F = await import("/src/finance.js");
     const S = st.S; S.money = 9e12; S.won = true; S.evCool = 1e9; S.hyd = {}; for (let y = 2026; y <= 2035; y++) S.hyd[y] = { w: 1, ref: 0 }; /* normal hidrolojik yıl (hydro.js) */ Object.keys(S.mSolar).forEach(k => S.mSolar[k] = cfg.REG[k].s0);
     document.querySelectorAll("dialog[open]").forEach(d => d.close()); document.getElementById("pauseBtn")?.click();
     // düz ve izinli bir nokta bulana kadar yakın çevrede dene; izin hemen verilir, standart ekipman
@@ -29,7 +29,7 @@ const [DAYS, G, W, URL] = [+process.argv[2] || 120, (process.argv[3] || "37.9,32
     const ges = await mk(G[0], G[1], "ges"), res = await mk(W[0], W[1], "res"), MK = S.sites[ges.t].mreg, MW = S.sites[res.t].mreg;
     if (!EEGON) { ges.eeg = null; res.eeg = null; } else { delete S.sites[ges.t].fit; delete S.sites[res.t].fit; } /* primli ölçümde başlangıç desteği yok (prim baştan birikir) */
     let B = 0, BW = 0, curt = 0, mid = 0;
-    for (let d = 0; d < DAYS; d++) { const pr = st.D[MK].price; B += pr.reduce((a, v) => a + v, 0) / 24; BW += st.D[MW].price.reduce((a, v) => a + v, 0) / 24; mid += (pr[11] + pr[12] + pr[13] + pr[14]) / 4; for (let h = 0; h < 24; h++) sim.tick(); document.querySelectorAll("dialog[open]").forEach(x => x.close()); curt += S.last ? S.last.curt : 0; }
+    for (let d = 0; d < DAYS; d++) { const pr = st.D[MK].price; B += pr.reduce((a, v) => a + v, 0) / 24; BW += st.D[MW].price.reduce((a, v) => a + v, 0) / 24; mid += (pr[11] + pr[12] + pr[13] + pr[14]) / 4; for (let h = 0; h < 24; h++) { const pre = mkt.production(ges, h).e, e0 = ges.ac ? ges.ac.e : 0, ph = pr[h]; sim.tick(); if (ph <= 0 && ges.ac.e - e0 <= 0) curt += pre; /* GES'in kendi kısıntısı: fiyat ≤ 0 saatte üretilmeyen */ } document.querySelectorAll("dialog[open]").forEach(x => x.close()); }
     const base = B / DAYS, baseW = BW / DAYS, g = ges.ac, w = res.ac, fin = {};
     for (const x of [0.08, 0.10, 0.12]) { F.setWacc(x); const one = q => { const f = F.plantFinance(q); return { lcoe: +f.lcoe.toFixed(1), npv: Math.round(f.npv), irr: f.irr == null ? null : +f.irr.toFixed(4), pb: f.pb == null ? null : +f.pb.toFixed(2), capex: Math.round(f.capex) }; }; fin[x] = { ges: one(ges), res: one(res) }; }
     F.setWacc(0.10);F.resetPf();
