@@ -23,7 +23,8 @@ import { buildStyle, ONLINE, HD, FALLBACK, VECTOR, FONT, MAXLAT } from "./mapsty
 import { initWeatherLayer } from "./wxflat.js";
 import { initPotButton, onPotChange, potMode, tilePNG } from "./potential.js";
 import { initSearch } from "./search.js";
-import { bndOf, occText, liveText, battText } from "./sitelive.js";
+import { bndOf, occText, liveText, battText, powerText, unitsOf, shortName } from "./sitelive.js";
+import { GLYPHS, glyphOf, glyphCanvas, glyphSVG, inkOn, INK, DARK, IDLE } from "./siteicons.js";
 import { siteCap, capMW } from "../rules.js";
 import { addRotors, spinRotors } from "./rotors.js";
 
@@ -87,6 +88,19 @@ function diamondImg(c){const n=28,cv=document.createElement("canvas");cv.width=c
   x.translate(n/2,n/2);x.rotate(Math.PI/4);x.fillStyle=c;x.strokeStyle="rgba(10,15,25,.9)";x.lineWidth=2.5;x.fillRect(-7,-7,14,14);x.strokeRect(-7,-7,14,14);
   return x.getImageData(0,0,n,n);}
 
+// Saha işareti (SCADA ekranlarındaki gibi): teknoloji renginde daire içinde teknolojinin glifi (RES türbin, GES güneş …),
+// üstünde beyaz kutuda sahanın o saatteki gücü, altında çalışan/toplam ünite ve sahanın adı. Uzakta yalnızca glifli daire;
+// kutu ve ad yakınlaştıkça açılır, üst üste binen kutulardan büyük saha öne çıkar.
+const GLYPH_PX=40; // görüntü 20 CSS pikseli (pixelRatio 2); icon-size daireye göre küçültür
+const DISC_R=["interpolate",["linear"],["zoom"],1,7,4,9,7,11,10,12];
+function pillImg(){const w=80,h=48,r=20,cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
+  x.beginPath();x.roundRect(1.5,1.5,w-3,h-3,r);x.fillStyle="rgba(255,255,255,.97)";x.fill();x.lineWidth=2;x.strokeStyle="rgba(11,22,38,.32)";x.stroke();
+  return x.getImageData(0,0,w,h);}
+function addSiteImages(){
+  for(const g of Object.keys(GLYPHS))for(const k of ["d","w"])map.addImage(`g-${g}-${k}`,glyphCanvas(g,GLYPH_PX,INK[k]),{pixelRatio:2});
+  map.addImage("pill",pillImg(),{pixelRatio:2,stretchX:[[20,60]],stretchY:[[20,28]],content:[16,6,64,42]});
+}
+
 function addGameLayers(){
   map.addSource("sites",{type:"geojson",data:fc([])});
   map.addSource("rivals",{type:"geojson",data:fc([])});
@@ -108,9 +122,21 @@ function addGameLayers(){
   // üretim yapan sahanın çevresinde teknoloji renginde genişleyip sönen halka
   map.addLayer({id:"site-pulse",type:"circle",source:"sites",filter:["==",["get","on"],1],paint:{"circle-radius":9,"circle-color":"rgba(0,0,0,0)",
     "circle-stroke-color":["get","col"],"circle-stroke-width":3,"circle-stroke-opacity":0,"circle-blur":0.15}});
-  map.addLayer({id:"sites",type:"circle",source:"sites",paint:{"circle-radius":["interpolate",["linear"],["zoom"],1,5,8,8],"circle-color":["get","col"],"circle-opacity":["get","op"],
-    "circle-stroke-color":["get","st"],"circle-stroke-width":2.5}});
-  map.addLayer({id:"site-labels",type:"symbol",source:"sites",minzoom:3,filter:["!=",["get","t"],""],layout:{"text-field":["get","t"],"text-font":FONT.m,"text-size":12,"text-offset":[0,1.1],"text-anchor":"top","text-allow-overlap":true},
+  addSiteImages();
+  map.addLayer({id:"sites",type:"circle",source:"sites",paint:{"circle-radius":DISC_R,"circle-color":["get","col"],"circle-opacity":["get","op"],
+    "circle-stroke-color":["get","st"],"circle-stroke-width":["interpolate",["linear"],["zoom"],1,2,6,2.5]}});
+  map.addLayer({id:"site-glyph",type:"symbol",source:"sites",layout:{"icon-image":["get","gi"],"icon-allow-overlap":true,"icon-ignore-placement":true,
+    "icon-size":["interpolate",["linear"],["zoom"],1,0.5,4,0.65,7,0.8,10,0.87]},paint:{"icon-opacity":["case",["==",["get","op"],1],1,0.9]}});
+  // güç kutusu ve ad: üst üste binerse büyük saha kalır; tesis görüntüsü açılınca (FAC_Z) kutunun yerini canlı üretim yazısı alır
+  map.addLayer({id:"site-pill",type:"symbol",source:"sites",minzoom:3.5,maxzoom:FAC_Z,filter:["!=",["get","pw"],""],
+    layout:{"text-field":["get","pw"],"text-font":FONT.m,"text-size":11.5,"text-anchor":"bottom","symbol-sort-key":["-",0,["get","cap"]],
+      "text-offset":["interpolate",["linear"],["zoom"],3.5,["literal",[0,-1.25]],7,["literal",[0,-1.45]],10,["literal",[0,-1.55]]],
+      "icon-image":"pill","icon-text-fit":"both","icon-text-fit-padding":[1,2,0,2]},
+    paint:{"text-color":["case",["==",["get","pw"],"0 MW"],IDLE,DARK]}}); // üretmeyen saha: soluk yazı
+  map.addLayer({id:"site-labels",type:"symbol",source:"sites",minzoom:5,
+    layout:{"text-field":["case",["==",["get","ut"],""],["format",["get","nm"],{}],["format",["get","ut"],{"font-scale":0.86},"\n",{},["get","nm"],{}]],
+      "text-font":FONT.m,"text-size":12,"text-line-height":1.15,"text-anchor":"top","symbol-sort-key":["-",0,["get","cap"]],
+      "text-offset":["interpolate",["linear"],["zoom"],5,["literal",[0,0.95]],7,["literal",[0,1.15]],10,["literal",[0,1.25]]]},
     paint:{"text-color":"#FFFFFF",...lbl}});
   // yakında saha sınırı (40 MW'lık alan, kesik çizgi) ve doluluk; kendi sahanda canlı üretim (sitelive.js)
   map.addSource("bnd",{type:"geojson",data:fc([])});
@@ -306,9 +332,15 @@ function initMapButtons(){
   $("zoomIn").onclick=()=>zoomBy(1);$("zoomOut").onclick=()=>zoomBy(-1);
   $("nextSite").onclick=()=>{const ids=Object.keys(S.sites);if(!ids.length){openSheet("saha");return;}
     const i=ids.indexOf(S.sel.id);focusSite(ids[(i+1)%ids.length]);};
-  const lg=$("mapLegend"),lb=$("legendBtn");lb.onclick=()=>{lg.hidden=!lg.hidden;lb.setAttribute("aria-expanded",String(!lg.hidden));};
+  const lg=$("mapLegend"),lb=$("legendBtn");lb.onclick=()=>{lg.hidden=!lg.hidden;lb.setAttribute("aria-expanded",String(!lg.hidden));if(!lg.hidden)paintLegend(lg);};
   const fs=$("fsBtn");if(document.fullscreenEnabled&&!mobile.matches){fs.hidden=false;
     fs.onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});}
+}
+
+// lejanttaki saha simgeleri haritadakiyle aynı glif ve renk (açılınca; tema değişmiş olabilir)
+function paintLegend(lg){
+  lg.querySelectorAll("i.lg").forEach(i=>{const c=i.dataset.c&&cssv(i.dataset.c);if(!i.firstChild)i.innerHTML=glyphSVG(i.dataset.g,"");
+    if(c){i.style.background=c;i.style.color=INK[inkOn(c)];}else i.style.color="#FFFFFF";});
 }
 
 const flatRatio=L=>Math.min(devicePixelRatio||1,L===LEVELS.low?1.5:L===LEVELS.med?2:3);
@@ -425,9 +457,11 @@ export function drawMap(){
   if(mk){mk.draw();return;}
   let live=false;
   map.getSource("sites").setData(fc(Object.entries(S.sites).map(([id,o])=>{
-    const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
-    const on=mw&&isLive(plantStatus(id))?1:0;if(on)live=true;
-    return pt(o.lon,o.lat,{id,col:top?cssv(TECH[top.k].c):"#FFFFFF",op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",t:mw?`${mw} MW`:"",on,lv:liveText(id)+battText(plantStatus(id).batt)});})));
+    const ps=S.plants.filter(p=>p.t===id),top=ps.slice().sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id),st=plantStatus(id);
+    const on=mw&&isLive(st)?1:0;if(on)live=true;
+    const col=top?cssv(TECH[top.k].c):"#FFFFFF",u=unitsOf(id);
+    return pt(o.lon,o.lat,{id,col,op:top?1:0.3,st:STATUS[o.permit]||"#FFFFFF",gi:`g-${glyphOf(top&&top.k)}-${top?inkOn(col):"w"}`,cap:mw,
+      pw:powerText(id),ut:u.tot?`${u.run}/${u.tot}`:"",nm:shortName(o),on,lv:liveText(id)+battText(st.batt)});})));
   anyLive=live;
   map.getSource("rivals").setData(fc(rivalSites().map(({r,s})=>pt(s.lon,s.lat,{r:r.id,c:r.c,build:s.build>0,t:`${r.sh} ${s.mw} MW${s.build>0?" (inşaat)":""}`}))));
   map.getSource("sel").setData(fc([pt(S.sel.lon,S.sel.lat,{})]));

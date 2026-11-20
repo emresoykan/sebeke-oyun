@@ -94,9 +94,10 @@ function dailyNews(){
     else if(pr.some(v=>v<=0.5)&&S.dayNo-r.z>=7){r.z=S.dayNo;news(mn<0?"📉":"☀️",mn<0?`${REG[k].n} piyasasında öğle fiyatı yine eksiye iniyor (${fmtP(mn)}): güneş ve rüzgâr arzı talebi aşıyor.`:`${REG[k].n} piyasasında öğle fiyatı sıfıra iniyor: güneş arzı talebi aşıyor.`,"price");}});
 }
 
-// Haritadaki canlı görünüm için son oyun saatinin saha başına üretimi (MW; batarya şarjı eksi) ve satış geliri ($)
+// Haritadaki canlı görünüm için son oyun saatinin saha başına üretimi (MW; batarya şarjı eksi), satış geliri ($) ve o saatte
+// çalışan ünite sayısı (u: üreten, şarj/deşarj eden ya da elektrik çeken santralin 5 MW'lık blokları)
 export const LIVE={};
-const live=(id,e,r)=>{const o=LIVE[id]||(LIVE[id]={mw:0,r:0});o.mw+=e;o.r+=r;};
+const live=(id,e,r,p)=>{const o=LIVE[id]||(LIVE[id]={mw:0,r:0,u:0});o.mw+=e;o.r+=r;if(p&&Math.abs(e)>0.01)o.u+=Math.max(1,Math.round(p.mw/BLOCK));};
 export function tick(){
   const h=S.hour, st=D.st; let cash=0;
   for(const k in LIVE)delete LIVE[k];
@@ -121,7 +122,7 @@ export function tick(){
       if(sp<0||(PV.includes(p.k)&&sp<=0)){st.curt+=e;e=0;} // negatif fiyatta (Avrupa, İberya) üreten para öder: bütün yenilenebilirler kısar
       const c=p.cm?p.cm[h]:e; // GÖP taahhüdü (gün ortasında kurulan santralde üretimin kendisi)
       cash+=c*sp;st.da+=c*sp;dev[m]=(dev[m]||0)+e-c;val[m]=(val[m]||0)+(e-c)*sp;
-      ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
+      ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp,p);st.E[p.k]+=e;st.R[p.k]+=e*sp;st.fcErr+=Math.abs(e-(p.fc?p.fc[h]:e));st.fcE+=e;
       if(p.k==="mar"){const x=e*MAR_PREMIUM;cash+=x;st.R.mar+=x;ac.r+=x;} // yenilik desteği gerçekleşen üretime ödenir
       // fark sözleşmesi (support.js, deniz üstü RES): gerçekleşen üretim sözleşme fiyatıyla satış fiyatı arasındaki farkı alır ya da
       // öder; proje gelirine (ac) katılır
@@ -137,28 +138,28 @@ export function tick(){
       if(yk){yg[p.t]=(yg[p.t]||0)+e;yv[p.t]=(yv[p.t]||0)+e*sp;}else if(ya){ag[p.t]=(ag[p.t]||0)+e;av[p.t]=(av[p.t]||0)+e*sp;}
       if(t.fit&&S.dayNo<=t.fit.until&&e>0&&sp<t.fit.p&&!yk&&!ya){const x=e*(t.fit.p-Math.max(0,sp));cash+=x;st.fit+=x;}
       if(p.k==="ges"){st.sBase+=e*M.avg;g.s+=e;}else if(p.k==="fpv"||p.k==="spv")g.s+=e;else if(p.k==="mar")g.m+=e;else g.w+=e;}
-    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
+    else if(p.k==="hes"){const e=p.plan?p.plan[h]:0;ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp,p);st.E.hes+=e;st.R.hes+=e*sp;st.da+=e*sp;g.h+=e;cash+=e*sp;}
     // JES negatif fiyatlı saatte üretimi durdurur (üreten para öder)
-    else if(p.k==="jes"){const e=sp<0?0:geoOut(p,h);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
+    else if(p.k==="jes"){const e=sp<0?0:geoOut(p,h);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp,p);st.E.jes+=e;st.R.jes+=e*sp;st.da+=e*sp;g.j+=e;cash+=e*sp;}
     // CSP: heliostatlar saatin ısısını erimiş tuz deposuna doldurur; türbin plandaki (en pahalı) saatlerde depodan üretir.
     // Depo taşacaksa türbin plan dışı saatte de çalışır (ısı boşa gitmesin); taşan kısım odak dışına alınır (kayıp)
     else if(p.k==="csp"){const cap=p.mw*CSP.h;p.tank=(p.tank||0)+cspHeat(p,h);let e=p.plan&&p.plan[h]?Math.min(p.mw,p.tank):0;
       if(p.tank-e>cap)e=Math.min(p.mw,p.tank-cap);p.tank=Math.min(cap,p.tank-e);
-      ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);st.E.csp+=e;st.R.csp+=e*sp;st.da+=e*sp;g.c+=e;cash+=e*sp;}
+      ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp,p);st.E.csp+=e;st.R.csp+=e*sp;st.da+=e*sp;g.c+=e;cash+=e*sp;}
     // Pompaj HES: plandaki ucuz saatte su üst hazneye basılır (şebekeden alınan enerji depoya), pahalı saatte türbinden geçer
     // (çevrim verimi kadarı satılır). Batarya masasının modundan bağımsız, hep arbitraj yapar
     else if(p.k==="phs"){p.soc=p.soc||0;const cap=p.mw*PHS_H,pl=p.plan?p.plan[h]:0;
-      if(pl===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr);st.pNet-=e*pr;cash-=e*pr;g.b-=e;}
-      else if(pl===-1){const r=q.rte||0.8,e=Math.min(p.mw,p.soc);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr);st.pNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
+      if(pl===1){const e=Math.min(p.mw,cap-p.soc);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr,p);st.pNet-=e*pr;cash-=e*pr;g.b-=e;}
+      else if(pl===-1){const r=q.rte||0.8,e=Math.min(p.mw,p.soc);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr,p);st.pNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
     // Elektrolizör: plandaki saatte şebekeden (o saatin satış fiyatıyla) elektrik alır, hidrojeni sabit fiyattan satar.
     // Gelir net kaydedilir (proje ekonomisi depolama gibi); fiyatı sıfır olan saatler (satılamayan güneş) ayrıca sayılır
     else if(p.k==="h2"){const e=p.plan?p.plan[h]:0;if(e>0){const kg=e*1000/H2.kwh*q.perf,r=kg*H2.price,c=e*sp; // negatif fiyatta şebekeden alırken para alır
-      ac.r+=r-c;live(p.t,-e,r-c);st.h2kg+=kg;st.h2R+=r;st.h2C+=c;if(sp<=0)st.h2Z+=e;cash+=r-c;h2s.push({p,e,kg,ac});}}
-    else if(p.k==="bes"){const e=p.plan?p.plan[h]:0,f=e*bioFuel(p);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp);ac.f+=f;st.E.bes+=e;st.R.bes+=e*sp;st.da+=e*sp;st.fuel+=f;g.o+=e;cash+=e*sp-f;}
+      ac.r+=r-c;live(p.t,-e,r-c,p);st.h2kg+=kg;st.h2R+=r;st.h2C+=c;if(sp<=0)st.h2Z+=e;cash+=r-c;h2s.push({p,e,kg,ac});}}
+    else if(p.k==="bes"){const e=p.plan?p.plan[h]:0,f=e*bioFuel(p);ac.e+=e;ac.r+=e*sp;live(p.t,e,e*sp,p);ac.f+=f;st.E.bes+=e;st.R.bes+=e*sp;st.da+=e*sp;st.fuel+=f;g.o+=e;cash+=e*sp-f;}
     else if(p.k==="batt"){p.soc=p.soc||0;const cap=p.mw*2;
       if(bm==="bal"){(batts[m]=batts[m]||[]).push(p);return;}if(bm==="off")return;
-      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);yekBatt(yev,p,e,true,p.soc,0,pr,Y);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr);st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
-      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);yekBatt(yev,p,e,false,p.soc,r,pr,Y);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr);st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
+      if(M.plan[h]===1){const e=Math.min(p.mw,cap-p.soc);yekBatt(yev,p,e,true,p.soc,0,pr,Y);p.soc+=e;ac.r-=e*pr;live(p.t,-e,-e*pr,p);st.bNet-=e*pr;cash-=e*pr;g.b-=e;}
+      else if(M.plan[h]===-1){const r=q.rte||EFF,e=Math.min(p.mw,p.soc);yekBatt(yev,p,e,false,p.soc,r,pr,Y);p.soc-=e;ac.r+=e*r*pr;live(p.t,e*r,e*r*pr,p);st.bNet+=e*r*pr;cash+=e*r*pr;g.b+=e*r;}}
   });
   // yeşil hidrojen desteği (support.js): sahanın bu saatteki rüzgâr/güneş/deniz üretimiyle karşılanan elektrikten üretilen
   // kg'a ödenir; sahada birden çok elektrolizör kaydı varsa üretim tüketimleri oranında paylaştırılır

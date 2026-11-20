@@ -2,6 +2,9 @@
 // id: yayın tarihi (YYYY-MM-DD; aynı gün ikinci yayın YYYY-MM-DD.2; "yeni" işareti en üstteki id'ye göre). Yeni bir yayında en üste bir kayıt eklenir;
 // yalnızca oyuncunun fark edeceği değişiklikler yazılır (iç düzenlemeler, testler ve betikler yazılmaz).
 export const NOTES=[
+  {id:"2026-11-20",t:"Haritada santral simgeleri",items:[
+    "Sahaların artık haritada santral izleme ekranlarındaki gibi görünüyor: dairenin içinde teknolojinin simgesi (RES türbin, GES güneş, HES damla, batarya, JES buhar, biyokütle yaprak …). Uzaktan bakınca hangi sahanın ne olduğu rengiyle birlikte biçiminden de anlaşılıyor; santrali olmayan sahada bayrak var.",
+    "Ülke ölçeğinde işaretin üstündeki beyaz kutu sahanın şu anki gücünü gösterir (son oyun saati; şarj eden batarya eksi, üretim yoksa soluk \"0 MW\"). Biraz yaklaşınca altında çalışan/toplam ünite (\"6/8\", 5 MW'lık blok) ve sahanın adı çıkar. Lejant (ⓘ) aynı simgeleri gösteriyor."]},
   {id:"2026-11-12.5",t:"Fransa ve İtalya'da destek",items:[
     "Fransa ve İtalya'daki GES ve kara RES artık isteğe bağlı, iki yönlü bir destek sözleşmesine katılabilir. Saha panelinde, o teknolojinin ilk bloğundan önce \"Sözleşmeye katıl\" seç; sonra 20 ekonomik yıl değişmez.",
     "Fransa (tamamlayıcı ödeme, CRE ihaleleri): tarif güneşte 88,8, rüzgârda 86,3 $/MWh. Ay sonunda güneşin ya da rüzgârın o ayki piyasa değeri tarifin altındaysa farkı alırsın, üstündeyse geri ödersin.",

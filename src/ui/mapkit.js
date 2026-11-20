@@ -20,7 +20,8 @@ import { plantStatus, isLive } from "../plantstatus.js";
 import { wxOn, cloudCanvas, tickClouds, activeStorms } from "./wxflat.js";
 import * as P from "./potential.js";
 import { realTileURL, onRealChange, onRealTile, realOn, setRealView } from "./realplants.js";
-import { bndOf, occText, liveText, battHtml } from "./sitelive.js";
+import { bndOf, occText, liveText, battHtml, powerText, unitsOf, shortName } from "./sitelive.js";
+import { glyphOf, glyphSVG, inkOn, INK } from "./siteicons.js";
 import { addRotors, spinRotors } from "./rotors.js";
 import { siteCap, capMW } from "../rules.js";
 
@@ -213,7 +214,7 @@ function onRegion(){
   if(!map)return;const h=map.cameraDistance,el=box;
   // uzaklaşınca bulutlar görünür olur: bulut tuvali harita durulunca çizilir (Apple'ın yeni karoları önce gelsin)
   const was=clouds.opacity;clouds.opacity=wxOn()?cloudOpacity(h):0;if(!was&&clouds.opacity)whenStill(cloudsOn);
-  el.classList.toggle("mk-z3",h<zoomToH(3));el.classList.toggle("mk-z4",h<zoomToH(4));
+  el.classList.toggle("mk-z3",h<zoomToH(3));el.classList.toggle("mk-z35",h<zoomToH(3.5));el.classList.toggle("mk-z4",h<zoomToH(4));el.classList.toggle("mk-z5",h<zoomToH(5));
   const showParks=h<zoomToH(6);parkLabels.forEach(a=>{if(a.visible!==showParks)a.visible=showParks;});
 }
 
@@ -299,12 +300,17 @@ function drawImpl(){
   const seen=new Set();
   for(const [id,o] of Object.entries(S.sites)){
     seen.add(id);let m=sites.get(id);
-    if(!m){m=marker("mk-site",18,()=>hooks.selectSite(id));sites.set(id,m);map.addAnnotation(m.a);}
+    // işaret (düz haritayla aynı): glifli daire, üstte güç kutusu, altta çalışan/toplam ünite ve ad
+    if(!m){m=marker("mk-site",22,()=>hooks.selectSite(id));m.gl=document.createElement("span");m.gl.className="mk-glw";m.root.prepend(m.gl);
+      m.pill=div("mk-pill",m.root);sites.set(id,m);map.addAnnotation(m.a);}
     const top=S.plants.filter(p=>p.t===id).sort((a,b)=>b.mw-a.mw)[0],mw=siteMW(id);
     place(m,o.lat,o.lon);
     const col=top?cssv(TECH[top.k].c):"rgba(255,255,255,.3)";m.root.style.background=col;m.root.style.borderColor=STATUS[o.permit]||"#FFFFFF";
     m.root.style.setProperty("--c",col);m.root.classList.toggle("on",!!(mw&&isLive(plantStatus(id))));
-    const t=mw?`${mw} MW`:"";if(m.lab.textContent!==t)m.lab.textContent=t;
+    const g=glyphOf(top&&top.k);if(m.g!==g){m.g=g;m.gl.innerHTML=glyphSVG(g);}m.gl.style.color=top?INK[inkOn(col)]:"#FFFFFF";
+    const pw=powerText(id);if(m.pill.textContent!==pw){m.pill.textContent=pw;m.pill.classList.toggle("idle",pw==="0 MW");}
+    const u=unitsOf(id),nm=shortName(o),uk=`${u.run}/${u.tot}|${nm}`;
+    if(m.unitKey!==uk){m.unitKey=uk;m.lab.textContent=nm;if(u.tot){const c=document.createElement("small");c.textContent=`${u.run}/${u.tot}`;m.lab.prepend(c);}}
     ensureBnd(m,true);const b=occText(capMW(id),siteCap(o));if(m.bndLab.textContent!==b)m.bndLab.textContent=b;
     const st=plantStatus(id),lv=liveText(id),bh=battHtml(st.batt),lk=lv+bh;
     if(m.liveKey!==lk){m.liveKey=lk;m.live.innerHTML=lv?`<span>${lv}</span>${bh}`:"";if(m.bndOn)m.live.style.display=lv?"":"none";}
