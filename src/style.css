@@ -350,7 +350,16 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .mk-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;white-space:nowrap;pointer-events:none;
   font:600 12px "Noto Sans",system-ui,sans-serif;color:#fff;text-shadow:0 0 3px #0B1626,0 0 2px #0B1626,0 1px 2px #0B1626}
 .mk-lbl:empty{display:none}
-.mk-site{width:18px;height:18px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(11,22,38,.6)}
+.mk-site{width:22px;height:22px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(11,22,38,.6)}
+/* saha işareti (siteicons.js): teknoloji glifi, üstte güç kutusu, altta çalışan/toplam ünite ve ad */
+.mk-glw{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.mk-gl{display:block;width:15px;height:15px}
+.mk-pill{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:5px;padding:2px 7px;border-radius:10px;white-space:nowrap;pointer-events:none;
+  background:rgba(255,255,255,.97);color:#0B1626;font:600 11.5px "Noto Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 0 0 1px rgba(11,22,38,.32),0 1px 3px rgba(0,0,0,.25)}
+.mk-pill:empty{display:none}
+.mk-pill.idle{color:#66727C}
+.mk-site .mk-lbl{text-align:center;line-height:1.15}
+.mk-site .mk-lbl small{display:block;font-size:10.5px}
 .mk-rival{width:16px;height:16px}
 .mk-rival::before{content:"";position:absolute;inset:2px;background:var(--c);border:2px solid rgba(10,15,25,.9);transform:rotate(45deg)}
 .mk-rival.build::before{opacity:.5}
@@ -358,7 +367,7 @@ dialog#leagueDlg::backdrop{background:rgba(5,10,15,.55)}
 .mk-sel{width:28px;height:28px;border-radius:50%;border:1.6px solid #fff;box-shadow:0 0 0 3px #000,inset 0 0 0 1px rgba(0,0,0,.35);pointer-events:none;cursor:default}
 .mk-park{width:2px;height:2px;pointer-events:none;cursor:default}
 .mk-park .mk-lbl{color:#FFD3D9;font-size:12px}
-.mk-map:not(.mk-z3) .mk-site .mk-lbl{display:none}
+.mk-map:not(.mk-z5) .mk-site .mk-lbl,.mk-map:not(.mk-z35) .mk-site .mk-pill,.mk-site.fac .mk-pill{display:none}
 .mk-map.mk-z4 .mk-rival .mk-lbl:not(:empty){display:block}
 .mapnote{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;background:rgba(10,15,25,.88);color:#fff;font:600 12.5px system-ui,sans-serif;padding:8px 10px;border-radius:8px;pointer-events:none}
 .mk-site.on::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:2.2px solid var(--c);animation:mkpulse 2.2s ease-out infinite;pointer-events:none}
@@ -417,6 +426,10 @@ header{align-items:center}
 .mapbtns svg{display:block;margin:auto}
 .mapwrap .maplegend{position:absolute;left:64px;top:10px;z-index:3;max-width:min(320px,calc(100% - 80px));margin:0;padding:10px 12px;border-radius:12px;background:rgba(18,26,34,.9);color:#E5ECF0;font-size:.78rem}
 .mapwrap .maplegend[hidden]{display:none}
+.maplegend i.lg{width:15px;height:15px;border-radius:50%;box-shadow:0 0 0 1.5px #fff;display:inline-grid;place-items:center;vertical-align:-3px;margin-right:5px}
+.maplegend i.lg svg{width:11px;height:11px;display:block}
+.maplegend .lgnote{flex-basis:100%;margin-top:2px}
+.maplegend .lgpill{background:#fff;color:#0B1626;border-radius:8px;padding:0 5px;font-weight:600}
 .maphint{position:absolute;z-index:4;width:256px;padding:8px 10px;border-radius:10px;background:rgba(18,26,34,.92);color:#E5ECF0;font-size:.8rem;line-height:1.35;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
 .maphint[hidden]{display:none}
 /* klavyeyle gezinme: odak çerçevesi, ortada nişangâh ve kısa ipucu (yalnızca klavye kullanılırken) */

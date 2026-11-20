@@ -3,7 +3,7 @@
 // ~1,6 × 0,7 km, 40 MW GES ~0,7 km kare tutar. Boş sahada bu varsayılan dikdörtgen çizilir; tesis görüntüsü daha
 // genişse sınır onu içine alacak kadar büyür.
 import { S, D } from "../state.js";
-import { SITE_LIMIT } from "../config.js";
+import { SITE_LIMIT, BLOCK } from "../config.js";
 import { LIVE } from "../sim.js";
 
 export const BND=[-900,900,-500,500]; // doğu en az/en çok, kuzey en az/en çok (metre, saha koordinatına göre)
@@ -21,6 +21,19 @@ export function liveText(id){
   if(o.mw<0)return `Şarj ediyor ${f1(-o.mw)} MW • ${Math.round(o.r/o.mw)} $/MWh`;
   return `Şu an ${f1(o.mw)} MW üretiyor • ${Math.round(o.r/o.mw)} $/MWh`;
 }
+// Haritadaki işaret (iki harita ortak): üstteki kutuda sahanın son oyun saatindeki gücü (şarj eden batarya eksi),
+// altta çalışan/toplam ünite (5 MW'lık blok). İkisi de aynı saatin simülasyonundan (sim.js LIVE): o saatte üreten, şarj/deşarj
+// eden ya da elektrik çeken santralin blokları çalışıyor, arızalı ya da duran santralinkiler durmuş sayılır
+export function powerText(id){
+  if(!S.plants.some(p=>p.t===id))return "";
+  const v=(LIVE[id]&&LIVE[id].mw)||0;return `${Math.abs(v)<0.05?"0":f1(v)} MW`;
+}
+export function unitsOf(id){
+  let tot=0;for(const p of S.plants)if(p.t===id)tot+=Math.max(1,Math.round(p.mw/BLOCK));
+  return {run:Math.min(tot,(LIVE[id]&&LIVE[id].u)||0),tot};
+}
+// işaretin altındaki kısa ad: en yakın şehir (denizde "… açıkları")
+export const shortName=o=>o.sea?`${o.city} açıkları`:o.city||"";
 // Batarya şarj çubuğu (plantStatus().batt: soc 0–1, chg şarj, dis deşarj): canlı kutuda metnin altında; yoksa boş
 export function battHtml(b){
   if(!b)return "";const p=Math.round(b.soc*100),s=b.down?"arızalı":b.chg?"şarj oluyor":b.dis?"deşarj ediyor":"beklemede";
